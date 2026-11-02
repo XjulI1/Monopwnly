@@ -86,7 +86,7 @@ de trancher, validés le 2 novembre 2026. Les specs indiquées reflètent ces d�
 À appliquer et archiver dans cet ordre (`/opsx:apply` puis `/opsx:archive`) : chaque change suppose
 les précédents implémentés.
 
-- [ ] `add-rules-engine` : socle du projet et moteur de règles
+- [x] `add-rules-engine` : socle du projet et moteur de règles
 - [ ] `add-3d-board` : plateau 3D TresJS
 - [ ] `add-game-ui` : écrans, HUD du tour, dés animés, achats, enchères, constructions
 - [ ] `add-heuristic-ai` : IA heuristique en trois niveaux

@@ -10,6 +10,10 @@ export default mergeConfig(
           extends: true,
           test: { name: 'engine', environment: 'node', include: ['src/engine/**/*.test.ts'] },
         },
+        {
+          extends: true,
+          test: { name: 'board', environment: 'node', include: ['src/board/**/*.test.ts'] },
+        },
       ],
     },
   }),

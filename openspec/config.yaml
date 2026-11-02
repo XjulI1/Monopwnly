@@ -1,0 +1,58 @@
+schema: spec-driven
+
+context: |
+  Langue : rédiger TOUS les artefacts (proposal, design, specs, tasks) en français.
+  Exception : conserver en anglais les marqueurs structurels parsés par l'outillage OpenSpec —
+  en-têtes de delta (## ADDED/MODIFIED/REMOVED/RENAMED Requirements), préfixes
+  "### Requirement:" / "#### Scenario:", mots-clés **WHEN**/**THEN**/**AND** et SHALL/SHALL NOT,
+  ainsi que le format des cases à cocher "- [ ] X.Y".
+
+  Produit : Monopwnly, jeu de plateau original de la famille des jeux d'achat de propriétés et de
+  loyers, en web app, projet perso non publié. Thème cyber/hacking : les propriétés sont des
+  systèmes à pirater, les maisons des « backdoors », les hôtels des « rootkits », la prison une
+  « quarantaine », la monnaie une cryptomonnaie fictive, le PwnCoin (symbole Ᵽ). Plateau, noms,
+  cartes et valeurs sont originaux : ne reprendre ni le plateau, ni les noms, ni les cartes, ni la
+  marque d'un jeu existant. Règles proches du genre, sans mécanique inédite. Contenu du plateau
+  décrit dans docs/plateau.md.
+
+  Solo contre IA : 2 à 6 joueurs, humains sur le même appareil ou IA heuristique à 3 niveaux
+  (facile, normal, difficile ; expert par simulation reporté). Enchères quand une case n'est pas
+  achetée (activées par défaut, désactivables). Échanges de propriétés, d'argent et de cartes entre
+  joueurs, IA comprise. Fin de partie par faillite de tous sauf un, avec en option une limite de
+  tours ou un objectif de patrimoine. Règles optionnelles : cagnotte de la DMZ, bonus double sur
+  Boot, construction libre, pas de loyer en quarantaine. Interface en français en dur, pas d'i18n.
+
+  Rendu : plateau carré vu du haut et incliné en 3D (zoom/pan, pas d'orbite libre), style plateau
+  low-poly : cases en relief, pions 3D qui avancent case par case, backdoors et rootkits en relief,
+  dés animés avec vitesse réglable.
+
+  Écrans cibles : ordinateur et tablette en paysage, à partir de 1024 px de large (1024 × 768
+  minimum), à la souris comme au tactile. Le smartphone et le mode portrait ne sont pas des cibles :
+  l'application y reste accessible sans adaptation dédiée, et ils ne doivent jamais contraindre la
+  conception de l'interface.
+
+  Stack : Vite + Vue 3 SPA (`<script setup lang="ts">`, Composition API), TypeScript strict,
+  TresJS (Three.js), Tailwind CSS + composants maison pour le HUD, Vitest. Gestionnaire de
+  paquets : pnpm ; ne jamais lancer d'install, l'utilisateur les fait lui-même.
+
+  Architecture : moteur de règles pur et sérialisable (aucune dépendance à Vue ni à Three.js),
+  déterministe (générateur à graine stocké dans l'état), testé en TDD ; le rendu 3D et l'UI
+  consomment son état. L'IA s'appuie sur le même moteur. Sauvegarde automatique en localStorage
+  et journal des actions.
+
+  Conventions de code : identifiants et code en anglais ; aucun commentaire dans le code
+  (seule exception : JSDoc sur l'API exportée) ; `type` plutôt qu'`interface` ; pas d'`any`.
+
+rules:
+  proposal:
+    - Rédiger en français (sauf marqueurs structurels OpenSpec)
+    - Inclure une section « Hors périmètre » listant ce qui est reporté à un change ultérieur
+  design:
+    - Rédiger en français (sauf marqueurs structurels OpenSpec)
+  specs:
+    - Rédiger le contenu en français ; garder les en-têtes de delta, "Requirement:"/"Scenario:", WHEN/THEN et SHALL en anglais
+    - Les scénarios doivent être directement traduisibles en tests Vitest
+  tasks:
+    - Rédiger les descriptions de tâches en français ; conserver le format "- [ ] X.Y"
+    - Ordonner en TDD pour la logique de jeu, le test précède l'implémentation
+    - Toute tâche nécessitant un `pnpm install` / `pnpm add` le signale explicitement pour que l'utilisateur le lance

@@ -1,0 +1,196 @@
+# Plateau de Monopwnly
+
+Contenu original du plateau : cases, groupes, prix, loyers et cartes. **Proposition à valider**
+avant l'implémentation de `add-rules-engine` (voir la section « Décisions » du `TODO.md`). Le moteur
+lit ces données depuis `src/engine/board/` ; ce document en est la référence lisible.
+
+## Thème et vocabulaire
+
+Le joueur est un hacker qui prend le contrôle de systèmes informatiques, des plus vieux aux plus
+sensibles, et fait payer ceux qui les traversent.
+
+| Notion du genre | Monopwnly |
+|---|---|
+| Argent | **PwnCoin**, symbole `Ᵽ` (affiché « 1 500 Ᵽ ») |
+| Propriété | **Système** (un système piraté appartient au joueur) |
+| Groupe de couleur | **Famille** de systèmes |
+| Maison | **Backdoor** (4 au maximum par système) |
+| Hôtel | **Rootkit** (remplace 4 backdoors) |
+| Gare | **Nœud** réseau |
+| Compagnie | **Service** |
+| Départ | **Boot** |
+| Prison | **Quarantaine** |
+| Parc | **DMZ** (case de repos) |
+| Allez en prison | **Détecté !** |
+| Cartes | **Exploit** et **Patch** |
+| Carte de sortie de prison | **Clé de déchiffrement** |
+| Hypothèque | **Mise en veille** |
+
+## Valeurs générales
+
+| Valeur | Montant |
+|---|---|
+| Argent de départ | 1 500 Ᵽ |
+| Salaire en passant par Boot | 200 Ᵽ (400 Ᵽ en s'y arrêtant, avec l'option « bonus double ») |
+| Sortie de quarantaine | 50 Ᵽ |
+| Mise en veille | 50 % du prix du système |
+| Réactivation | mise en veille + 10 % |
+| Revente d'une backdoor ou d'un rootkit | 50 % de son coût |
+| Stock de la banque | 32 backdoors, 12 rootkits |
+
+## Les 40 cases
+
+Les cases sont numérotées de 0 à 39 dans le sens du déplacement ; chaque côté du plateau compte
+11 cases, coins compris.
+
+| # | Case | Type | Prix |
+|---|---|---|---|
+| 0 | Boot | coin, départ | |
+| 1 | Minitel | Rétro | 60 |
+| 2 | Exploit | carte | |
+| 3 | Modem 56k | Rétro | 60 |
+| 4 | Nœud VPN | nœud | 200 |
+| 5 | Rançongiciel | taxe : 200 Ᵽ | |
+| 6 | Ampoule Wi‑Fi | Objets connectés | 100 |
+| 7 | Frigo connecté | Objets connectés | 100 |
+| 8 | Patch | carte | |
+| 9 | Caméra IP | Objets connectés | 120 |
+| 10 | Quarantaine | coin (simple visite) | |
+| 11 | Imprimante réseau | Bureautique | 140 |
+| 12 | Messagerie pro | Bureautique | 140 |
+| 13 | Datacenter | service | 150 |
+| 14 | Intranet | Bureautique | 160 |
+| 15 | Exploit | carte | |
+| 16 | Forum | Web | 180 |
+| 17 | Blog | Web | 180 |
+| 18 | Nœud Tor | nœud | 200 |
+| 19 | Boutique en ligne | Web | 200 |
+| 20 | DMZ | coin, repos | |
+| 21 | Fil d'actualité | Social | 220 |
+| 22 | Patch | carte | |
+| 23 | Messagerie chiffrée | Social | 220 |
+| 24 | Plateforme vidéo | Social | 240 |
+| 25 | Nœud Proxy | nœud | 200 |
+| 26 | Distributeur de billets | Finance | 260 |
+| 27 | Exploit | carte | |
+| 28 | Néobanque | Finance | 260 |
+| 29 | Bourse en ligne | Finance | 280 |
+| 30 | Détecté ! | coin, envoi en quarantaine | |
+| 31 | Réseau électrique | Infrastructure | 300 |
+| 32 | Satellite | Infrastructure | 300 |
+| 33 | Cloud | service | 150 |
+| 34 | Câble sous-marin | Infrastructure | 320 |
+| 35 | Patch | carte | |
+| 36 | Nœud Mesh | nœud | 200 |
+| 37 | Mainframe d'État | Cœur | 350 |
+| 38 | Amende RGPD | taxe : 100 Ᵽ | |
+| 39 | Noyau de l'IA | Cœur | 400 |
+
+Décompte : 22 systèmes en 8 familles, 4 nœuds, 2 services, 6 cases carte, 2 taxes, 4 coins.
+
+## Systèmes et loyers
+
+Le loyer de base vaut environ 7 à 12 % du prix, croissant avec la famille. Les loyers avec
+constructions en sont des multiples fixes (×5, ×14, ×38, ×50, ×62), arrondis à 5 Ᵽ. Une famille
+complète sans construction double le loyer de base. Ces valeurs seront vérifiées par des parties
+simulées entre IA dans `add-heuristic-ai` (durée moyenne d'une partie, avantage du premier joueur)
+et pourront être réajustées.
+
+| Système | Prix | Base | Famille | 1 BD | 2 BD | 3 BD | 4 BD | Rootkit | Coût BD | Veille |
+|---|---|---|---|---|---|---|---|---|---|---|
+| **Rétro** | | | | | | | | | | |
+| Minitel | 60 | 4 | 8 | 20 | 55 | 150 | 200 | 250 | 50 | 30 |
+| Modem 56k | 60 | 4 | 8 | 20 | 55 | 150 | 200 | 250 | 50 | 30 |
+| **Objets connectés** | | | | | | | | | | |
+| Ampoule Wi‑Fi | 100 | 6 | 12 | 30 | 85 | 230 | 300 | 370 | 50 | 50 |
+| Frigo connecté | 100 | 6 | 12 | 30 | 85 | 230 | 300 | 370 | 50 | 50 |
+| Caméra IP | 120 | 8 | 16 | 40 | 110 | 305 | 400 | 495 | 50 | 60 |
+| **Bureautique** | | | | | | | | | | |
+| Imprimante réseau | 140 | 10 | 20 | 50 | 140 | 380 | 500 | 620 | 100 | 70 |
+| Messagerie pro | 140 | 10 | 20 | 50 | 140 | 380 | 500 | 620 | 100 | 70 |
+| Intranet | 160 | 12 | 24 | 60 | 170 | 455 | 600 | 745 | 100 | 80 |
+| **Web** | | | | | | | | | | |
+| Forum | 180 | 14 | 28 | 70 | 195 | 530 | 700 | 870 | 100 | 90 |
+| Blog | 180 | 14 | 28 | 70 | 195 | 530 | 700 | 870 | 100 | 90 |
+| Boutique en ligne | 200 | 16 | 32 | 80 | 225 | 610 | 800 | 990 | 100 | 100 |
+| **Social** | | | | | | | | | | |
+| Fil d'actualité | 220 | 18 | 36 | 90 | 250 | 685 | 900 | 1115 | 150 | 110 |
+| Messagerie chiffrée | 220 | 18 | 36 | 90 | 250 | 685 | 900 | 1115 | 150 | 110 |
+| Plateforme vidéo | 240 | 20 | 40 | 100 | 280 | 760 | 1000 | 1240 | 150 | 120 |
+| **Finance** | | | | | | | | | | |
+| Distributeur de billets | 260 | 22 | 44 | 110 | 310 | 835 | 1100 | 1365 | 150 | 130 |
+| Néobanque | 260 | 22 | 44 | 110 | 310 | 835 | 1100 | 1365 | 150 | 130 |
+| Bourse en ligne | 280 | 24 | 48 | 120 | 335 | 910 | 1200 | 1490 | 150 | 140 |
+| **Infrastructure** | | | | | | | | | | |
+| Réseau électrique | 300 | 26 | 52 | 130 | 365 | 990 | 1300 | 1610 | 200 | 150 |
+| Satellite | 300 | 26 | 52 | 130 | 365 | 990 | 1300 | 1610 | 200 | 150 |
+| Câble sous-marin | 320 | 28 | 56 | 140 | 390 | 1065 | 1400 | 1735 | 200 | 160 |
+| **Cœur** | | | | | | | | | | |
+| Mainframe d'État | 350 | 35 | 70 | 175 | 490 | 1330 | 1750 | 2170 | 200 | 175 |
+| Noyau de l'IA | 400 | 50 | 100 | 250 | 700 | 1900 | 2500 | 3100 | 200 | 200 |
+
+BD = backdoor. Le coût d'un rootkit est celui d'une backdoor supplémentaire, les 4 backdoors
+retournant à la banque.
+
+## Nœuds et services
+
+| Nœuds possédés | 1 | 2 | 3 | 4 |
+|---|---|---|---|---|
+| Loyer | 25 | 50 | 100 | 200 |
+
+Prix : 200 Ᵽ chacun, mise en veille 100 Ᵽ.
+
+| Services possédés | 1 | 2 |
+|---|---|---|
+| Loyer | 4 × total des dés | 10 × total des dés |
+
+Prix : 150 Ᵽ chacun, mise en veille 75 Ᵽ.
+
+## Cartes Exploit (16)
+
+Surtout des déplacements.
+
+| # | Titre | Effet |
+|---|---|---|
+| 1 | Redémarrage à chaud | Avancez jusqu'à Boot et encaissez le salaire. |
+| 2 | Escalade de privilèges | Avancez jusqu'au Noyau de l'IA. |
+| 3 | Pivot latéral | Avancez jusqu'à la Boutique en ligne ; salaire si vous passez par Boot. |
+| 4 | Ingénierie sociale | Avancez jusqu'au Fil d'actualité ; salaire si vous passez par Boot. |
+| 5 | Routage onion | Avancez jusqu'au Nœud Tor ; salaire si vous passez par Boot. |
+| 6 | Tunnel chiffré | Avancez jusqu'au nœud suivant. Libre : vous pouvez l'acheter. Possédé par un autre joueur : payez le double du loyer. |
+| 7 | Tunnel chiffré | Identique à la carte 6. |
+| 8 | Ping | Avancez jusqu'au service suivant. Libre : vous pouvez l'acheter. Possédé par un autre joueur : lancez les dés et payez 10 × le total. |
+| 9 | Rollback | Reculez de 3 cases. |
+| 10 | Bug bounty | Recevez 150 Ᵽ. |
+| 11 | Minage chanceux | Recevez 50 Ᵽ. |
+| 12 | Mise à jour forcée | Payez 25 Ᵽ par backdoor et 100 Ᵽ par rootkit. |
+| 13 | Phishing raté | Payez 15 Ᵽ. |
+| 14 | Repéré par l'antivirus | Allez en quarantaine, sans passer par Boot. |
+| 15 | Clé de déchiffrement | Conservez cette carte pour sortir de quarantaine, ou échangez-la. |
+| 16 | Conférence de sécurité | Payez 50 Ᵽ à chaque autre joueur. |
+
+## Cartes Patch (16)
+
+Surtout de l'argent.
+
+| # | Titre | Effet |
+|---|---|---|
+| 1 | Réinitialisation d'usine | Avancez jusqu'à Boot et encaissez le salaire. |
+| 2 | Divulgation responsable | Recevez 200 Ᵽ. |
+| 3 | Abonnement oublié remboursé | Recevez 100 Ᵽ. |
+| 4 | Levée de fonds | Recevez 100 Ᵽ. |
+| 5 | Revente de vieux matériel | Recevez 50 Ᵽ. |
+| 6 | Victoire au CTF | Recevez 25 Ᵽ. |
+| 7 | Dons open source | Recevez 10 Ᵽ. |
+| 8 | Serveur de jeu partagé | Chaque autre joueur vous verse 10 Ᵽ. |
+| 9 | Facture du fournisseur cloud | Payez 100 Ᵽ. |
+| 10 | Assurance cyber | Payez 50 Ᵽ. |
+| 11 | Licence expirée | Payez 50 Ᵽ. |
+| 12 | Formation obligatoire | Payez 20 Ᵽ. |
+| 13 | Audit de sécurité | Payez 40 Ᵽ par backdoor et 115 Ᵽ par rootkit. |
+| 14 | Alerte du SOC | Allez en quarantaine, sans passer par Boot. |
+| 15 | Clé de déchiffrement | Conservez cette carte pour sortir de quarantaine, ou échangez-la. |
+| 16 | Cache vidé | Reculez jusqu'au Minitel (sans passer par Boot). |
+
+Avec l'option « cagnotte de la DMZ », les taxes et les paiements à la banque des cartes (Phishing
+raté, Facture, Assurance, Licence, Formation, Mise à jour forcée, Audit) alimentent la cagnotte.

@@ -1,13 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { chooseAction } from '../ai'
 import type { DecisionRequest } from '../ai/workerProtocol'
-import { cardIdByTitle, type Action } from '../engine'
+import { cardIdByTitle, type Action, type GameState } from '../engine'
 import { A, B, C, forceDice, makeState, player } from '../engine/testUtils'
 import type { AiDecider } from './aiDecider'
-import { useGameSession, type BoardHandle } from './useGameSession'
+import { startJournal } from './history/journal'
+import { startStatistics } from './history/statistics'
+import type { GameRecord } from './savedGame'
+import { useGameSession, type BoardHandle, type GameSession } from './useGameSession'
 
 function fakeBoard(): BoardHandle & { animateMove: ReturnType<typeof vi.fn> } {
   return { animateMove: vi.fn(() => Promise.resolve()) }
+}
+
+function visibleJournal(session: GameSession): string[] {
+  return session.journal.value.slice(0, session.journalShown.value).map((entry) => entry.text)
 }
 
 beforeEach(() => {
@@ -62,7 +69,8 @@ describe('dispatch', () => {
     expect(session.isPresenting.value).toBe(false)
     expect(session.dice.value).toBeNull()
     expect(session.displayedState.value).toBe(session.engineState.value)
-    expect(session.feed.value.map((l) => l.text)).toContain('Joueur 1 passe par Boot : +200\u00A0Ᵽ')
+    expect(session.journalShown.value).toBe(session.journal.value.length)
+    expect(session.journal.value.at(-1)?.details.map((d) => d.text)).toEqual(['Joueur 1 passe par Boot et reçoit 200\u00A0Ᵽ'])
   })
 
   it('shows the engine message and keeps the state when the action is rejected', () => {
@@ -93,20 +101,20 @@ describe('board animation', () => {
     expect(board.animateMove).toHaveBeenLastCalledWith(A, [30, 10], expect.any(Number))
   })
 
-  it('plays nothing at instant speed and sums the action up in the feed', () => {
+  it('plays nothing at instant speed and sums the action up in the journal', () => {
     const board = fakeBoard()
     const session = useGameSession(forceDice(makeState(), [[2, 4]]), { speed: 'instant', board })
     session.dispatch({ type: 'rollDice', playerId: A })
     expect(board.animateMove).not.toHaveBeenCalled()
     expect(session.isPresenting.value).toBe(false)
     expect(player(session.displayedState.value, A).position).toBe(6)
-    expect(session.feed.value.map((l) => l.text)).toEqual(['Joueur 1 lance 2 + 4 = 6', 'Joueur 1 avance jusqu’à Ampoule Wi‑Fi'])
+    expect(visibleJournal(session)).toEqual(['Tour 1 — Joueur 1', 'Joueur 1 lance 2 et 4 et avance sur Ampoule Wi‑Fi'])
   })
 
 })
 
 describe('drawn card', () => {
-  const ROLLBACK_LINE = 'Joueur 1 pioche la carte Exploit «\u00A0Rollback\u00A0» : Reculez de 3 cases.'
+  const ROLLBACK_LINE = 'Joueur 1 pioche Exploit : Rollback — recule sur Messagerie pro'
 
   function rollOntoRollback() {
     return forceDice(makeState({ overrides: [{ position: 10 }], decks: { exploit: [cardIdByTitle('exploit', 'Rollback')] } }), [[2, 3]])
@@ -124,11 +132,15 @@ describe('drawn card', () => {
     expect(player(session.displayedState.value, A).position).toBe(12)
   })
 
-  it('is written in the feed as soon as it shows', async () => {
+  it('shows in the journal once the card and its move are presented', async () => {
     const session = useGameSession(rollOntoRollback(), { speed: 'normal' })
     session.dispatch({ type: 'rollDice', playerId: A })
     await vi.advanceTimersByTimeAsync(60_000)
-    expect(session.feed.value.at(-1)?.text).toBe(ROLLBACK_LINE)
+    expect(session.journal.value.at(-1)?.text).toBe(ROLLBACK_LINE)
+    expect(visibleJournal(session)).toEqual(['Tour 1 — Joueur 1', 'Joueur 1 lance 2 et 3 et avance sur Exploit'])
+    session.dismissCard()
+    await vi.runAllTimersAsync()
+    expect(visibleJournal(session).at(-1)).toBe(ROLLBACK_LINE)
   })
 
   it('still shows when the animation is skipped, then the rest of the action is skipped too', async () => {
@@ -171,7 +183,7 @@ describe('drawn card', () => {
     expect(session.isPresenting.value).toBe(false)
     expect(player(session.displayedState.value, A).position).toBe(12)
     expect(board.animateMove).not.toHaveBeenCalled()
-    expect(session.feed.value.map((l) => l.text)).toContain(ROLLBACK_LINE)
+    expect(visibleJournal(session)).toContain(ROLLBACK_LINE)
   })
 })
 
@@ -304,23 +316,189 @@ describe('AI players', () => {
   })
 })
 
-describe('activity feed', () => {
-  it('files each line under the round in which it happened', async () => {
+describe('journal and statistics', () => {
+  function slowBoard(): BoardHandle {
+    return { animateMove: (_, squares, ms) => new Promise((resolve) => setTimeout(resolve, squares.length * ms)) }
+  }
+
+  it('files each entry under the round in which it happened', async () => {
     const start = makeState({ current: 1, phase: { kind: 'postRoll', mayRollAgain: false } })
     const session = useGameSession(start, { speed: 'normal' })
     session.dispatch({ type: 'endTurn', playerId: B })
     await vi.runAllTimersAsync()
-    expect(session.feed.value.at(-1)).toMatchObject({ text: 'Au tour de Joueur 1', round: 2 })
+    expect(session.journal.value.at(-1)).toMatchObject({ kind: 'turn', text: 'Tour 2 — Joueur 1', turn: 2 })
   })
 
-  it('keeps more than the last few lines', async () => {
-    const start = forceDice(makeState({ players: 3 }), [[1, 2]])
-    const session = useGameSession(start, { speed: 'instant' })
+  it('records each action in the journal and the statistics as soon as the engine accepts it', () => {
+    const start = forceDice(makeState({ overrides: [{ position: 4 }], ownership: { intranet: { owner: B, level: 1 } } }), [[4, 6]])
+    const session = useGameSession(start, { speed: 'normal' })
     session.dispatch({ type: 'rollDice', playerId: A })
-    session.dispatch({ type: 'declineProperty', playerId: A })
-    for (const playerId of [A, B, C]) session.dispatch({ type: 'passBid', playerId })
+    expect(session.journal.value.map((entry) => entry.text)).toEqual([
+      'Tour 1 — Joueur 1',
+      'Joueur 1 lance 4 et 6 et avance sur Intranet',
+      'Joueur 1 paie 55\u00A0Ᵽ de loyer à Joueur 2 pour Intranet',
+    ])
+    expect(session.statistics.value.players[A]?.rentPaid).toBe(55)
+    expect(session.statistics.value.squareRents.intranet).toBe(55)
+  })
+
+  it('keeps an entry hidden until its presentation step is over', async () => {
+    const start = forceDice(makeState({ overrides: [{ position: 4 }], ownership: { intranet: { owner: B, level: 1 } } }), [[4, 6]])
+    const session = useGameSession(start, { speed: 'normal', board: slowBoard() })
+    session.dispatch({ type: 'rollDice', playerId: A })
+    expect(visibleJournal(session)).toEqual(['Tour 1 — Joueur 1'])
+    await vi.advanceTimersByTimeAsync(1000)
+    expect(session.currentStep.value?.kind).toBe('move')
+    expect(visibleJournal(session)).toEqual(['Tour 1 — Joueur 1'])
+    await vi.advanceTimersByTimeAsync(11 * 200)
+    expect(session.currentStep.value?.kind).toBe('payment')
+    expect(visibleJournal(session)).toHaveLength(2)
     await vi.runAllTimersAsync()
-    expect(session.feed.value.length).toBeGreaterThan(5)
-    expect(session.feed.value.every((line) => line.round === 1)).toBe(true)
+    expect(visibleJournal(session)).toHaveLength(3)
+  })
+
+  it('shows every pending entry at once when the animation is skipped', async () => {
+    const start = forceDice(makeState({ overrides: [{ position: 4 }], ownership: { intranet: { owner: B, level: 1 } } }), [[4, 6]])
+    const session = useGameSession(start, { speed: 'normal', board: slowBoard() })
+    session.dispatch({ type: 'rollDice', playerId: A })
+    session.skip()
+    await vi.advanceTimersByTimeAsync(0)
+    expect(session.journalShown.value).toBe(3)
+  })
+})
+
+describe('saving', () => {
+  const ai = { kind: 'ai', level: 'normal' } as const
+
+  function aiDecider(): AiDecider {
+    return {
+      decide: (request: DecisionRequest) => Promise.resolve(chooseAction(request.view, request.playerId, request.level, request.managementLeft)),
+      dispose: () => undefined,
+    }
+  }
+
+  it('saves a new game at once, then after each action of a human, with the engine truth', async () => {
+    const save = vi.fn<(record: GameRecord) => boolean>(() => true)
+    const session = useGameSession(forceDice(makeState({ overrides: [{ position: 12 }] }), [[2, 2]]), { speed: 'normal', save })
+    expect(save).toHaveBeenCalledTimes(1)
+    session.dispatch({ type: 'rollDice', playerId: A })
+    expect(save).toHaveBeenCalledTimes(2)
+    expect(save).toHaveBeenLastCalledWith({
+      engineState: session.engineState.value,
+      journal: session.journal.value,
+      statistics: session.statistics.value,
+    })
+    await vi.runAllTimersAsync()
+    session.dispatch({ type: 'buyProperty', playerId: A })
+    expect(save).toHaveBeenCalledTimes(3)
+    expect(save.mock.calls.at(-1)?.[0]).toMatchObject({ engineState: { ownership: { forum: { owner: A } } } })
+  })
+
+  it('groups the writes of a burst of AI bids into one', async () => {
+    const start = forceDice(makeState({ players: 3, overrides: [{}, { controller: ai }, { controller: ai }] }), [[1, 2]])
+    const save = vi.fn<(record: GameRecord) => boolean>(() => true)
+    const session = useGameSession(start, { speed: 'fast', ai: aiDecider(), save })
+    session.dispatch({ type: 'rollDice', playerId: A })
+    await vi.runAllTimersAsync()
+    session.dispatch({ type: 'declineProperty', playerId: A })
+    await vi.runAllTimersAsync()
+    save.mockClear()
+    session.dispatch({ type: 'passBid', playerId: A })
+    await vi.runAllTimersAsync()
+    const end = session.engineState.value
+    expect(end.phase.kind).toBe('postRoll')
+    expect(session.journal.value.at(-1)?.details.length).toBeGreaterThan(2)
+    expect(save).toHaveBeenCalledTimes(2)
+    expect(save.mock.calls.at(-1)?.[0]).toMatchObject({ engineState: end })
+  })
+
+  it('saves the actions of an AI at the latest when its burst ends with an animation', async () => {
+    const start = forceDice(makeState({ overrides: [{ controller: ai }] }), [[2, 4]])
+    const save = vi.fn<(record: GameRecord) => boolean>(() => true)
+    const session = useGameSession(start, { speed: 'normal', ai: aiDecider(), save })
+    save.mockClear()
+    await vi.advanceTimersByTimeAsync(600)
+    expect(session.engineState.value).not.toBe(start)
+    expect(save).toHaveBeenCalledTimes(1)
+    expect(save.mock.calls[0]?.[0]).toMatchObject({ engineState: session.engineState.value })
+  })
+
+  it('keeps the backdoor built by an AI for the end of its burst, and writes it when the game is left', async () => {
+    const start = makeState({ overrides: [{ controller: ai }], ownership: { forum: { owner: A }, blog: { owner: A }, 'online-shop': { owner: A } } })
+    const build: Action = { type: 'buildBackdoor', playerId: A, squareId: 'forum' }
+    const decider: AiDecider = {
+      decide: vi.fn().mockResolvedValueOnce(build).mockReturnValue(new Promise(() => undefined)),
+      dispose: () => undefined,
+    }
+    const save = vi.fn<(record: GameRecord) => boolean>(() => true)
+    const session = useGameSession(start, { speed: 'normal', ai: decider, save })
+    await vi.advanceTimersByTimeAsync(5000)
+    expect(session.engineState.value.ownership.forum?.level).toBe(1)
+    expect(save).toHaveBeenCalledTimes(1)
+    session.dispose()
+    expect(save).toHaveBeenCalledTimes(2)
+    expect(save.mock.calls.at(-1)?.[0]).toMatchObject({ engineState: { ownership: { forum: { level: 1 } } } })
+  })
+
+  it('warns once when the game cannot be saved, and goes on', async () => {
+    const save = vi.fn<(record: GameRecord) => boolean>(() => false)
+    const session = useGameSession(forceDice(makeState({ overrides: [{ position: 12 }] }), [[2, 2]]), { speed: 'instant', save })
+    expect(session.toast.value?.message).toBe('La partie ne peut pas être sauvegardée sur cet appareil')
+    session.dismissToast()
+    session.dispatch({ type: 'rollDice', playerId: A })
+    session.dispatch({ type: 'buyProperty', playerId: A })
+    await vi.runAllTimersAsync()
+    expect(save).toHaveBeenCalledTimes(3)
+    expect(session.toast.value).toBeNull()
+    expect(session.engineState.value.ownership.forum?.owner).toBe(A)
+  })
+})
+
+describe('resuming', () => {
+  const ai = { kind: 'ai', level: 'normal' } as const
+
+  function historyOf(state: GameState) {
+    return { journal: startJournal(state), statistics: startStatistics(state) }
+  }
+
+  it('restores the journal and the statistics, shows the state without animation and does not save again', () => {
+    const state = makeState({ overrides: [{ position: 9 }], phase: { kind: 'buyDecision', squareId: 'ip-camera' } })
+    const history = historyOf(state)
+    const save = vi.fn<(record: GameRecord) => boolean>(() => true)
+    const session = useGameSession(state, { speed: 'normal', history, save })
+    expect(session.journal.value).toBe(history.journal)
+    expect(session.journalShown.value).toBe(history.journal.length)
+    expect(session.statistics.value).toBe(history.statistics)
+    expect(session.displayedState.value).toBe(state)
+    expect(session.isPresenting.value).toBe(false)
+    expect(session.view.value.buttons.find((b) => b.id === 'buy')?.enabled).toBe(true)
+    expect(save).not.toHaveBeenCalled()
+  })
+
+  it('offers the auction again with its highest bid and the next bidder', () => {
+    const state = makeState({
+      players: 3,
+      phase: { kind: 'auction', squareId: 'tor-node', highBid: 120, highBidder: B, bidders: [A, B, C], nextBidder: C },
+    })
+    const session = useGameSession(state, { speed: 'normal', history: historyOf(state) })
+    expect(session.view.value.auction).toMatchObject({ squareId: 'tor-node', highBid: 120, nextBidder: C })
+  })
+
+  it('offers the debt again with the same amount', () => {
+    const state = makeState({
+      overrides: [{ cash: 100 }],
+      phase: { kind: 'debt', debtor: A, payments: [{ to: B, amount: 400, reason: 'rent' }], resume: { kind: 'postRoll' } },
+    })
+    const session = useGameSession(state, { speed: 'normal', history: historyOf(state) })
+    expect(session.view.value.buttons.find((b) => b.id === 'payDebt')).toMatchObject({ amount: 400, enabled: false })
+  })
+
+  it('lets the AI who must act go on by itself', async () => {
+    const state = forceDice(makeState({ overrides: [{ controller: ai }] }), [[2, 4]])
+    const decider = { decide: vi.fn((request: DecisionRequest) => Promise.resolve(chooseAction(request.view, request.playerId, request.level, request.managementLeft))), dispose: vi.fn() }
+    const session = useGameSession(state, { speed: 'instant', ai: decider, history: historyOf(state) })
+    await vi.runAllTimersAsync()
+    expect(decider.decide).toHaveBeenCalled()
+    expect(session.engineState.value.ownership['wifi-bulb']?.owner).toBe(A)
   })
 })

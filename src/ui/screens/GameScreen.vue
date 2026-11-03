@@ -3,12 +3,13 @@ import { computed, onBeforeUnmount, onMounted, provide, ref } from 'vue'
 import GameBoard from '../../board/GameBoard.vue'
 import type { GameState } from '../../engine'
 import { workerDecider } from '../../game/aiDecider'
-import { GAME_SESSION, useGameSession } from '../../game/useGameSession'
+import { createSaver } from '../../game/persistence'
+import type { GameConfig } from '../../game/setupForm'
+import { GAME_SESSION, useGameSession, type GameHistory } from '../../game/useGameSession'
 import ActionPanel from '../hud/ActionPanel.vue'
-import ActivityFeed from '../hud/ActivityFeed.vue'
+import JournalPanel from '../hud/JournalPanel.vue'
 import AppToast from '../hud/AppToast.vue'
 import CardReveal from '../hud/CardReveal.vue'
-import ConfirmDialog from '../hud/ConfirmDialog.vue'
 import DiceTray from '../hud/DiceTray.vue'
 import PlayersPanel from '../hud/PlayersPanel.vue'
 import PropertySheet from '../hud/PropertySheet.vue'
@@ -16,21 +17,21 @@ import SpeedPicker from '../hud/SpeedPicker.vue'
 import StatusBar from '../hud/StatusBar.vue'
 import GameOverOverlay from './GameOverOverlay.vue'
 
-const props = defineProps<{ initial: GameState }>()
+const props = defineProps<{ initial: GameState; config: GameConfig; history?: GameHistory | null }>()
 
 const emit = defineEmits<{
   quit: []
+  home: []
   replay: []
 }>()
 
 const ai = props.initial.players.some((p) => p.controller.kind === 'ai') ? workerDecider() : null
-const session = useGameSession(props.initial, { ai })
+const session = useGameSession(props.initial, { ai, history: props.history, save: createSaver(props.config) })
 provide(GAME_SESSION, session)
 
 const { displayedState, view, isPresenting, currentStep, dice, send, skip, dismissCard } = session
 
 const board = ref<InstanceType<typeof GameBoard> | null>(null)
-const confirmingQuit = ref(false)
 
 const cardId = computed(() => (currentStep.value?.kind === 'card' ? currentStep.value.cardId : null))
 const bankruptName = computed(() => {
@@ -41,11 +42,13 @@ const bankruptName = computed(() => {
 const gameOver = computed(() => displayedState.value.phase.kind === 'gameOver' && !isPresenting.value)
 
 onBeforeUnmount(() => {
+  window.removeEventListener('pagehide', session.flushSave)
   session.dispose()
   ai?.dispose()
 })
 
 onMounted(() => {
+  window.addEventListener('pagehide', session.flushSave)
   session.attachBoard({
     animateMove: (playerId, squares, msPerSquare) => board.value?.animateMove(playerId, squares, msPerSquare) ?? Promise.resolve(),
   })
@@ -66,7 +69,7 @@ function skipOnTap(event: PointerEvent) {
 
 <template>
   <div
-    class="flex h-full w-full overflow-hidden"
+    class="relative flex h-full w-full overflow-hidden"
     :aria-busy="isPresenting"
     @pointerdown.capture="skipOnTap"
   >
@@ -111,35 +114,25 @@ function skipOnTap(event: PointerEvent) {
       <div class="pointer-events-none absolute bottom-4 left-4 right-36 flex justify-center *:pointer-events-auto">
         <AppToast />
       </div>
-
-      <GameOverOverlay
-        v-if="gameOver"
-        @replay="emit('replay')"
-        @home="emit('quit')"
-      />
     </main>
 
     <aside
       class="flex h-full w-80 shrink-0 flex-col border-l border-line bg-panel"
       aria-label="Tableau de bord"
     >
-      <StatusBar @quit="confirmingQuit = true" />
-      <PlayersPanel class="min-h-24 flex-1 overflow-y-auto" />
-      <ActivityFeed class="border-t border-line px-2 py-2" />
-      <ActionPanel />
-      <div class="border-t border-line p-3">
+      <StatusBar @quit="emit('quit')" />
+      <PlayersPanel class="min-h-24 overflow-y-auto" />
+      <JournalPanel class="border-t border-line px-2 py-1" />
+      <ActionPanel class="mt-auto shrink-0" />
+      <div class="shrink-0 border-t border-line p-3">
         <SpeedPicker />
       </div>
     </aside>
 
-    <ConfirmDialog
-      v-if="confirmingQuit"
-      title="Quitter la partie ?"
-      message="La partie en cours sera perdue."
-      confirm-label="Quitter"
-      danger
-      @confirm="emit('quit')"
-      @cancel="confirmingQuit = false"
+    <GameOverOverlay
+      v-if="gameOver"
+      @replay="emit('replay')"
+      @home="emit('home')"
     />
   </div>
 </template>

@@ -1,6 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { legalActions } from './index'
-import { buildableSquares, expectedActor, mortgageableSquares, rentIfLanded, sellableSquares, unmortgageableSquares } from './queries'
+import {
+  buildableSquares,
+  expectedActor,
+  mortgageableSquares,
+  netWorth,
+  rentIfLanded,
+  sellableSquares,
+  unmortgageableSquares,
+} from './queries'
 import { liquidationValue } from './payments'
 import { cardIdByTitle } from './board/cards'
 import { A, B, C, makeState, roll } from './testUtils'
@@ -105,5 +113,25 @@ describe('square queries', () => {
     expect(rentIfLanded(state, 'vpn-node')).toBe(25)
     expect(rentIfLanded(state, 'blog')).toBe(0)
     expect(rentIfLanded(makeState({ ownership: { cloud: { owner: B } } }), 'cloud', 10)).toBe(40)
+  })
+})
+
+describe('net worth', () => {
+  it('is the cash of a player who owns nothing', () => {
+    expect(netWorth(makeState({ overrides: [{ cash: 830 }] }), A)).toBe(830)
+  })
+
+  it('adds the price of the active squares, the mortgage value of the mortgaged ones and the cost of the buildings', () => {
+    const state = makeState({
+      overrides: [{ cash: 100 }],
+      ownership: {
+        forum: { owner: A, level: 2 },
+        blog: { owner: A, level: 5 },
+        'online-shop': { owner: A, mortgaged: true },
+        'tor-node': { owner: A },
+        cloud: { owner: B },
+      },
+    })
+    expect(netWorth(state, A)).toBe(100 + 180 + 2 * 100 + 180 + 5 * 100 + 100 + 200)
   })
 })

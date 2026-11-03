@@ -1,8 +1,8 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import type { Phase } from '../../engine'
 import { A, B, C, makeState } from '../../engine/testUtils'
-import ActivityFeed from './ActivityFeed.vue'
 import AuctionPanel from './AuctionPanel.vue'
+import JournalPanel from './JournalPanel.vue'
 import { mountOnSession, mountWithSession } from '../testUtils'
 
 type AuctionPhase = Extract<Phase, { kind: 'auction' }>
@@ -69,15 +69,15 @@ describe('AuctionPanel', () => {
 
   it('announces the winner', async () => {
     const { wrapper, session } = mountWithSession(AuctionPanel, auction({ bidders: [A, B], highBid: 150, highBidder: B }))
-    const feed = mountOnSession(ActivityFeed, session)
+    const journal = mountOnSession(JournalPanel, session)
     await wrapper.get('[data-button="pass"]').trigger('click')
-    expect(feed.text()).toContain('Joueur 2 remporte Forum pour 150\u00A0Ᵽ')
+    expect(journal.text()).toContain('Joueur 2 remporte Forum aux enchères pour 150\u00A0Ᵽ')
   })
 
   it('announces an auction without bid', async () => {
     const { wrapper, session } = mountWithSession(AuctionPanel, auction({ bidders: [A] }))
-    const feed = mountOnSession(ActivityFeed, session)
+    const journal = mountOnSession(JournalPanel, session)
     await wrapper.get('[data-button="pass"]').trigger('click')
-    expect(feed.text()).toContain('Personne n’a enchéri : Forum reste à la banque')
+    expect(journal.text()).toContain('Personne ne prend Forum aux enchères')
   })
 })

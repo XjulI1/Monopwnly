@@ -12,7 +12,6 @@ import {
   type PlayerId,
 } from '../engine'
 import type { AiDecider } from './aiDecider'
-import { appendToFeed, type FeedLine } from './feed'
 import {
   durationsFor,
   loadAnimationSpeed,
@@ -20,25 +19,28 @@ import {
   type AnimationDurations,
   type AnimationSpeed,
 } from './animationSpeed'
+import { recordInJournal, startJournal, type JournalEntry } from './history/journal'
+import { recordStatistics, startStatistics, type GameStatistics } from './history/statistics'
 import { IDLE, reduceInteraction, viewOf, type Interaction, type InteractionInput, type InteractionView } from './interaction'
 import { applyStep, presentationSteps, type PresentationStep } from './presentation'
+import type { GameRecord } from './savedGame'
 
 /** What the session needs from the 3D board. */
 export type BoardHandle = {
   animateMove: (playerId: PlayerId, squares: readonly number[], msPerSquare: number) => Promise<void>
 }
 
-export type { FeedLine } from './feed'
-
 /** A short-lived change of cash shown next to a player. */
 export type CashBadge = { id: number; playerId: PlayerId; amount: number }
-
 
 /** A notification of the HUD. */
 export type Toast = { id: number; message: string }
 
 /** Dice shown above the board. */
 export type DiceShown = { id: number; dice: [number, number]; rollMs: number }
+
+/** Journal and statistics of a game being resumed. */
+export type GameHistory = { journal: JournalEntry[]; statistics: GameStatistics }
 
 /** One game in progress: engine truth, displayed state catching up through the animations, and the user inputs. */
 export type GameSession = {
@@ -48,7 +50,9 @@ export type GameSession = {
   currentStep: ShallowRef<PresentationStep | null>
   dice: ShallowRef<DiceShown | null>
   badges: ShallowRef<CashBadge[]>
-  feed: ShallowRef<FeedLine[]>
+  journal: ShallowRef<JournalEntry[]>
+  journalShown: Ref<number>
+  statistics: ShallowRef<GameStatistics>
   toast: ShallowRef<Toast | null>
   speed: Ref<AnimationSpeed>
   interaction: ShallowRef<Interaction>
@@ -60,6 +64,7 @@ export type GameSession = {
   dismissToast: () => void
   setSpeed: (speed: AnimationSpeed) => void
   attachBoard: (board: BoardHandle | null) => void
+  flushSave: () => void
   dispose: () => void
 }
 
@@ -67,7 +72,11 @@ export type GameSessionOptions = {
   speed?: AnimationSpeed
   board?: BoardHandle | null
   ai?: AiDecider | null
+  history?: GameHistory | null
+  save?: ((record: GameRecord) => boolean) | null
 }
+
+type Reveal = { base: number; reveals: number[] }
 
 /** Key under which the game screen provides its session. */
 export const GAME_SESSION: InjectionKey<GameSession> = Symbol('gameSession')
@@ -76,8 +85,22 @@ const QUARANTINE_HOP_FACTOR = 3
 const SALARY_PAUSE_FACTOR = 0.5
 const BADGE_MIN_MS = 1200
 const PRESENTING_REASON = 'Animation en cours.'
+const STORAGE_WARNING = 'La partie ne peut pas être sauvegardée sur cet appareil'
 
 const EMPHASIZED_PAYMENTS: ReadonlySet<PaymentReason> = new Set(['rent', 'tax', 'card', 'quarantineFine', 'bankruptcy'])
+
+function animates(step: PresentationStep): boolean {
+  switch (step.kind) {
+    case 'payment':
+      return EMPHASIZED_PAYMENTS.has(step.reason)
+    case 'update':
+    case 'victory':
+    case 'silent':
+      return false
+    default:
+      return true
+  }
+}
 
 function divergences(projected: GameState, actual: GameState): string[] {
   const found: string[] = []
@@ -90,7 +113,7 @@ function divergences(projected: GameState, actual: GameState): string[] {
   return found
 }
 
-/** Creates the session of a game: dispatch goes to the engine at once, the display follows the presentation of its events. */
+/** Creates the session of a game, new or resumed: dispatch goes to the engine at once, the display follows the presentation of its events, and the game is saved after each action. */
 export function useGameSession(initial: GameState, options: GameSessionOptions = {}): GameSession {
   const engineState = shallowRef(initial)
   const displayedState = shallowRef(initial)
@@ -98,7 +121,9 @@ export function useGameSession(initial: GameState, options: GameSessionOptions =
   const currentStep = shallowRef<PresentationStep | null>(null)
   const dice = shallowRef<DiceShown | null>(null)
   const badges = shallowRef<CashBadge[]>([])
-  const feed = shallowRef<FeedLine[]>([])
+  const journal = shallowRef<JournalEntry[]>(options.history?.journal ?? startJournal(initial))
+  const journalShown = ref(journal.value.length)
+  const statistics = shallowRef<GameStatistics>(options.history?.statistics ?? startStatistics(initial))
   const toast = shallowRef<Toast | null>(null)
   const speed = ref<AnimationSpeed>(options.speed ?? loadAnimationSpeed())
   const interaction = shallowRef<Interaction>(IDLE)
@@ -112,6 +137,8 @@ export function useGameSession(initial: GameState, options: GameSessionOptions =
   let aiRun = 0
   let managementInARow = 0
   let aiPause: ReturnType<typeof setTimeout> | null = null
+  let unsaved = false
+  let saveWarned = false
   const badgeTimers = new Set<ReturnType<typeof setTimeout>>()
 
   function controllerOf(playerId: PlayerId): PlayerController | undefined {
@@ -142,9 +169,22 @@ export function useGameSession(initial: GameState, options: GameSessionOptions =
     })
   }
 
-  function addLines(lines: readonly string[], round: number) {
-    if (lines.length === 0) return
-    feed.value = appendToFeed(feed.value, lines.map((text) => ({ id: nextId++, text })), round)
+  function writeSave() {
+    unsaved = false
+    const save = options.save
+    if (!save || save({ engineState: engineState.value, journal: journal.value, statistics: statistics.value }) || saveWarned) return
+    saveWarned = true
+    toast.value = { id: nextId++, message: STORAGE_WARNING }
+  }
+
+  function flushSave() {
+    if (unsaved) writeSave()
+  }
+
+  function revealJournal({ base, reveals }: Reveal, presented: number) {
+    let count = 0
+    while (count < reveals.length && (reveals[count] ?? Infinity) <= presented) count++
+    journalShown.value = Math.max(journalShown.value, base + count)
   }
 
   function showBadge(playerId: PlayerId | 'bank', amount: number, durations: AnimationDurations) {
@@ -192,13 +232,14 @@ export function useGameSession(initial: GameState, options: GameSessionOptions =
 
   function finish() {
     displayedState.value = engineState.value
+    journalShown.value = journal.value.length
     currentStep.value = null
     dice.value = null
     isPresenting.value = false
     void playAi()
   }
 
-  async function present(steps: PresentationStep[]): Promise<void> {
+  async function present(steps: PresentationStep[], reveal: Reveal): Promise<void> {
     const durations = durationsFor(speed.value)
     fastForward = speed.value === 'instant'
     isPresenting.value = true
@@ -207,12 +248,12 @@ export function useGameSession(initial: GameState, options: GameSessionOptions =
       currentStep.value = step
       const isCard = step.kind === 'card'
       const awaitsHuman = isCard && controllerOf(step.playerId)?.kind !== 'ai'
-      if (isCard) addLines(step.lines, projected.turnNumber)
+      if (awaitsHuman || (!fastForward && animates(step))) flushSave()
       if (awaitsHuman || !fastForward) await play(step, durations)
       if (disposed) return
       projected = applyStep(projected, step)
       displayedState.value = projected
-      if (!isCard) addLines(step.lines, projected.turnNumber)
+      revealJournal(reveal, step.presented)
     }
     if (import.meta.env.DEV) {
       const found = divergences(projected, engineState.value)
@@ -230,8 +271,14 @@ export function useGameSession(initial: GameState, options: GameSessionOptions =
       return false
     }
     engineState.value = result.state
+    const recorded = recordInJournal(journal.value, before, result.events)
+    const reveal = { base: journal.value.length, reveals: recorded.reveals }
+    journal.value = recorded.journal
+    statistics.value = recordStatistics(statistics.value, before, result.events, result.state)
+    if (controllerOf(action.playerId)?.kind === 'ai') unsaved = true
+    else writeSave()
     managementInARow = isManagement(action) ? managementInARow + 1 : 0
-    void present(presentationSteps(before, result.events))
+    void present(presentationSteps(before, result.events), reveal)
     return true
   }
 
@@ -246,12 +293,15 @@ export function useGameSession(initial: GameState, options: GameSessionOptions =
   }
 
   async function playAi(): Promise<void> {
+    if (disposed || isPresenting.value) return
     const decider = options.ai
-    if (!decider || disposed || isPresenting.value) return
     const state = engineState.value
     const actor = expectedActor(state)
     const controller = actor ? controllerOf(actor) : undefined
-    if (!actor || controller?.kind !== 'ai') return
+    if (!decider || !actor || controller?.kind !== 'ai') {
+      flushSave()
+      return
+    }
     const run = ++aiRun
     const request = { view: playerView(state), playerId: actor, level: controller.level, managementLeft: MANAGEMENT_LIMIT - managementInARow }
     let action: Action
@@ -281,6 +331,7 @@ export function useGameSession(initial: GameState, options: GameSessionOptions =
     cardWait?.()
   }
 
+  if (!options.history) writeSave()
   void playAi()
 
   return {
@@ -290,7 +341,9 @@ export function useGameSession(initial: GameState, options: GameSessionOptions =
     currentStep,
     dice,
     badges,
-    feed,
+    journal,
+    journalShown,
+    statistics,
     toast,
     speed,
     interaction,
@@ -309,7 +362,9 @@ export function useGameSession(initial: GameState, options: GameSessionOptions =
     attachBoard: (handle) => {
       board = handle
     },
+    flushSave,
     dispose: () => {
+      flushSave()
       disposed = true
       aiRun++
       if (aiPause) clearTimeout(aiPause)

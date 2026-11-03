@@ -30,6 +30,28 @@ joueur solvable l'emporte.
 - **Sauvegarde automatique** dans le navigateur, journal de partie et statistiques de fin.
 - **Jouable hors ligne et installable.**
 
+### Sauvegarde, journal et statistiques
+
+- **Sauvegarde automatique** : la partie est enregistrée dans le navigateur après chaque action,
+  humaine ou IA. Après un rechargement, l'accueil propose « Reprendre la partie » avec les joueurs,
+  le tour et la date de la sauvegarde, et la partie repart exactement où elle s'était arrêtée,
+  décision d'achat, enchère ou règlement de dette compris.
+- **Quitter la partie** ramène à l'accueil sans rien perdre. Lancer une nouvelle partie alors
+  qu'une autre est en cours demande confirmation avant de la remplacer.
+- Une partie terminée reste disponible (« Voir la dernière partie ») tant que l'on n'a pas quitté
+  l'écran de fin.
+- Une sauvegarde illisible ou d'une ancienne version est écartée avec un message. Si le navigateur
+  bloque le stockage (navigation privée stricte, données de site bloquées), on joue normalement et
+  un avertissement indique que la partie ne pourra pas être sauvegardée.
+- **Journal** : chaque action est décrite en français dans un panneau repliable, regroupée par tour
+  et aux couleurs des joueurs. Les enchères et les cartes qui touchent plusieurs joueurs se
+  déplient ligne par ligne. Une action n'apparaît qu'une fois son animation jouée, pour ne pas
+  dévoiler le résultat des dés.
+- **Statistiques de fin** : courbes du patrimoine et de l'argent liquide de chaque joueur au fil
+  des tours, tableau récapitulatif (loyers perçus et payés, taxes, achats, enchères,
+  constructions, quarantaines, doubles, faillites) et classement des cinq cases les plus
+  rentables.
+
 ## Stack technique
 
 - [Vue 3](https://vuejs.org/) (Composition API, `<script setup lang="ts">`) et [Vite](https://vite.dev/)

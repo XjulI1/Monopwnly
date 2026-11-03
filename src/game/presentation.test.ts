@@ -58,15 +58,6 @@ describe('presentation steps', () => {
     expect(steps[3]).toMatchObject({ squares: [15, 14, 13, 12], backward: true })
   })
 
-  it('names the player, the deck, the title and the effect of the card in the feed', () => {
-    const start = makeState({
-      overrides: [{ position: 10 }],
-      decks: { exploit: [cardIdByTitle('exploit', 'Rollback')] },
-    })
-    const { steps } = stepsOfRoll(start, [2, 3])
-    expect(steps[2]?.lines).toEqual(['Joueur 1 pioche la carte Exploit «\u00A0Rollback\u00A0» : Reculez de 3 cases.'])
-  })
-
   it('debits the payer and credits the owner on a rent', () => {
     const start = makeState({ overrides: [{ position: 4 }], ownership: { intranet: { owner: B, level: 1 } } })
     const { state, steps } = stepsOfRoll(start, [4, 6])
@@ -119,29 +110,18 @@ describe('presentation steps', () => {
     expect(kinds(presentationSteps(start, events))).toEqual(['silent'])
   })
 
-  it('describes each step in French', () => {
-    const start = makeState({ overrides: [{ position: 4 }], ownership: { intranet: { owner: B, level: 1 } } })
-    const { steps } = stepsOfRoll(start, [4, 6])
-    expect(steps.flatMap((s) => s.lines)).toEqual([
-      'Joueur 1 lance 4 + 6 = 10',
-      'Joueur 1 avance jusqu’à Intranet',
-      'Joueur 1 paie 55\u00A0Ᵽ de loyer à Joueur 2',
-    ])
+  it('counts the events fully presented after each step, a move through Boot counting once its end is shown', () => {
+    const { steps } = stepsOfRoll(makeState({ overrides: [{ position: 36 }] }), [3, 4])
+    expect(steps.map((s) => s.presented)).toEqual([1, 1, 1, 4])
+    const stop = stepsOfRoll(makeState({ overrides: [{ position: 34 }] }), [3, 3])
+    expect(stop.steps.map((s) => s.presented)).toEqual([1, 2, 4])
   })
 
-  it('announces the result of an auction', () => {
-    const start = makeState({
-      phase: { kind: 'auction', squareId: 'forum', highBid: 150, highBidder: B, bidders: [A, B], nextBidder: A },
-    })
-    const { events } = act(start, { type: 'passBid', playerId: A })
-    expect(presentationSteps(start, events).flatMap((s) => s.lines)).toContain('Joueur 2 remporte Forum pour 150\u00A0Ᵽ')
-    const unsold = makeState({
-      phase: { kind: 'auction', squareId: 'forum', highBid: 0, highBidder: null, bidders: [A], nextBidder: A },
-    })
-    const result = act(unsold, { type: 'passBid', playerId: A })
-    expect(presentationSteps(unsold, result.events).flatMap((s) => s.lines)).toContain(
-      'Personne n’a enchéri : Forum reste à la banque',
-    )
+  it('counts the events added to the previous step', () => {
+    const start = makeState({ overrides: [{ position: 4 }], ownership: { intranet: { owner: B, level: 1 } } })
+    expect(stepsOfRoll(start, [4, 6]).steps.map((s) => s.presented)).toEqual([1, 2, 3])
+    const quarantined = makeState({ overrides: [{ position: 10, quarantine: { failedAttempts: 0 } }] })
+    expect(stepsOfRoll(quarantined, [1, 2]).steps.map((s) => s.presented)).toEqual([2])
   })
 })
 

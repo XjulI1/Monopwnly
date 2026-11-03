@@ -1,0 +1,263 @@
+import {
+  AI_LEVELS,
+  BOARD_SIZE,
+  CARDS,
+  MAX_PLAYERS,
+  MIN_PLAYERS,
+  purchasableById,
+  type GameState,
+  type PaymentReason,
+  type PhaseKind,
+} from '../engine'
+import type { JournalEntry, JournalEntryKind } from './history/journal'
+import type { GameStatistics, PlayerStatistics } from './history/statistics'
+import type { GameConfig } from './setupForm'
+
+/** Version of the format of the saved game understood by this application. */
+export const SAVE_FORMAT_VERSION = 1
+
+/** Whether the saved game is still being played or is showing its end screen. */
+export type SavedGameStatus = 'inProgress' | 'finished'
+
+/** What a game session needs to be saved: the engine truth, the journal and the statistics. */
+export type GameRecord = { engineState: GameState; journal: JournalEntry[]; statistics: GameStatistics }
+
+/** The single game kept in the browser. */
+export type SavedGame = GameRecord & {
+  formatVersion: typeof SAVE_FORMAT_VERSION
+  savedAt: string
+  status: SavedGameStatus
+  creation: GameConfig
+}
+
+type Fields = Record<string, unknown>
+
+const PHASE_KINDS: readonly PhaseKind[] = ['preRoll', 'buyDecision', 'auction', 'debt', 'postRoll', 'gameOver']
+const PAYMENT_REASONS: readonly PaymentReason[] = [
+  'rent',
+  'tax',
+  'card',
+  'salary',
+  'purchase',
+  'auction',
+  'build',
+  'sellBuilding',
+  'mortgage',
+  'unmortgage',
+  'quarantineFine',
+  'bankruptcy',
+]
+const ENTRY_KINDS: readonly JournalEntryKind[] = ['turn', 'action', 'auction']
+const STATUSES: readonly SavedGameStatus[] = ['inProgress', 'finished']
+const CARD_IDS = new Set(CARDS.map((card) => card.id))
+const COUNTERS: readonly Exclude<keyof PlayerStatistics, 'bankruptcy'>[] = [
+  'rentCollected',
+  'rentPaid',
+  'taxesPaid',
+  'salaries',
+  'cardsDrawn',
+  'purchases',
+  'purchaseSpending',
+  'auctionsWon',
+  'backdoorsBuilt',
+  'rootkitsBuilt',
+  'quarantines',
+  'doubles',
+]
+
+function isFields(value: unknown): value is Fields {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function isInt(value: unknown, min = Number.MIN_SAFE_INTEGER, max = Number.MAX_SAFE_INTEGER): value is number {
+  return Number.isInteger(value) && (value as number) >= min && (value as number) <= max
+}
+
+function isString(value: unknown): value is string {
+  return typeof value === 'string'
+}
+
+function isListOf(value: unknown, check: (item: unknown) => boolean): value is unknown[] {
+  return Array.isArray(value) && value.every(check)
+}
+
+function isOneOf<T>(value: unknown, options: readonly T[]): value is T {
+  return options.includes(value as T)
+}
+
+function isPurchasable(value: unknown): boolean {
+  return isString(value) && purchasableById(value) !== null
+}
+
+function isController(value: unknown): boolean {
+  if (!isFields(value)) return false
+  return value.kind === 'human' || (value.kind === 'ai' && isOneOf(value.level, AI_LEVELS))
+}
+
+function isPlayer(value: unknown): boolean {
+  if (!isFields(value)) return false
+  const quarantine = value.quarantine
+  return (
+    isString(value.id) &&
+    isString(value.name) &&
+    isString(value.color) &&
+    isController(value.controller) &&
+    isInt(value.cash, 0) &&
+    isInt(value.position, 0, BOARD_SIZE - 1) &&
+    (quarantine === null || (isFields(quarantine) && isInt(quarantine.failedAttempts, 0))) &&
+    isListOf(value.keys, (key) => CARD_IDS.has(key as string)) &&
+    typeof value.bankrupt === 'boolean'
+  )
+}
+
+function isOwnership(value: unknown, isPlayerId: (id: unknown) => boolean): boolean {
+  if (!isFields(value)) return false
+  return Object.entries(value).every(
+    ([squareId, own]) =>
+      isPurchasable(squareId) && isFields(own) && isPlayerId(own.owner) && typeof own.mortgaged === 'boolean' && isInt(own.level, 0, 5),
+  )
+}
+
+function isPayment(value: unknown, isPlayerId: (id: unknown) => boolean): boolean {
+  if (!isFields(value)) return false
+  return (value.to === 'bank' || isPlayerId(value.to)) && isInt(value.amount, 0) && isOneOf(value.reason, PAYMENT_REASONS)
+}
+
+function isResume(value: unknown, isPlayerId: (id: unknown) => boolean): boolean {
+  if (!isFields(value)) return false
+  switch (value.kind) {
+    case 'postRoll':
+      return true
+    case 'moveAfterFine':
+      return isInt(value.steps, 0)
+    case 'collectFrom':
+      return isPlayerId(value.creditor) && isListOf(value.payers, isPlayerId) && isInt(value.amount, 0)
+    default:
+      return false
+  }
+}
+
+function isPhase(value: unknown, isPlayerId: (id: unknown) => boolean): boolean {
+  if (!isFields(value) || !isOneOf(value.kind, PHASE_KINDS)) return false
+  switch (value.kind) {
+    case 'buyDecision':
+      return isPurchasable(value.squareId)
+    case 'auction':
+      return (
+        isPurchasable(value.squareId) &&
+        isInt(value.highBid, 0) &&
+        (value.highBidder === null || isPlayerId(value.highBidder)) &&
+        isListOf(value.bidders, isPlayerId) &&
+        isPlayerId(value.nextBidder)
+      )
+    case 'debt':
+      return (
+        isPlayerId(value.debtor) &&
+        isListOf(value.payments, (payment) => isPayment(payment, isPlayerId)) &&
+        isResume(value.resume, isPlayerId)
+      )
+    case 'postRoll':
+      return typeof value.mayRollAgain === 'boolean'
+    default:
+      return true
+  }
+}
+
+function isDie(value: unknown): boolean {
+  return isInt(value, 1, 6)
+}
+
+function isEngineState(value: unknown): value is GameState {
+  if (!isFields(value) || value.boardId !== 'monopwnly') return false
+  const players = value.players
+  if (!isListOf(players, isPlayer) || players.length < MIN_PLAYERS || players.length > MAX_PLAYERS) return false
+  const ids = new Set(players.map((player) => (player as Fields).id))
+  if (ids.size !== players.length) return false
+  const isPlayerId = (id: unknown) => ids.has(id)
+  const { settings, bankStock, decks, lastRoll } = value
+  return (
+    isFields(settings) &&
+    typeof settings.auctions === 'boolean' &&
+    isOwnership(value.ownership, isPlayerId) &&
+    isFields(bankStock) &&
+    isInt(bankStock.backdoors, 0) &&
+    isInt(bankStock.rootkits, 0) &&
+    isFields(decks) &&
+    isListOf(decks.exploit, (id) => CARD_IDS.has(id as string)) &&
+    isListOf(decks.patch, (id) => CARD_IDS.has(id as string)) &&
+    isInt(value.currentPlayerIndex, 0, players.length - 1) &&
+    isInt(value.doublesInARow, 0) &&
+    isInt(value.turnNumber, 1) &&
+    (lastRoll === null || (isListOf(lastRoll, isDie) && lastRoll.length === 2)) &&
+    isPhase(value.phase, isPlayerId) &&
+    isInt(value.rngState) &&
+    (value.winner === null || isPlayerId(value.winner))
+  )
+}
+
+function isDetail(value: unknown): boolean {
+  return isFields(value) && (value.actor === null || isString(value.actor)) && isString(value.text)
+}
+
+function isJournalEntry(value: unknown): boolean {
+  return (
+    isFields(value) &&
+    isInt(value.id) &&
+    isOneOf(value.kind, ENTRY_KINDS) &&
+    isInt(value.turn, 1) &&
+    (value.actor === null || isString(value.actor)) &&
+    isString(value.text) &&
+    isListOf(value.details, isDetail)
+  )
+}
+
+function isReading(value: unknown): boolean {
+  return (
+    isFields(value) &&
+    isInt(value.turn, 1) &&
+    isListOf(value.players, (p) => isFields(p) && isString(p.playerId) && isInt(p.cash) && isInt(p.netWorth))
+  )
+}
+
+function isCounters(value: unknown): boolean {
+  if (!isFields(value) || !COUNTERS.every((counter) => isInt(value[counter], 0))) return false
+  const bankruptcy = value.bankruptcy
+  return (
+    bankruptcy === null ||
+    (isFields(bankruptcy) && isInt(bankruptcy.turn, 1) && isString(bankruptcy.creditor) && isInt(bankruptcy.rank, 1))
+  )
+}
+
+function isStatistics(value: unknown): value is GameStatistics {
+  return (
+    isFields(value) &&
+    isListOf(value.rounds, isReading) &&
+    isFields(value.players) &&
+    Object.values(value.players).every(isCounters) &&
+    isFields(value.squareRents) &&
+    Object.entries(value.squareRents).every(([squareId, total]) => isPurchasable(squareId) && isInt(total, 0))
+  )
+}
+
+function isCreation(value: unknown): value is GameConfig {
+  if (!isFields(value) || !isFields(value.settings) || typeof value.settings.auctions !== 'boolean') return false
+  return isListOf(
+    value.players,
+    (p) => isFields(p) && isString(p.id) && isString(p.name) && isString(p.color) && (p.controller === undefined || isController(p.controller)),
+  )
+}
+
+/** Checks that an unknown value is a complete and coherent saved game of the current format. */
+export function isSavedGame(value: unknown): value is SavedGame {
+  return (
+    isFields(value) &&
+    value.formatVersion === SAVE_FORMAT_VERSION &&
+    isString(value.savedAt) &&
+    !Number.isNaN(Date.parse(value.savedAt)) &&
+    isOneOf(value.status, STATUSES) &&
+    isCreation(value.creation) &&
+    isEngineState(value.engineState) &&
+    isListOf(value.journal, isJournalEntry) &&
+    isStatistics(value.statistics)
+  )
+}

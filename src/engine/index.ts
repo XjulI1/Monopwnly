@@ -108,6 +108,7 @@ export {
   buildableSquares,
   expectedActor,
   mortgageableSquares,
+  netWorth,
   ownedSquares,
   rentIfLanded,
   sellableSquares,

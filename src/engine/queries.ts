@@ -1,5 +1,5 @@
-import { MIN_BID } from './board/squares'
-import { currentPlayer } from './context'
+import { MIN_BID, purchasableById } from './board/squares'
+import { currentPlayer, getPlayer } from './context'
 import { buildProblem, mortgageProblem, sellProblem, unmortgageProblem } from './development'
 import { rentFor } from './rent'
 import type { Action, PlayerId, PublicGameState, SquareId } from './types'
@@ -36,6 +36,19 @@ export function mortgageableSquares(state: PublicGameState, playerId: PlayerId):
 /** Mortgaged squares the player could reactivate right now, ignoring the phase. */
 export function unmortgageableSquares(state: PublicGameState, playerId: PlayerId): SquareId[] {
   return ownedSquares(state, playerId).filter((id) => unmortgageProblem(state, playerId, id) === null)
+}
+
+/** Net worth of a player: cash, plus the price of the active squares, the mortgage value of the mortgaged ones and the cost of the buildings. */
+export function netWorth(state: PublicGameState, playerId: PlayerId): number {
+  let total = getPlayer(state, playerId).cash
+  for (const id of ownedSquares(state, playerId)) {
+    const square = purchasableById(id)
+    const own = state.ownership[id]
+    if (!square || !own) continue
+    total += own.mortgaged ? square.mortgageValue : square.price
+    if (square.kind === 'system') total += own.level * square.backdoorCost
+  }
+  return total
 }
 
 /** Rent an opponent would pay by stopping on the square (services use the given dice total, 7 by default). */

@@ -5,6 +5,7 @@ const NBSP = '\u00A0'
 
 const amountFormat = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 })
 const deltaFormat = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0, signDisplay: 'exceptZero' })
+const dateTimeFormat = new Intl.DateTimeFormat('fr-FR', { dateStyle: 'long', timeStyle: 'short' })
 
 const PHASE_NAMES: Record<PhaseKind, string> = {
   preRoll: 'Avant le lancer',
@@ -28,4 +29,9 @@ export function formatPwnDelta(amount: number): string {
 /** French name of an engine phase. */
 export function phaseName(kind: PhaseKind): string {
   return PHASE_NAMES[kind]
+}
+
+/** Formats the moment of a save the French way, e.g. `3 novembre 2026 à 14:05`. */
+export function formatSavedAt(iso: string): string {
+  return dateTimeFormat.format(new Date(iso))
 }

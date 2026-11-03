@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { formatPwn, formatPwnDelta, phaseName } from './format'
+import { formatPwn, formatPwnDelta, formatSavedAt, phaseName } from './format'
 
 const THIN_NBSP = '\u202F'
 const NBSP = '\u00A0'
@@ -45,5 +45,11 @@ describe('phaseName', () => {
 
   it('names the end of the game', () => {
     expect(phaseName('gameOver')).toBe('Partie terminée')
+  })
+})
+
+describe('formatSavedAt', () => {
+  it('writes the date in full and the time of a save', () => {
+    expect(formatSavedAt('2026-11-03T12:00:00.000Z')).toMatch(/^3 novembre 2026 à \d{2}:\d{2}$/)
   })
 })

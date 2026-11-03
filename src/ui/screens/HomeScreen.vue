@@ -1,7 +1,34 @@
 <script setup lang="ts">
+import { computed, ref } from 'vue'
+import { formatSavedAt } from '../../game/format'
+import { loadSavedGame } from '../../game/persistence'
+import type { SavedGame } from '../../game/savedGame'
+import ConfirmDialog from '../hud/ConfirmDialog.vue'
+
 const emit = defineEmits<{
   create: []
+  resume: [game: SavedGame]
+  review: [game: SavedGame]
 }>()
+
+const lookup = loadSavedGame()
+const saved = lookup.kind === 'found' ? lookup.game : null
+const unreadable = lookup.kind === 'unreadable'
+const confirmingReplace = ref(false)
+
+const inProgress = computed(() => saved?.status === 'inProgress')
+const players = computed(() => saved?.engineState.players ?? [])
+const winner = computed(() => players.value.find((p) => p.id === saved?.engineState.winner) ?? null)
+
+function create() {
+  if (inProgress.value) confirmingReplace.value = true
+  else emit('create')
+}
+
+function replace() {
+  confirmingReplace.value = false
+  emit('create')
+}
 </script>
 
 <template>
@@ -21,14 +48,83 @@ const emit = defineEmits<{
         Piratez des systèmes, installez des backdoors et des rootkits, ruinez vos adversaires en PwnCoins.
       </p>
     </div>
+
+    <p
+      v-if="unreadable"
+      class="relative rounded-md border border-warning/60 bg-warning/10 px-4 py-2 text-sm text-warning"
+      role="status"
+    >
+      La sauvegarde précédente n’a pas pu être chargée
+    </p>
+
+    <section
+      v-if="saved"
+      class="panel-card relative flex w-full max-w-md flex-col gap-3 p-5"
+      :aria-label="inProgress ? 'Partie en cours' : 'Dernière partie'"
+      data-test="saved-game"
+    >
+      <p class="text-xs font-semibold uppercase tracking-[0.3em] text-muted">
+        {{ inProgress ? 'Partie en cours' : 'Dernière partie' }}
+      </p>
+      <ul class="flex flex-wrap gap-x-4 gap-y-1">
+        <li
+          v-for="player in players"
+          :key="player.id"
+          class="flex items-center gap-2 font-semibold"
+          :class="{ 'line-through opacity-50': player.bankrupt }"
+        >
+          <span
+            class="h-2.5 w-2.5 shrink-0 rounded-full"
+            :style="{ background: player.color, boxShadow: `0 0 6px ${player.color}` }"
+          />
+          <span :style="{ color: player.color }">{{ player.name }}</span>
+        </li>
+      </ul>
+      <p class="text-sm text-muted">
+        <template v-if="winner">
+          <span :style="{ color: winner.color }">{{ winner.name }}</span> a gagné ·
+        </template>
+        Tour {{ saved.engineState.turnNumber }} · sauvegardée le {{ formatSavedAt(saved.savedAt) }}
+      </p>
+      <button
+        v-if="inProgress"
+        type="button"
+        class="btn btn-primary"
+        data-test="resume"
+        @click="emit('resume', saved)"
+      >
+        Reprendre la partie
+      </button>
+      <button
+        v-else
+        type="button"
+        class="btn btn-primary"
+        data-test="review"
+        @click="emit('review', saved)"
+      >
+        Voir la dernière partie
+      </button>
+    </section>
+
     <button
       type="button"
-      class="btn btn-primary relative px-8 text-lg"
+      class="btn relative px-8 text-lg"
+      :class="inProgress ? 'btn-ghost' : 'btn-primary'"
       data-test="new-game"
-      @click="emit('create')"
+      @click="create"
     >
       Nouvelle partie
     </button>
+
+    <ConfirmDialog
+      v-if="confirmingReplace"
+      title="Remplacer la partie en cours ?"
+      message="La partie sauvegardée sera remplacée par la nouvelle partie dès son lancement."
+      confirm-label="Nouvelle partie"
+      danger
+      @confirm="replace"
+      @cancel="confirmingReplace = false"
+    />
   </div>
 </template>
 

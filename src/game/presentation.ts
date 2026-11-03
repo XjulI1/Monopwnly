@@ -1,18 +1,13 @@
 import {
   cardById,
-  MAX_QUARANTINE_ATTEMPTS,
   QUARANTINE_INDEX,
-  squareAt,
-  squareById,
   type CardId,
   type GameEvent,
   type GameState,
   type PaymentReason,
   type PlayerId,
   type QuarantineReason,
-  type SquareId,
 } from '../engine'
-import { formatPwn } from './format'
 
 type StepContent =
   | { kind: 'dice'; playerId: PlayerId; dice: [number, number]; purpose: 'move' | 'quarantine' | 'serviceRent' }
@@ -26,8 +21,8 @@ type StepContent =
   | { kind: 'victory'; playerId: PlayerId }
   | { kind: 'silent' }
 
-/** One thing shown to the players, with the engine events it applies to the displayed state and its description. */
-export type PresentationStep = StepContent & { events: GameEvent[]; lines: string[] }
+/** One thing shown to the players, with the engine events it applies to the displayed state and the number of events of the action fully presented once it is played. */
+export type PresentationStep = StepContent & { events: GameEvent[]; presented: number }
 
 /** Kind of a presentation step. */
 export type StepKind = PresentationStep['kind']
@@ -162,121 +157,6 @@ export function applySteps(state: GameState, steps: readonly PresentationStep[])
   return next
 }
 
-type Names = { player: (id: PlayerId | 'bank') => string; square: (id: SquareId) => string }
-
-function namesOf(state: GameState): Names {
-  return {
-    player: (id) => (id === 'bank' ? 'la banque' : (findPlayer(state, id)?.name ?? id)),
-    square: (id) => squareById(id).name,
-  }
-}
-
-function paymentLine(names: Names, event: Extract<GameEvent, { type: 'paid' }>): string | null {
-  const amount = formatPwn(event.amount)
-  const from = names.player(event.from)
-  const to = names.player(event.to)
-  switch (event.reason) {
-    case 'rent':
-      return `${from} paie ${amount} de loyer à ${to}`
-    case 'tax':
-      return `${from} paie ${amount} de taxe`
-    case 'card':
-      if (event.from === 'bank') return `${to} reçoit ${amount}`
-      if (event.to === 'bank') return `${from} paie ${amount}`
-      return `${from} verse ${amount} à ${to}`
-    case 'salary':
-      return `${to} passe par Boot : +${amount}`
-    case 'bankruptcy':
-      return `${from} cède ${amount} à ${to}`
-    default:
-      return null
-  }
-}
-
-const QUARANTINE_EXITS = {
-  fine: 'paie l’amende et sort de quarantaine',
-  key: 'utilise une Clé de déchiffrement et sort de quarantaine',
-  double: 'fait un double et sort de quarantaine',
-  forcedFine: 'paie l’amende après trois échecs et sort de quarantaine',
-} as const
-
-function eventLine(state: GameState, names: Names, event: GameEvent): string | null {
-  switch (event.type) {
-    case 'turnStarted':
-      return `Au tour de ${names.player(event.playerId)}`
-    case 'diceRolled': {
-      const [a, b] = event.dice
-      const who = names.player(event.playerId)
-      if (event.purpose === 'quarantine') return `${who} tente un double : ${a} + ${b}`
-      if (event.purpose === 'serviceRent') return `${who} lance ${a} + ${b} pour le loyer du service`
-      return `${who} lance ${a} + ${b} = ${a + b}${a === b ? ' — Double !' : ''}`
-    }
-    case 'moved': {
-      const last = event.path.at(-1)
-      if (last === undefined) return null
-      const verb = event.backward ? 'recule' : 'avance'
-      return `${names.player(event.playerId)} ${verb} jusqu’à ${squareAt(last).name}`
-    }
-    case 'sentToQuarantine': {
-      const who = names.player(event.playerId)
-      if (event.reason === 'tripleDouble') return `Trois doubles d’affilée : ${who} part en quarantaine`
-      if (event.reason === 'detected') return `${who} est détecté et part en quarantaine`
-      return `${who} part en quarantaine`
-    }
-    case 'quarantineAttemptFailed':
-      return `Pas de double : tentative ${event.failedAttempts} sur ${MAX_QUARANTINE_ATTEMPTS} échouée`
-    case 'leftQuarantine':
-      return `${names.player(event.playerId)} ${QUARANTINE_EXITS[event.method]}`
-    case 'cardDrawn': {
-      const card = cardById(event.cardId)
-      const deck = card.deck === 'exploit' ? 'Exploit' : 'Patch'
-      return `${names.player(event.playerId)} pioche la carte ${deck} «\u00A0${card.title}\u00A0» : ${card.text}`
-    }
-    case 'paid':
-      return paymentLine(names, event)
-    case 'propertyBought':
-      return `${names.player(event.playerId)} achète ${names.square(event.squareId)} pour ${formatPwn(event.price)}`
-    case 'propertyDeclined':
-      return state.settings.auctions
-        ? `${names.player(event.playerId)} met ${names.square(event.squareId)} aux enchères`
-        : `${names.player(event.playerId)} n’achète pas ${names.square(event.squareId)}`
-    case 'bidPlaced':
-      return `${names.player(event.playerId)} mise ${formatPwn(event.amount)}`
-    case 'bidPassed':
-      return `${names.player(event.playerId)} passe`
-    case 'auctionWon':
-      return `${names.player(event.playerId)} remporte ${names.square(event.squareId)} pour ${formatPwn(event.amount)}`
-    case 'auctionUnsold':
-      return `Personne n’a enchéri : ${names.square(event.squareId)} reste à la banque`
-    case 'backdoorBuilt':
-      return event.level === 5
-        ? `${names.player(event.playerId)} installe un rootkit sur ${names.square(event.squareId)}`
-        : `${names.player(event.playerId)} installe une backdoor sur ${names.square(event.squareId)}`
-    case 'backdoorSold':
-      return event.level === 4
-        ? `${names.player(event.playerId)} revend le rootkit de ${names.square(event.squareId)}`
-        : `${names.player(event.playerId)} revend une backdoor de ${names.square(event.squareId)}`
-    case 'mortgaged':
-      return `${names.player(event.playerId)} met ${names.square(event.squareId)} en veille`
-    case 'unmortgaged':
-      return `${names.player(event.playerId)} réactive ${names.square(event.squareId)}`
-    case 'debtStarted': {
-      const [first] = event.payments
-      return first ? `${names.player(event.debtor)} doit ${formatPwn(first.amount)} à ${names.player(first.to)}` : null
-    }
-    case 'assetsTransferred':
-      return event.to === 'bank'
-        ? `Les systèmes de ${names.player(event.from)} retournent à la banque`
-        : `Les biens de ${names.player(event.from)} passent à ${names.player(event.to)}`
-    case 'bankrupt':
-      return `${names.player(event.playerId)} fait faillite`
-    case 'gameWon':
-      return `${names.player(event.playerId)} remporte la partie`
-    default:
-      return null
-  }
-}
-
 function contentOf(event: GameEvent, positions: Map<PlayerId, number>): StepContent | null {
   switch (event.type) {
     case 'diceRolled':
@@ -298,21 +178,15 @@ function contentOf(event: GameEvent, positions: Map<PlayerId, number>): StepCont
   }
 }
 
-function lineList(line: string | null): string[] {
-  return line === null ? [] : [line]
-}
-
 /** Turns the events of one engine action into the ordered steps shown to the players. */
 export function presentationSteps(before: GameState, events: readonly GameEvent[]): PresentationStep[] {
-  const names = namesOf(before)
   const positions = new Map(before.players.map((p) => [p.id, p.position]))
   const steps: PresentationStep[] = []
-  const line = (event: GameEvent) => lineList(eventLine(before, names, event))
 
-  const pushMove = (event: Extract<GameEvent, { type: 'moved' }>, path: number[], lines: string[]) => {
+  const pushMove = (event: Extract<GameEvent, { type: 'moved' }>, path: number[], presented: number) => {
     const from = positions.get(event.playerId) ?? 0
     const moved: GameEvent = { ...event, path }
-    steps.push({ kind: 'move', playerId: event.playerId, squares: [from, ...path], backward: event.backward, events: [moved], lines })
+    steps.push({ kind: 'move', playerId: event.playerId, squares: [from, ...path], backward: event.backward, events: [moved], presented })
     const last = path.at(-1)
     if (last !== undefined) positions.set(event.playerId, last)
   }
@@ -324,24 +198,31 @@ export function presentationSteps(before: GameState, events: readonly GameEvent[
       const passed = events[i + 1]
       const salary = events[i + 2]
       if (bootAt < 0 || passed?.type !== 'passedBoot' || salary?.type !== 'paid' || salary.reason !== 'salary') {
-        pushMove(event, event.path, line(event))
+        pushMove(event, event.path, i + 1)
         continue
       }
       const rest = event.path.slice(bootAt + 1)
-      pushMove(event, event.path.slice(0, bootAt + 1), rest.length === 0 ? line(event) : [])
-      steps.push({ kind: 'salary', playerId: event.playerId, amount: salary.amount, events: [passed, salary], lines: line(salary) })
-      if (rest.length > 0) pushMove(event, rest, line(event))
+      const afterSalary = i + 3
+      pushMove(event, event.path.slice(0, bootAt + 1), rest.length === 0 ? i + 1 : i)
+      steps.push({
+        kind: 'salary',
+        playerId: event.playerId,
+        amount: salary.amount,
+        events: [passed, salary],
+        presented: rest.length === 0 ? afterSalary : i,
+      })
+      if (rest.length > 0) pushMove(event, rest, afterSalary)
       i += 2
       continue
     }
     const content = contentOf(event, positions)
     if (event.type === 'sentToQuarantine') positions.set(event.playerId, QUARANTINE_INDEX)
     const previous = steps.at(-1)
-    if (content) steps.push({ ...content, events: [event], lines: line(event) })
+    if (content) steps.push({ ...content, events: [event], presented: i + 1 })
     else if (previous) {
       previous.events.push(event)
-      previous.lines.push(...line(event))
-    } else steps.push({ kind: 'silent', events: [event], lines: line(event) })
+      previous.presented = i + 1
+    } else steps.push({ kind: 'silent', events: [event], presented: i + 1 })
   }
   return steps
 }

@@ -15,6 +15,8 @@ import PlayersPanel from '../hud/PlayersPanel.vue'
 import PropertySheet from '../hud/PropertySheet.vue'
 import SpeedPicker from '../hud/SpeedPicker.vue'
 import StatusBar from '../hud/StatusBar.vue'
+import TradeComposer from '../hud/TradeComposer.vue'
+import TradeOfferDialog from '../hud/TradeOfferDialog.vue'
 import GameOverOverlay from './GameOverOverlay.vue'
 
 const props = defineProps<{ initial: GameState; config: GameConfig; history?: GameHistory | null }>()
@@ -108,6 +110,15 @@ function skipOnTap(event: PointerEvent) {
           {{ bankruptName }} fait faillite
         </p>
       </div>
+
+      <div
+        v-if="view.offer && !view.thinking && !isPresenting"
+        class="absolute inset-0 z-30 flex items-center justify-center bg-void/50 p-6"
+      >
+        <TradeOfferDialog />
+      </div>
+
+      <TradeComposer class="absolute left-4 top-4 z-20 max-h-[calc(100%-6rem)]" />
 
       <PropertySheet class="absolute bottom-20 right-4 max-h-[calc(100%-6rem)]" />
 

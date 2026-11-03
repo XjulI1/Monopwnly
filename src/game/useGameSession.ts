@@ -6,6 +6,7 @@ import {
   expectedActor,
   QUARANTINE_INDEX,
   type Action,
+  type GameEvent,
   type GameState,
   type PaymentReason,
   type PlayerController,
@@ -33,8 +34,8 @@ export type BoardHandle = {
 /** A short-lived change of cash shown next to a player. */
 export type CashBadge = { id: number; playerId: PlayerId; amount: number }
 
-/** A notification of the HUD. */
-export type Toast = { id: number; message: string }
+/** A notification of the HUD: an error, or a piece of news such as the answer of an AI to an offer. */
+export type Toast = { id: number; message: string; tone: 'error' | 'info' }
 
 /** Dice shown above the board. */
 export type DiceShown = { id: number; dice: [number, number]; rollMs: number }
@@ -174,7 +175,7 @@ export function useGameSession(initial: GameState, options: GameSessionOptions =
     const save = options.save
     if (!save || save({ engineState: engineState.value, journal: journal.value, statistics: statistics.value }) || saveWarned) return
     saveWarned = true
-    toast.value = { id: nextId++, message: STORAGE_WARNING }
+    toast.value = { id: nextId++, message: STORAGE_WARNING, tone: 'error' }
   }
 
   function flushSave() {
@@ -185,6 +186,14 @@ export function useGameSession(initial: GameState, options: GameSessionOptions =
     let count = 0
     while (count < reveals.length && (reveals[count] ?? Infinity) <= presented) count++
     journalShown.value = Math.max(journalShown.value, base + count)
+  }
+
+  function announceAnswer(events: readonly GameEvent[]) {
+    const answer = events.find((event) => event.type === 'tradeAccepted' || event.type === 'tradeRejected')
+    if (!answer || controllerOf(answer.offer.to)?.kind !== 'ai' || controllerOf(answer.offer.from)?.kind === 'ai') return
+    const name = engineState.value.players.find((p) => p.id === answer.offer.to)?.name ?? ''
+    const verb = answer.type === 'tradeAccepted' ? 'accepte' : 'refuse'
+    toast.value = { id: nextId++, message: `${name} ${verb} votre offre`, tone: 'info' }
   }
 
   function showBadge(playerId: PlayerId | 'bank', amount: number, durations: AnimationDurations) {
@@ -225,6 +234,14 @@ export function useGameSession(initial: GameState, options: GameSessionOptions =
         })
       case 'bankrupt':
         return wait(durations.bankruptcy)
+      case 'trade': {
+        const moved = step.offer.receive.cash - step.offer.give.cash
+        if (moved !== 0) {
+          showBadge(step.offer.from, moved, durations)
+          showBadge(step.offer.to, -moved, durations)
+        }
+        return wait(durations.payment)
+      }
       default:
         return
     }
@@ -267,10 +284,11 @@ export function useGameSession(initial: GameState, options: GameSessionOptions =
     const before = engineState.value
     const result = applyAction(before, action)
     if (!result.ok) {
-      toast.value = { id: nextId++, message: result.error.message }
+      toast.value = { id: nextId++, message: result.error.message, tone: 'error' }
       return false
     }
     engineState.value = result.state
+    announceAnswer(result.events)
     const recorded = recordInJournal(journal.value, before, result.events)
     const reveal = { base: journal.value.length, reveals: recorded.reveals }
     journal.value = recorded.journal

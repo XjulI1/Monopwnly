@@ -27,5 +27,6 @@ export function playerView(state: GameState): PlayerView {
     lastRoll: state.lastRoll ? [state.lastRoll[0], state.lastRoll[1]] : null,
     phase: structuredClone(state.phase),
     winner: state.winner,
+    tradeLimits: structuredClone(state.tradeLimits),
   }
 }

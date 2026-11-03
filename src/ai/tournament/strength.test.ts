@@ -10,7 +10,7 @@ const ORDERS: AiLevel[][] = [
   ['hard', 'easy', 'normal'],
   ['hard', 'normal', 'easy'],
 ]
-const SEEDS_PER_ORDER = 10
+const SEEDS_PER_ORDER = 30
 const HARD_MIN_SHARE = 0.45
 
 describe('strength of the levels', () => {

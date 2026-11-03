@@ -63,5 +63,26 @@ export const REACTIVATION_MARGIN = 300
 /** Ratio of expected yield to price under which a hard AI deems a square weak. */
 export const LOW_YIELD_RATIO = 0.5
 
+/** Share of the value exchanged that an offer must bring to the AI for it to accept, by level. */
+export const TRADE_ACCEPT_THRESHOLD: Record<AiLevel, number> = { easy: 0, normal: 0.1, hard: 0.2 }
+
+/** Value of a decryption key in a trade: the quarantine fine it saves. */
+export const DECRYPTION_KEY_VALUE = 50
+
+/** Rounds of expected rent counted as the danger of completing a family of the other side of a trade. */
+export const TRADE_DANGER_ROUNDS = 3
+
+/** Building level at which a normal AI weighs a family a trade would complete for the other side. */
+export const TRADE_DANGER_LEVEL = 3
+
+/** Price offered by a normal or hard AI for the square that completes its family, as multiples of its price, after 0, 1 and 2 refusals. */
+export const PURCHASE_PRICE_STEPS: readonly number[] = [1, 1.5, 2]
+
+/** Price asked by an AI in debt for an isolated square, as a multiple of its mortgage value. */
+export const DEBT_SALE_FACTOR = 1.5
+
+/** Step of the PwnCoins an AI offers in a trade. */
+export const TRADE_CASH_STEP = 10
+
 /** Most management actions (build, sell, mortgage, reactivate) an AI takes in a single phase. */
 export const MANAGEMENT_LIMIT = 40

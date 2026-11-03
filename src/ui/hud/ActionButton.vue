@@ -18,9 +18,11 @@ const emit = defineEmits<{
 
 const RECEIVING: readonly ButtonId[] = ['sell', 'mortgage']
 
+const stacked = computed(() => props.button.amount === null && props.button.detail !== null)
+
 const amountText = computed(() => {
   const amount = props.button.amount
-  if (amount === null) return null
+  if (amount === null) return props.button.detail
   return RECEIVING.includes(props.button.id) ? formatPwnDelta(amount) : formatPwn(amount)
 })
 </script>
@@ -33,7 +35,7 @@ const amountText = computed(() => {
     <button
       type="button"
       class="btn w-full"
-      :class="`btn-${variant}`"
+      :class="[`btn-${variant}`, { 'flex-col gap-0 py-1': stacked }]"
       :disabled="!button.enabled"
       :data-button="button.id"
       @click="emit('press', button.id)"
@@ -41,7 +43,8 @@ const amountText = computed(() => {
       <span>{{ button.label }}</span>
       <span
         v-if="amountText"
-        class="tabular-nums text-sm opacity-80"
+        class="tabular-nums opacity-80"
+        :class="stacked ? 'text-xs font-normal' : 'text-sm'"
       >{{ amountText }}</span>
     </button>
     <span

@@ -35,9 +35,9 @@ function press(id: ButtonId) {
     </p>
     <div class="grid grid-cols-2 gap-2">
       <ActionButton
-        v-for="button in view.buttons"
+        v-for="(button, index) in view.buttons"
         :key="button.id"
-        :class="{ 'col-span-2': button.id === 'manage' || view.buttons.length === 1 }"
+        :class="{ 'col-span-2': index === 0 && view.buttons.length % 2 === 1 }"
         :button="button"
         :variant="PRIMARY.includes(button.id) ? 'primary' : 'ghost'"
         @press="press"

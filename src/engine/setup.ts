@@ -80,6 +80,7 @@ export function createGame(input: CreateGameInput): CreateGameResult {
     phase: { kind: 'preRoll' },
     rngState: rng.rngState,
     winner: null,
+    tradeLimits: { thisTurn: {}, refusedAsks: {} },
   }
   return { ok: true, state }
 }

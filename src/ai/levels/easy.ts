@@ -2,6 +2,7 @@ import type { Action } from '../../engine'
 import { EASY_AUCTION_DISCOUNT } from '../constants'
 import {
   affordableBuild,
+  answerOffer,
   bidUpTo,
   buildCandidates,
   buyOrDecline,
@@ -30,4 +31,5 @@ export const easy: Strategy = {
   auction: (ctx) => bidUpTo(ctx, priceOf(offeredSquare(ctx)) * (1 - EASY_AUCTION_DISCOUNT)),
   debt: (ctx) => settleDebt(ctx, inBoardOrder),
   postRoll: (ctx) => manage(ctx) ?? rollOrEnd(ctx),
+  tradeOffer: answerOffer,
 }

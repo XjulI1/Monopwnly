@@ -10,6 +10,7 @@ export function expectedActor(state: PublicGameState): PlayerId | null {
   if (phase.kind === 'gameOver') return null
   if (phase.kind === 'auction') return phase.nextBidder
   if (phase.kind === 'debt') return phase.debtor
+  if (phase.kind === 'tradeOffer') return phase.offer.to
   return currentPlayer(state).id
 }
 
@@ -109,6 +110,11 @@ export function flowCandidates(state: PublicGameState): Action[] {
       return [
         { type: 'payDebt', playerId },
         { type: 'declareBankruptcy', playerId },
+      ]
+    case 'tradeOffer':
+      return [
+        { type: 'acceptTrade', playerId },
+        { type: 'rejectTrade', playerId },
       ]
     case 'gameOver':
       return []

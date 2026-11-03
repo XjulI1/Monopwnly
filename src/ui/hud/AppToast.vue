@@ -23,13 +23,18 @@ onBeforeUnmount(() => {
     v-if="toast"
     :key="toast.id"
     type="button"
-    class="flex min-h-11 max-w-md items-center gap-3 rounded-lg border border-loss/70 bg-void/95 px-4 py-2 text-left text-sm shadow-lg"
+    class="flex min-h-11 max-w-md items-center gap-3 rounded-lg border bg-void/95 px-4 py-2 text-left text-sm shadow-lg"
+    :class="toast.tone === 'error' ? 'border-loss/70' : 'border-neon/70'"
     role="status"
     data-keep-presenting
     data-test="toast"
+    :data-tone="toast.tone"
     @click="dismissToast"
   >
-    <span class="font-bold text-loss">!</span>
+    <span
+      v-if="toast.tone === 'error'"
+      class="font-bold text-loss"
+    >!</span>
     <span>{{ toast.message }}</span>
   </button>
 </template>

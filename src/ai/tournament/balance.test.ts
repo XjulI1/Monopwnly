@@ -18,10 +18,11 @@ function groupName(group: string): string {
 
 function printReport(report: TournamentReport): void {
   const lines = [
-    `Tournoi d’équilibrage : ${report.games} parties à 4 IA normales, enchères activées`,
+    `Tournoi d’équilibrage : ${report.games} parties à 4 IA normales, enchères et échanges activés`,
     `Terminées : ${report.finished}, interrompues : ${report.interrupted} (${percent(report.interrupted / report.games)})`,
     `Tours de table : moyenne ${report.rounds.mean.toFixed(1)}, médiane ${report.rounds.median}, 90e centile ${report.rounds.p90}`,
     `Victoires par place : ${report.winRateByPlace.map((rate, i) => `${i + 1}e ${percent(rate)}`).join(', ')}`,
+    `Échanges : ${report.trades.proposed} proposés, ${report.trades.accepted} acceptés, ${report.trades.acceptedPerGame.toFixed(2)} acceptés par partie`,
     'Rendement (loyers encaissés / coût investi) :',
     ...Object.entries(report.yieldByGroup).map(
       ([group, y]) => `  ${groupName(group).padEnd(18)} ${y.ratio.toFixed(2)}  (loyers ${y.rent} Ᵽ, investi ${y.invested} Ᵽ)`,
@@ -40,6 +41,7 @@ describe.skipIf(!enabled)('balance of the board', () => {
     })
     printReport(report)
 
+    expect(report.trades.acceptedPerGame, 'Aucun échange accepté').toBeGreaterThan(0)
     const interrupted = report.interrupted / report.games
     expect(interrupted, `Parties interrompues : ${percent(interrupted)}, au plus ${percent(MAX_INTERRUPTED_SHARE)}`).toBeLessThanOrEqual(
       MAX_INTERRUPTED_SHARE,

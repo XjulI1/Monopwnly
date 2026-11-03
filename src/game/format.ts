@@ -13,6 +13,7 @@ const PHASE_NAMES: Record<PhaseKind, string> = {
   auction: 'Enchère',
   debt: 'Règlement de dette',
   postRoll: 'Après le lancer',
+  tradeOffer: 'Offre d’échange',
   gameOver: 'Partie terminée',
 }
 

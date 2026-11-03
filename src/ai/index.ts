@@ -33,6 +33,8 @@ export function chooseAction(view: PlayerView, playerId: PlayerId, level: AiLeve
       return strategy.debt(ctx)
     case 'postRoll':
       return strategy.postRoll(ctx)
+    case 'tradeOffer':
+      return strategy.tradeOffer(ctx)
     case 'gameOver':
       throw new Error('The game is over')
   }

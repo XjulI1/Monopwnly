@@ -52,6 +52,20 @@ joueur solvable l'emporte.
   constructions, quarantaines, doubles, faillites) et classement des cinq cases les plus
   rentables.
 
+### Échanges
+
+- Le bouton **« Échanger »** ouvre un panneau où l'on choisit son partenaire, puis ce que l'on donne
+  et ce que l'on demande : systèmes sans construction dans leur famille, nœuds, services,
+  PwnCoins par pas de 10 Ᵽ et Clés de déchiffrement. Les cases choisies s'allument sur le plateau.
+- On peut proposer avant ou après son lancer, et pendant un règlement de dette, même hors de son
+  tour, pour éviter la faillite. Trois propositions au plus par tour, et une offre refusée ne peut
+  pas être refaite à l'identique dans le même tour.
+- Le destinataire accepte ou refuse, sans contre-proposition. Une case en veille le reste chez son
+  nouveau propriétaire.
+- Les IA évaluent chaque offre selon leur niveau : l'IA facile ne regarde que les prix, les IA
+  normale et difficile se méfient d'une offre qui compléterait une famille adverse. Elles proposent
+  aussi des échanges, aux humains comme entre elles. Le détail est dans [`docs/ia.md`](docs/ia.md).
+
 ## Stack technique
 
 - [Vue 3](https://vuejs.org/) (Composition API, `<script setup lang="ts">`) et [Vite](https://vite.dev/)

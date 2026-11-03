@@ -19,10 +19,12 @@ import {
   type FamilyId,
   type Player,
   type SquareId,
+  type TradeOffer,
 } from '../../engine'
 import { BID_STEP, EARLY_GAME_FREE_SQUARES, REACTIVATION_MARGIN } from '../constants'
 import { diceTotalOdds } from '../landingOdds'
 import type { PlayerView } from '../playerView'
+import { evaluateOffer } from '../trade/evaluateOffer'
 import { expectedRent, reserve } from '../valuation'
 
 /** Everything a level needs to take one decision. */
@@ -41,6 +43,7 @@ export type Strategy = {
   auction: (ctx: DecisionContext) => Action
   debt: (ctx: DecisionContext) => Action
   postRoll: (ctx: DecisionContext) => Action
+  tradeOffer: (ctx: DecisionContext) => Action
 }
 
 /** Orders candidate squares, the first one being sacrificed or chosen first. */
@@ -132,6 +135,18 @@ export function affordableBuild(ctx: DecisionContext, ordered: SquareId[], keep 
 export function reactivation(ctx: DecisionContext, squareIds: SquareId[]): Action | null {
   const [squareId] = squareIds
   return squareId ? { type: 'unmortgage', playerId: ctx.me.id, squareId } : null
+}
+
+/** The proposal of a trade, or null when there is no offer to make. */
+export function proposal(ctx: DecisionContext, offer: TradeOffer | null): Action | null {
+  return offer ? { type: 'proposeTrade', playerId: ctx.me.id, offer } : null
+}
+
+/** Accepts the trade offered to the player when its evaluation at the level of the player says so, refuses it otherwise. */
+export function answerOffer(ctx: DecisionContext): Action {
+  const phase = ctx.view.phase
+  const accept = phase.kind === 'tradeOffer' && evaluateOffer(ctx.view, phase.offer, ctx.level).accept
+  return { type: accept ? 'acceptTrade' : 'rejectTrade', playerId: ctx.me.id }
 }
 
 /** Rolls the dice after a double, ends the turn otherwise. */

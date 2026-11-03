@@ -368,3 +368,51 @@ describe('authors and rounds', () => {
     expect(entriesOf(rolled, rollOf(rolled))).toMatchObject([{ turn: 2 }])
   })
 })
+
+describe('trades', () => {
+  const KEY = cardIdByTitle('patch', 'Clé de déchiffrement')
+  const start = game({
+    overrides: [{ name: 'Nyx', keys: [KEY] }, { name: 'Joueur 1' }],
+    ownership: { forum: { owner: A }, minitel: { owner: B, mortgaged: true }, blog: { owner: A } },
+  })
+  const offer = { from: A, to: B, give: { squares: ['forum'], cash: 0, keys: [] }, receive: { squares: [], cash: 150, keys: [] } }
+
+  it('names the author, the recipient and the content of a proposal', () => {
+    expect(entriesOf(start, { type: 'proposeTrade', playerId: A, offer })).toMatchObject([
+      { actor: A, text: `Nyx propose à Joueur 1 : Forum contre ${pwn(150)}` },
+    ])
+  })
+
+  it('lists several squares, PwnCoins and keys, and flags a mortgaged square', () => {
+    const rich = {
+      from: A,
+      to: B,
+      give: { squares: ['forum', 'blog'], cash: 50, keys: [KEY] },
+      receive: { squares: ['minitel'], cash: 0, keys: [] },
+    }
+    expect(textsOf(start, { type: 'proposeTrade', playerId: A, offer: rich })).toEqual([
+      `Nyx propose à Joueur 1 : Forum, Blog, ${pwn(50)} et 1\u00A0Clé de déchiffrement contre Minitel (en veille)`,
+    ])
+  })
+
+  it('writes « rien » for an empty side', () => {
+    const gift = { from: A, to: B, give: { squares: [], cash: 100, keys: [] }, receive: { squares: [], cash: 0, keys: [] } }
+    expect(textsOf(start, { type: 'proposeTrade', playerId: A, offer: gift })).toEqual([`Nyx propose à Joueur 1 : ${pwn(100)} contre rien`])
+  })
+
+  it('writes the answer of the recipient with the content of the offer', () => {
+    const proposed = act(start, { type: 'proposeTrade', playerId: A, offer }).state
+    expect(entriesOf(proposed, { type: 'acceptTrade', playerId: B })).toMatchObject([
+      { actor: B, text: `Joueur 1 accepte l’offre de Nyx : Forum contre ${pwn(150)}` },
+    ])
+    expect(entriesOf(proposed, { type: 'rejectTrade', playerId: B })).toMatchObject([
+      { actor: B, text: `Joueur 1 refuse l’offre de Nyx : Forum contre ${pwn(150)}` },
+    ])
+  })
+
+  it('elides « de » before the name of an author starting with a vowel', () => {
+    const alice = game({ ownership: { forum: { owner: A } } })
+    const proposed = act(alice, { type: 'proposeTrade', playerId: A, offer }).state
+    expect(textsOf(proposed, { type: 'rejectTrade', playerId: B })).toEqual([`Bob refuse l’offre d’Alice : Forum contre ${pwn(150)}`])
+  })
+})

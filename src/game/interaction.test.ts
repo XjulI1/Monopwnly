@@ -41,6 +41,7 @@ describe('before and after the roll', () => {
     expect(buttonsOf(state).map((b) => [b.id, b.label, b.enabled])).toEqual([
       ['rollDice', 'Lancer les dés', true],
       ['manage', 'Gérer mes systèmes', true],
+      ['trade', 'Échanger', true],
     ])
     expect(viewOf(state, IDLE).panel).toBe('turn')
     expect(sequence(state, [press('rollDice')]).actions).toEqual([{ type: 'rollDice', playerId: A }])
@@ -51,6 +52,7 @@ describe('before and after the roll', () => {
     expect(buttonsOf(state).map((b) => [b.id, b.label])).toEqual([
       ['rollDice', 'Relancer'],
       ['manage', 'Gérer mes systèmes'],
+      ['trade', 'Échanger'],
     ])
   })
 
@@ -59,6 +61,7 @@ describe('before and after the roll', () => {
     expect(buttonsOf(state).map((b) => [b.id, b.label])).toEqual([
       ['endTurn', 'Fin du tour'],
       ['manage', 'Gérer mes systèmes'],
+      ['trade', 'Échanger'],
     ])
     expect(sequence(state, [press('endTurn')]).actions).toEqual([{ type: 'endTurn', playerId: A }])
   })
@@ -80,6 +83,7 @@ describe('quarantine', () => {
       ['useKey', 'Utiliser une Clé'],
       ['rollDice', 'Tenter un double'],
       ['manage', 'Gérer mes systèmes'],
+      ['trade', 'Échanger'],
     ])
   })
 

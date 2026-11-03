@@ -19,6 +19,8 @@ describe('runTournament', () => {
     expect(report.winsByPlace).toHaveLength(4)
     expect(Object.keys(report.yieldByGroup)).toEqual(['retro', 'iot', 'office', 'web', 'social', 'finance', 'infrastructure', 'core', 'nodes', 'services'])
     expect(Object.values(report.yieldByGroup).some((group) => group.rent > 0 && group.invested > 0)).toBe(true)
+    expect(report.trades.accepted).toBeLessThanOrEqual(report.trades.proposed)
+    expect(report.trades.acceptedPerGame).toBe(report.trades.accepted / report.games)
   })
 
   it('counts every finished game once among the places', () => {

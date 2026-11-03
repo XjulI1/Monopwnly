@@ -13,6 +13,7 @@ const nameOf = (id: string) => (id === 'bank' ? 'la banque' : (displayedState.va
 const debtor = computed(() => (debt.value ? nameOf(debt.value.debtor) : ''))
 const creditor = computed(() => (debt.value ? nameOf(debt.value.payment.to) : ''))
 const payButtons = computed(() => view.value.buttons.filter((b) => b.id === 'payDebt' || b.id === 'declareBankruptcy'))
+const tradeButton = computed(() => view.value.buttons.find((b) => b.id === 'trade') ?? null)
 
 function press(id: ButtonId) {
   send({ kind: 'button', id })
@@ -68,7 +69,8 @@ function press(id: ButtonId) {
       class="rounded-md border border-loss/60 bg-loss/10 px-3 py-2 text-sm text-loss"
       data-test="debt-unavoidable"
     >
-      Même en revendant tout et en mettant tout en veille, la somme ne suffit pas : la faillite est inévitable.
+      Même en revendant tout et en mettant tout en veille, la somme ne suffit pas :
+      {{ tradeButton?.enabled ? 'sans échange, la faillite est inévitable.' : 'la faillite est inévitable.' }}
     </p>
     <p
       v-else-if="!debt.covered"
@@ -83,6 +85,12 @@ function press(id: ButtonId) {
         :key="button.id"
         :button="button"
         :variant="button.id === 'payDebt' ? 'primary' : 'danger'"
+        @press="press"
+      />
+      <ActionButton
+        v-if="tradeButton"
+        class="col-span-2"
+        :button="tradeButton"
         @press="press"
       />
     </div>

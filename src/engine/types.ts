@@ -108,8 +108,20 @@ export type ResumePoint =
   | { kind: 'moveAfterFine'; steps: number }
   | { kind: 'collectFrom'; creditor: PlayerId; payers: PlayerId[]; amount: number }
 
-export type Phase =
+/** What one side of a trade hands over: squares, PwnCoins and decryption keys. */
+export type TradeSide = { squares: SquareId[]; cash: number; keys: CardId[] }
+
+/** A trade proposed by `from` to `to`: `give` is what `from` hands over, `receive` what it asks for. */
+export type TradeOffer = { from: PlayerId; to: PlayerId; give: TradeSide; receive: TradeSide }
+
+/** Phases from which a trade can be proposed, restored once it is answered. */
+export type TradeResume =
   | { kind: 'preRoll' }
+  | { kind: 'postRoll'; mayRollAgain: boolean }
+  | { kind: 'debt'; debtor: PlayerId; payments: Payment[]; resume: ResumePoint }
+
+export type Phase =
+  | TradeResume
   | { kind: 'buyDecision'; squareId: SquareId }
   | {
       kind: 'auction'
@@ -119,11 +131,22 @@ export type Phase =
       bidders: PlayerId[]
       nextBidder: PlayerId
     }
-  | { kind: 'debt'; debtor: PlayerId; payments: Payment[]; resume: ResumePoint }
-  | { kind: 'postRoll'; mayRollAgain: boolean }
+  | { kind: 'tradeOffer'; offer: TradeOffer; resume: TradeResume }
   | { kind: 'gameOver' }
 
 export type PhaseKind = Phase['kind']
+
+/** Proposals of a player during the current turn: how many, to whom, and the canonical keys of the refused ones. */
+export type TurnProposals = { count: number; partners: PlayerId[]; rejected: string[] }
+
+/** A square a player asked for in refused offers: whom they asked and how many times it was refused. */
+export type RefusedAsk = { holder: PlayerId; count: number }
+
+/** Limits and public memory of the trades: proposals of the current turn, refused requests of the whole game. */
+export type TradeLimits = {
+  thisTurn: Record<PlayerId, TurnProposals>
+  refusedAsks: Record<PlayerId, Record<SquareId, RefusedAsk>>
+}
 
 export type GameState = {
   settings: GameSettings
@@ -139,6 +162,7 @@ export type GameState = {
   phase: Phase
   rngState: number
   winner: PlayerId | null
+  tradeLimits: TradeLimits
 }
 
 /** What every player can see of a game: everything but the order of the decks and the random generator. */
@@ -159,6 +183,9 @@ export type Action =
   | { type: 'payDebt'; playerId: PlayerId }
   | { type: 'declareBankruptcy'; playerId: PlayerId }
   | { type: 'endTurn'; playerId: PlayerId }
+  | { type: 'proposeTrade'; playerId: PlayerId; offer: TradeOffer }
+  | { type: 'acceptTrade'; playerId: PlayerId }
+  | { type: 'rejectTrade'; playerId: PlayerId }
 
 export type ActionType = Action['type']
 
@@ -191,6 +218,9 @@ export type GameEvent =
   | { type: 'bankrupt'; playerId: PlayerId; creditor: PlayerId | 'bank' }
   | { type: 'assetsTransferred'; from: PlayerId; to: PlayerId | 'bank'; squareIds: SquareId[]; keys: CardId[] }
   | { type: 'gameWon'; playerId: PlayerId }
+  | { type: 'tradeProposed'; offer: TradeOffer }
+  | { type: 'tradeAccepted'; offer: TradeOffer }
+  | { type: 'tradeRejected'; offer: TradeOffer }
 
 export type RuleErrorCode =
   | 'INVALID_PLAYER_COUNT'
@@ -216,6 +246,10 @@ export type RuleErrorCode =
   | 'NOT_IN_QUARANTINE'
   | 'NO_KEY'
   | 'DEBT_NOT_COVERED'
+  | 'EMPTY_TRADE'
+  | 'INVALID_TRADE'
+  | 'TRADE_LIMIT_REACHED'
+  | 'TRADE_ALREADY_REJECTED'
 
 export type RuleError = { code: RuleErrorCode; message: string }
 

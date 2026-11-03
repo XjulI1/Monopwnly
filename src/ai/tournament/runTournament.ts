@@ -32,6 +32,7 @@ export type TournamentReport = {
   winsByLevel: Record<AiLevel, number>
   winRateByLevel: Record<AiLevel, number>
   yieldByGroup: Record<SquareGroup, GroupYield>
+  trades: { proposed: number; accepted: number; acceptedPerGame: number }
 }
 
 /** A tournament: game `i` seats the lineup `i % lineups.length` in play order and uses the seed `seeds[i]`. */
@@ -110,13 +111,19 @@ export function runTournament(options: TournamentOptions): TournamentReport {
   const rounds: number[] = []
   const yields = emptyYields()
   let interrupted = 0
+  let proposed = 0
+  let accepted = 0
   for (let index = 0; index < options.games; index++) {
     const lineup = options.lineups[index % options.lineups.length] ?? []
     const seed = options.seeds[index]
     if (seed === undefined) throw new Error(`No seed for game ${index}`)
     const { state, stop } = playUntilHumanOrEnd(newGame(lineup, seed, options.settings), {
       maxRounds,
-      onAction: (_action, events, after) => record(yields, events, after),
+      onAction: (_action, events, after) => {
+        record(yields, events, after)
+        proposed += events.filter((event) => event.type === 'tradeProposed').length
+        accepted += events.filter((event) => event.type === 'tradeAccepted').length
+      },
     })
     if (stop !== 'gameOver') {
       interrupted += 1
@@ -150,5 +157,6 @@ export function runTournament(options: TournamentOptions): TournamentReport {
         return [group, { rent, invested, ratio: invested === 0 ? 0 : rent / invested }]
       }),
     ) as Record<SquareGroup, GroupYield>,
+    trades: { proposed, accepted, acceptedPerGame: options.games === 0 ? 0 : accepted / options.games },
   }
 }

@@ -69,6 +69,12 @@ describe('DebtPanel', () => {
     expect(mountWithSession(DebtPanel, rentDebt(200)).wrapper.find('[data-test="debt-unavoidable"]').exists()).toBe(false)
   })
 
+  it('reminds that a trade can still avoid an unavoidable bankruptcy', () => {
+    const { wrapper } = mountWithSession(DebtPanel, rentDebt(100))
+    expect(wrapper.get('[data-test="debt-unavoidable"]').text()).toContain('sans échange, la faillite est inévitable')
+    expect(wrapper.find('[data-button="trade"]').exists()).toBe(true)
+  })
+
   it('declares the bankruptcy after a confirmation naming the creditor', async () => {
     const { wrapper, session } = mountWithSession(DebtPanel, rentDebt(100, 3))
     await wrapper.get('[data-button="declareBankruptcy"]').trigger('click')

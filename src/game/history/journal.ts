@@ -9,6 +9,8 @@ import {
   type GameState,
   type PlayerId,
   type QuarantineExit,
+  type TradeOffer,
+  type TradeSide,
 } from '../../engine'
 import { formatPwn } from '../format'
 import { countOf, deckName, listOf, ofName, squareName, squareNameAt } from './format'
@@ -237,6 +239,22 @@ export function recordInJournal(journal: readonly JournalEntry[], before: GameSt
     return details
   }
 
+  function sideText(side: TradeSide): string {
+    const squares = side.squares.map((id) => `${squareName(id)}${before.ownership[id]?.mortgaged ? ' (en veille)' : ''}`)
+    const cash = side.cash > 0 ? [formatPwn(side.cash)] : []
+    const keys = side.keys.length > 0 ? [countOf(side.keys.length, 'Clé de déchiffrement', 'Clés de déchiffrement')] : []
+    const items = [...squares, ...cash, ...keys]
+    return items.length > 0 ? listOf(items) : 'rien'
+  }
+
+  function offerText(offer: TradeOffer): string {
+    return `${sideText(offer.give)} contre ${sideText(offer.receive)}`
+  }
+
+  function answer(offer: TradeOffer, verb: string, index: number) {
+    add('action', offer.to, `${name(offer.to)} ${verb} l’offre ${ofName(name(offer.from))} : ${offerText(offer)}`, index)
+  }
+
   function onBankruptcy(event: Extract<GameEvent, { type: 'bankrupt' }>, index: number) {
     const who = name(event.playerId)
     const sold = liquidation > 0 ? [{ actor: event.playerId, text: `${who} revend ses constructions pour ${formatPwn(liquidation)}` }] : []
@@ -339,6 +357,15 @@ export function recordInJournal(journal: readonly JournalEntry[], before: GameSt
         return
       case 'gameWon':
         add('action', event.playerId, `${name(event.playerId)} remporte la partie`, index)
+        return
+      case 'tradeProposed':
+        add('action', event.offer.from, `${name(event.offer.from)} propose à ${name(event.offer.to)} : ${offerText(event.offer)}`, index)
+        return
+      case 'tradeAccepted':
+        answer(event.offer, 'accepte', index)
+        return
+      case 'tradeRejected':
+        answer(event.offer, 'refuse', index)
         return
       default:
         return

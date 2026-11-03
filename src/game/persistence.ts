@@ -1,4 +1,4 @@
-import { isSavedGame, SAVE_FORMAT_VERSION, type GameRecord, type SavedGame } from './savedGame'
+import { isSavedGame, migrateSavedGame, SAVE_FORMAT_VERSION, type GameRecord, type SavedGame } from './savedGame'
 import type { GameConfig } from './setupForm'
 
 /** Key of the saved game in the storage of the browser. */
@@ -26,7 +26,7 @@ export const browserStorage: StorageAccess = () => {
 
 function parse(raw: string): SavedGame | null {
   try {
-    const value: unknown = JSON.parse(raw)
+    const value = migrateSavedGame(JSON.parse(raw))
     return isSavedGame(value) ? value : null
   } catch {
     return null

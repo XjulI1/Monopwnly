@@ -73,8 +73,56 @@ sauf exception de son niveau :
 | Réactivation | jamais | les familles complètes, puis les autres cases s'il reste 300 Ᵽ au-dessus de la réserve | idem |
 | Dette | revend les backdoors, puis met en veille les cases hors famille complète, puis les familles complètes, dans l'ordre du plateau ; faillite seulement si le patrimoine ne couvre pas le paiement | même ordre, en sacrifiant d'abord ce qui rapporte le moins de loyer espéré | idem |
 | Quarantaine | tente toujours un double | sort tout de suite (Clé de préférence, sinon amende) tant qu'il reste au moins 8 cases à vendre, tente un double ensuite | idem, mais reste en quarantaine si le loyer espéré des 12 cases suivantes dépasse 3 fois l'amende |
+| Offre reçue | accepte si les prix reçus valent au moins les prix donnés | accepte si le gain atteint 10 % de la valeur échangée, danger compris | accepte si le gain atteint 20 % de la valeur échangée, danger et pénalité de tête compris |
+| Propositions | jamais | achète la case qui lui manque pour compléter une famille ; en dette, vend une case isolée | idem, plus les échanges croisés où chacun complète une famille |
 
 Tous les seuils sont regroupés dans `src/ai/constants.ts`.
+
+## Échanges
+
+Le moteur valide chaque offre à la proposition et de nouveau à l'acceptation, puis transfère tout en
+une fois. Le joueur dont c'est le tour propose avant ou après son lancer ; un débiteur propose pendant
+son règlement de dette, même hors de son tour. Trois propositions au plus par tour et par joueur, et
+une offre refusée ne peut pas être refaite à l'identique dans le même tour. Le moteur garde aussi,
+pour toute la partie, le nombre de refus essuyés par chaque joueur pour chaque case demandée :
+l'information est publique (elle figure dans le journal) et sert à l'IA pour monter ses prix d'un
+tour à l'autre.
+
+### Évaluer une offre
+
+`evaluateOffer` calcule le gain du destinataire en PwnCoins :
+
+> gain = valeur des cases et Clés reçues − valeur de celles données + argent reçu − argent donné
+> − danger − pénalité
+
+- **Valeur** : celle de `squareValue` au niveau de l'IA. Les cases reçues sont évaluées sur l'état
+  après l'échange, pour que la prime de famille complète ne compte que si l'échange complète
+  vraiment la famille. Une Clé vaut 50 Ᵽ, l'amende qu'elle évite.
+- **Danger** (normal et difficile) : pour chaque famille que l'échange complète chez l'auteur de
+  l'offre, son loyer espéré sur 3 tours de table, avec trois backdoors par système au normal, et au
+  niveau que l'auteur peut se payer avec son argent après l'échange au difficile.
+- **Pénalité** (difficile) : si l'échange fait passer l'auteur en tête du patrimoine, l'avance qu'il
+  prend.
+
+L'IA accepte quand le gain atteint une part de la valeur échangée : 0 % au facile (qui ne compte
+que les prix, sans prime ni danger), 10 % au normal, 20 % au difficile.
+
+### Proposer
+
+- **Achat de la case manquante** (normal et difficile) : quand il ne manque qu'une case pour
+  compléter une famille et qu'un adversaire la détient, l'IA la lui propose contre son prix, puis
+  150 %, puis 200 % au fil des refus de ce même détenteur (un tour à chaque fois), et abandonne
+  après trois refus. Elle ne dépense que l'argent au-dessus de sa réserve.
+- **Échange croisé** (difficile) : quand l'IA et un adversaire peuvent chacun compléter une famille
+  en échangeant une case, et que la famille obtenue rapporte plus de loyer espéré que celle cédée,
+  l'IA ajoute le moins d'argent possible pour que l'adversaire accepte selon sa propre évaluation
+  (celle du normal pour un humain). Elle garde de quoi poser une backdoor sur chaque système de sa
+  nouvelle famille et ne paie jamais plus que son surcroît de loyer espéré sur le reste de la partie.
+- **Vente pour éviter la faillite** (normal et difficile) : en dette, après avoir revendu ses
+  constructions et avant de mettre en veille, l'IA propose sa case isolée au plus faible loyer
+  espéré contre 1,5 fois sa valeur de veille au joueur le plus riche qui n'est pas son créancier.
+
+Une IA propose au plus une offre par destinataire et par tour, et jamais une offre déjà refusée.
 
 ## Dans l'application
 
@@ -82,36 +130,45 @@ Les décisions sont calculées dans un Web Worker (`src/ai/worker.ts`) pour ne j
 animations. La session de jeu attend la fin de la présentation de l'action précédente, demande la
 décision, attend une courte pause qui dépend de la vitesse (600 ms en normale, 250 ms en rapide,
 aucune en instantanée), puis soumet l'action. Pendant ce temps, le panneau indique
-« <nom> réfléchit… » et ne propose aucune commande de jeu. Une carte tirée par une IA se ferme
+« <nom> réfléchit… » (« <nom> étudie votre offre… » quand elle répond à l'offre d'un humain, qui
+reçoit ensuite « <nom> accepte votre offre » ou « <nom> refuse votre offre ») et ne propose aucune
+commande de jeu. Une carte tirée par une IA se ferme
 seule après 2,4 s (1,4 s en rapide) ; celle d'un humain attend son toucher. Quitter la partie
 annule la décision en cours et tous les délais.
 
 ## Tournois
 
-`runTournament` joue des parties entre IA sans interface, avec une limite de sécurité de 300 tours
-de table (une partie qui l'atteint est comptée comme interrompue). Il mesure la durée des parties,
-les victoires par place et par niveau, et le rendement de chaque famille.
+`runTournament` joue des parties entre IA sans interface, échanges compris, avec une limite de
+sécurité de 300 tours de table (une partie qui l'atteint est comptée comme interrompue). Il mesure
+la durée des parties, les victoires par place et par niveau, le rendement de chaque famille et le
+nombre d'échanges proposés et acceptés.
 
-- **Force des niveaux** (`src/ai/tournament/strength.test.ts`, dans `pnpm test`) : 60 parties
+- **Force des niveaux** (`src/ai/tournament/strength.test.ts`, dans `pnpm test`) : 180 parties
   facile, normal et difficile, les six ordres de jeu à parts égales. Les victoires doivent être
-  strictement croissantes et le difficile doit remporter au moins 45 % des parties terminées.
-- **Équilibrage du plateau** (`pnpm test:balance`) : 400 parties entre 4 IA normales, enchères
-  activées. Critères et réajustement des loyers : voir [docs/plateau.md](plateau.md#équilibrage).
+  strictement croissantes et le difficile doit remporter au moins 45 % des parties terminées. Les
+  échanges ajoutent de la variance : sur les 60 parties d'avant, la normale passait parfois devant
+  la difficile par le seul hasard des graines.
+- **Équilibrage du plateau** (`pnpm test:balance`) : 400 parties entre 4 IA normales, enchères et
+  échanges activés. Il doit y avoir des échanges acceptés. Critères et réajustement des loyers :
+  voir [docs/plateau.md](plateau.md#équilibrage).
 
-Derniers résultats (3 novembre 2026) :
+Derniers résultats (3 novembre 2026, avec les échanges) :
 
-| Tournoi | Parties terminées | Facile | Normal | Difficile |
-|---|---|---|---|---|
-| Force, 60 parties | 49 | 12,2 % | 18,4 % | 69,4 % |
-| Force, 600 parties | 487 | 9,2 % | 23,8 % | 66,9 % |
+| Tournoi | Parties terminées | Facile | Normal | Difficile | Échanges acceptés par partie |
+|---|---|---|---|---|---|
+| Force, 180 parties | 180 | 13,3 % | 38,3 % | 48,3 % | 3,4 |
+| Force, 600 parties | 599 | 13,4 % | 34,1 % | 52,6 % | 3,4 |
 
 | Équilibrage, 400 parties | Mesure |
 |---|---|
-| Parties interrompues | 0,5 % |
-| Durée médiane (90e centile) | 41 tours de table (69) |
-| Victoires de la 1re à la 4e place | 27,9 %, 24,1 %, 23,6 %, 24,4 % |
-| Écart de rendement entre familles | 2,7 |
+| Parties interrompues | 0 % |
+| Durée médiane (90e centile) | 41 tours de table (66) |
+| Victoires de la 1re à la 4e place | 26,5 %, 25,0 %, 25,0 %, 23,5 % |
+| Écart de rendement entre familles | 2,5 |
+| Échanges acceptés par partie | 2,0 |
 
-Dans les parties à trois niveaux, environ une partie sur cinq atteint la limite de 300 tours :
-l'IA facile achète tout ce qu'elle peut et bloque des familles que personne ne peut plus compléter
-sans échange. Les échanges (`add-trading`) devraient faire baisser cette part.
+Avant les échanges, environ une partie sur cinq à trois niveaux atteignait la limite de 300 tours :
+l'IA facile bloquait des familles que personne ne pouvait plus compléter. Les échanges ont fait
+disparaître ces parties interminables. Ils resserrent en revanche l'écart entre le normal et le
+difficile, qui complètent tous deux leurs familles en rachetant à l'IA facile la case qui leur
+manque.

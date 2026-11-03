@@ -14,7 +14,9 @@ import type { GameStatistics, PlayerStatistics } from './history/statistics'
 import type { GameConfig } from './setupForm'
 
 /** Version of the format of the saved game understood by this application. */
-export const SAVE_FORMAT_VERSION = 1
+export const SAVE_FORMAT_VERSION = 2
+
+const FORMAT_BEFORE_TRADES = 1
 
 /** Whether the saved game is still being played or is showing its end screen. */
 export type SavedGameStatus = 'inProgress' | 'finished'
@@ -32,7 +34,8 @@ export type SavedGame = GameRecord & {
 
 type Fields = Record<string, unknown>
 
-const PHASE_KINDS: readonly PhaseKind[] = ['preRoll', 'buyDecision', 'auction', 'debt', 'postRoll', 'gameOver']
+const PHASE_KINDS: readonly PhaseKind[] = ['preRoll', 'buyDecision', 'auction', 'debt', 'postRoll', 'tradeOffer', 'gameOver']
+const TRADE_RESUME_KINDS: readonly PhaseKind[] = ['preRoll', 'postRoll', 'debt']
 const PAYMENT_REASONS: readonly PaymentReason[] = [
   'rent',
   'tax',
@@ -137,6 +140,38 @@ function isResume(value: unknown, isPlayerId: (id: unknown) => boolean): boolean
   }
 }
 
+function isTradeSide(value: unknown): boolean {
+  return (
+    isFields(value) &&
+    isListOf(value.squares, isPurchasable) &&
+    isInt(value.cash, 0) &&
+    isListOf(value.keys, (key) => CARD_IDS.has(key as string))
+  )
+}
+
+function isTradeOffer(value: unknown, isPlayerId: (id: unknown) => boolean): boolean {
+  return isFields(value) && isPlayerId(value.from) && isPlayerId(value.to) && isTradeSide(value.give) && isTradeSide(value.receive)
+}
+
+function isTradeLimits(value: unknown, isPlayerId: (id: unknown) => boolean): boolean {
+  if (!isFields(value) || !isFields(value.thisTurn) || !isFields(value.refusedAsks)) return false
+  const proposals = Object.entries(value.thisTurn).every(
+    ([author, turn]) =>
+      isPlayerId(author) &&
+      isFields(turn) &&
+      isInt(turn.count, 0) &&
+      isListOf(turn.partners, isPlayerId) &&
+      isListOf(turn.rejected, isString),
+  )
+  const asks = Object.entries(value.refusedAsks).every(
+    ([author, squares]) =>
+      isPlayerId(author) &&
+      isFields(squares) &&
+      Object.entries(squares).every(([squareId, ask]) => isPurchasable(squareId) && isFields(ask) && isPlayerId(ask.holder) && isInt(ask.count, 1)),
+  )
+  return proposals && asks
+}
+
 function isPhase(value: unknown, isPlayerId: (id: unknown) => boolean): boolean {
   if (!isFields(value) || !isOneOf(value.kind, PHASE_KINDS)) return false
   switch (value.kind) {
@@ -158,6 +193,13 @@ function isPhase(value: unknown, isPlayerId: (id: unknown) => boolean): boolean 
       )
     case 'postRoll':
       return typeof value.mayRollAgain === 'boolean'
+    case 'tradeOffer':
+      return (
+        isTradeOffer(value.offer, isPlayerId) &&
+        isFields(value.resume) &&
+        isOneOf(value.resume.kind, TRADE_RESUME_KINDS) &&
+        isPhase(value.resume, isPlayerId)
+      )
     default:
       return true
   }
@@ -191,7 +233,8 @@ function isEngineState(value: unknown): value is GameState {
     (lastRoll === null || (isListOf(lastRoll, isDie) && lastRoll.length === 2)) &&
     isPhase(value.phase, isPlayerId) &&
     isInt(value.rngState) &&
-    (value.winner === null || isPlayerId(value.winner))
+    (value.winner === null || isPlayerId(value.winner)) &&
+    isTradeLimits(value.tradeLimits, isPlayerId)
   )
 }
 
@@ -245,6 +288,16 @@ function isCreation(value: unknown): value is GameConfig {
     value.players,
     (p) => isFields(p) && isString(p.id) && isString(p.name) && isString(p.color) && (p.controller === undefined || isController(p.controller)),
   )
+}
+
+/** Brings a saved game of an older format to the current one: a save from before the trades gets empty trade limits. */
+export function migrateSavedGame(value: unknown): unknown {
+  if (!isFields(value) || value.formatVersion !== FORMAT_BEFORE_TRADES || !isFields(value.engineState)) return value
+  return {
+    ...value,
+    formatVersion: SAVE_FORMAT_VERSION,
+    engineState: { ...value.engineState, tradeLimits: { thisTurn: {}, refusedAsks: {} } },
+  }
 }
 
 /** Checks that an unknown value is a complete and coherent saved game of the current format. */

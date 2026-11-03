@@ -5,6 +5,7 @@ import { rollDice } from './movement'
 import { declareBankruptcy, payDebt } from './payments'
 import { payQuarantineFine, useDecryptionKey } from './quarantine'
 import { expectedActor, flowCandidates, squareActions } from './queries'
+import { acceptTrade, proposeTrade, rejectTrade } from './trading'
 import { endTurn } from './turn'
 import type { Action, ActionResult, ActionType, GameState, PhaseKind } from './types'
 
@@ -23,6 +24,9 @@ const ALLOWED_PHASES: Record<ActionType, readonly PhaseKind[]> = {
   payDebt: ['debt'],
   declareBankruptcy: ['debt'],
   endTurn: ['postRoll'],
+  proposeTrade: ['preRoll', 'postRoll', 'debt'],
+  acceptTrade: ['tradeOffer'],
+  rejectTrade: ['tradeOffer'],
 }
 
 function dispatch(ctx: Ctx, action: Action): void {
@@ -55,6 +59,12 @@ function dispatch(ctx: Ctx, action: Action): void {
       return declareBankruptcy(ctx)
     case 'endTurn':
       return endTurn(ctx)
+    case 'proposeTrade':
+      return proposeTrade(ctx, action.playerId, action.offer)
+    case 'acceptTrade':
+      return acceptTrade(ctx)
+    case 'rejectTrade':
+      return rejectTrade(ctx)
   }
 }
 
@@ -115,6 +125,15 @@ export {
   unmortgageableSquares,
 } from './queries'
 export { ownsWholeFamily } from './rent'
+export {
+  MAX_TRADE_PROPOSALS,
+  offerProblem,
+  stateAfterTrade,
+  tradeKey,
+  tradeProposalsLeft,
+  turnProposals,
+  validateTrade,
+} from './trading'
 export { randomInt } from './rng'
 export type { RngHolder } from './rng'
 export { AI_LEVELS, createGame, DEFAULT_SETTINGS, MAX_PLAYERS, MIN_PLAYERS } from './setup'

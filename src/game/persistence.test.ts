@@ -11,7 +11,7 @@ import {
   type SaveStorage,
   type StorageAccess,
 } from './persistence'
-import type { SavedGame } from './savedGame'
+import { SAVE_FORMAT_VERSION, type SavedGame } from './savedGame'
 
 function memoryStorage(initial: Record<string, string> = {}): SaveStorage & { items: Map<string, string> } {
   const items = new Map(Object.entries(initial))
@@ -31,7 +31,7 @@ function savedGame(): SavedGame {
   const start = forceDice(makeState({ ownership: { blog: { owner: B, level: 2, mortgaged: false } } }), [[2, 4]])
   const { state, events } = act(start, { type: 'rollDice', playerId: A })
   return {
-    formatVersion: 1,
+    formatVersion: SAVE_FORMAT_VERSION,
     savedAt: '2026-11-03T14:05:00.000Z',
     status: 'inProgress',
     creation: {
@@ -77,6 +77,44 @@ describe('loadSavedGame', () => {
     expect(loadSavedGame(accessTo(storage))).toEqual({ kind: 'found', game: debt })
   })
 
+  it('reads a game saved while a trade offer waits for its answer', () => {
+    const storage = memoryStorage()
+    const game = savedGame()
+    game.engineState.phase = {
+      kind: 'tradeOffer',
+      offer: { from: B, to: A, give: { squares: ['blog'], cash: 0, keys: [] }, receive: { squares: [], cash: 400, keys: [] } },
+      resume: { kind: 'preRoll' },
+    }
+    game.engineState.tradeLimits = { thisTurn: { [B]: { count: 1, partners: [A], rejected: [] } }, refusedAsks: { [A]: { blog: { holder: B, count: 2 } } } }
+    writeSavedGame(game, accessTo(storage))
+    expect(loadSavedGame(accessTo(storage))).toEqual({ kind: 'found', game })
+  })
+
+  it('reads a save of the format before the trades with empty trade limits', () => {
+    const game = savedGame()
+    const withoutLimits: Partial<SavedGame['engineState']> = { ...game.engineState }
+    delete withoutLimits.tradeLimits
+    const storage = memoryStorage(stored({ ...game, formatVersion: 1, engineState: withoutLimits }))
+    expect(loadSavedGame(accessTo(storage))).toEqual({
+      kind: 'found',
+      game: { ...game, formatVersion: 2, engineState: { ...withoutLimits, tradeLimits: { thisTurn: {}, refusedAsks: {} } } },
+    })
+  })
+
+  it('rejects an incoherent trade offer or trade limits', () => {
+    const offer = savedGame()
+    const badOffer = {
+      kind: 'tradeOffer',
+      offer: { from: A, to: 'p9', give: { squares: [], cash: 10, keys: [] }, receive: { squares: [], cash: 0, keys: [] } },
+      resume: { kind: 'preRoll' },
+    }
+    expect(unreadable({ ...offer, engineState: { ...offer.engineState, phase: badOffer } }).result).toEqual({ kind: 'unreadable' })
+    const limits = savedGame()
+    expect(unreadable({ ...limits, engineState: { ...limits.engineState, tradeLimits: { thisTurn: { [A]: { count: -1 } } } } }).result).toEqual({
+      kind: 'unreadable',
+    })
+  })
+
   it('rejects and deletes a save that is not valid JSON', () => {
     const storage = memoryStorage({ [SAVED_GAME_KEY]: '{"formatVersion": 1, ' })
     expect(loadSavedGame(accessTo(storage))).toEqual({ kind: 'unreadable' })
@@ -84,7 +122,7 @@ describe('loadSavedGame', () => {
   })
 
   it('rejects a save of an unknown format version', () => {
-    const { result, storage } = unreadable({ ...savedGame(), formatVersion: 2 })
+    const { result, storage } = unreadable({ ...savedGame(), formatVersion: 3 })
     expect(result).toEqual({ kind: 'unreadable' })
     expect(storage.items.has(SAVED_GAME_KEY)).toBe(false)
   })

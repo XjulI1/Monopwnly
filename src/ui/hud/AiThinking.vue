@@ -5,6 +5,10 @@ import { useInjectedGameSession } from '../../game/useGameSession'
 const { view, displayedState } = useInjectedGameSession()
 
 const player = computed(() => displayedState.value.players.find((p) => p.id === view.value.thinking) ?? null)
+const studiesOffer = computed(() => {
+  const offer = view.value.offer
+  return offer !== null && displayedState.value.players.find((p) => p.id === offer.from)?.controller.kind === 'human'
+})
 </script>
 
 <template>
@@ -21,7 +25,7 @@ const player = computed(() => displayedState.value.players.find((p) => p.id === 
     <span><span
       class="font-semibold"
       :style="{ color: player.color }"
-    >{{ player.name }}</span> réfléchit…</span>
+    >{{ player.name }}</span> {{ studiesOffer ? 'étudie votre offre…' : 'réfléchit…' }}</span>
   </p>
 </template>
 

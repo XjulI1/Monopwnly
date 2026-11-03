@@ -25,6 +25,7 @@ export function advanceToNextPlayer(ctx: Ctx): void {
   if (nextIndex <= previous) state.turnNumber += 1
   state.currentPlayerIndex = nextIndex
   state.doublesInARow = 0
+  state.tradeLimits.thisTurn = {}
   state.phase = { kind: 'preRoll' }
   emit(ctx, { type: 'turnStarted', playerId: next.id, turnNumber: state.turnNumber })
 }

@@ -1,8 +1,10 @@
 import { mortgageableSquares, purchasableById, QUARANTINE_FINE, type Action, type SquareId } from '../../engine'
 import { HARD_TARGET_BACKDOORS, LOW_BANK_STOCK, LOW_STOCK_RESERVE_FACTOR, LOW_YIELD_RATIO, QUARANTINE_DANGER_FACTOR } from '../constants'
+import { crossOffer, debtSaleOffer, purchaseOffer } from '../trade/proposeOffers'
 import { familyOutlook, squareValue, yieldRatio } from '../valuation'
 import {
   affordableBuild,
+  answerOffer,
   backdoorCostOf,
   bestBuildsFirst,
   bidUpTo,
@@ -18,6 +20,7 @@ import {
   leaveQuarantineEarly,
   offeredSquare,
   priceOf,
+  proposal,
   reactivation,
   rivals,
   rollOrEnd,
@@ -60,6 +63,10 @@ function manage(ctx: DecisionContext): Action | null {
   )
 }
 
+function tradeProposal(ctx: DecisionContext): Action | null {
+  return proposal(ctx, crossOffer(ctx) ?? purchaseOffer(ctx))
+}
+
 function waitsForAuction(ctx: DecisionContext, squareId: SquareId): boolean {
   const outlook = familyOutlook(ctx.view, squareId, ctx.me.id)
   const interesting = outlook.completes || outlook.approaches || outlook.blocks
@@ -67,10 +74,10 @@ function waitsForAuction(ctx: DecisionContext, squareId: SquareId): boolean {
   return ctx.view.settings.auctions && poorest && !interesting && yieldRatio(ctx.view, squareId, ctx.me.id) < LOW_YIELD_RATIO
 }
 
-/** Hard level: more prudent reserve, blocking and yield in the value, three backdoors per system first, tactical refusals. */
+/** Hard level: more prudent reserve, blocking and yield in the value, three backdoors per system first, tactical refusals, cross trades. */
 export const hard: Strategy = {
   preRoll: (ctx) => {
-    const managed = manage(ctx)
+    const managed = tradeProposal(ctx) ?? manage(ctx)
     if (managed) return managed
     if (!ctx.me.quarantine) return { type: 'rollDice', playerId: ctx.me.id }
     return leaveQuarantineEarly(ctx, dangerAfterQuarantine(ctx) > QUARANTINE_DANGER_FACTOR * QUARANTINE_FINE)
@@ -83,6 +90,7 @@ export const hard: Strategy = {
     return buyOrDecline(ctx, (keepsReserve(ctx, price) && !outlook.contested) || outlook.completes || outlook.blocks)
   },
   auction: (ctx) => bidUpTo(ctx, squareValue(ctx.view, offeredSquare(ctx), ctx.me.id, 'hard')),
-  debt: (ctx) => settleDebt(ctx, byExpectedRent),
-  postRoll: (ctx) => manage(ctx) ?? rollOrEnd(ctx),
+  debt: (ctx) => proposal(ctx, debtSaleOffer(ctx)) ?? settleDebt(ctx, byExpectedRent),
+  postRoll: (ctx) => tradeProposal(ctx) ?? manage(ctx) ?? rollOrEnd(ctx),
+  tradeOffer: answerOffer,
 }

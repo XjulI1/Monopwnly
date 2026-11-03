@@ -169,3 +169,17 @@ describe('projection', () => {
     }
   })
 })
+
+describe('trades', () => {
+  it('shows an accepted trade as one step that hands everything over', () => {
+    const key = cardIdByTitle('patch', 'Clé de déchiffrement')
+    const start = makeState({ overrides: [{ keys: [key] }], ownership: { forum: { owner: A }, blog: { owner: B, mortgaged: true } } })
+    const offer = { from: A, to: B, give: { squares: ['forum'], cash: 0, keys: [key] }, receive: { squares: ['blog'], cash: 150, keys: [] } }
+    const proposed = act(start, { type: 'proposeTrade', playerId: A, offer })
+    expect(kinds(presentationSteps(start, proposed.events))).toEqual(['silent'])
+    const accepted = act(proposed.state, { type: 'acceptTrade', playerId: B })
+    const steps = presentationSteps(proposed.state, accepted.events)
+    expect(kinds(steps)).toEqual(['trade'])
+    expect(essentials(applySteps(proposed.state, steps))).toEqual(essentials(accepted.state))
+  })
+})

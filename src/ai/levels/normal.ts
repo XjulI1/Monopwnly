@@ -1,7 +1,9 @@
 import type { Action } from '../../engine'
+import { debtSaleOffer, purchaseOffer } from '../trade/proposeOffers'
 import { familyOutlook, squareValue } from '../valuation'
 import {
   affordableBuild,
+  answerOffer,
   bestBuildsFirst,
   bidUpTo,
   buildCandidates,
@@ -13,6 +15,7 @@ import {
   leaveQuarantineEarly,
   offeredSquare,
   priceOf,
+  proposal,
   reactivation,
   rollOrEnd,
   settleDebt,
@@ -29,9 +32,12 @@ function manage(ctx: DecisionContext): Action | null {
   )
 }
 
-/** Normal level: reserve from the rents within reach, family premium, best rent per PwnCoin when building. */
+/** Normal level: reserve from the rents within reach, family premium, best rent per PwnCoin when building, buys the square missing to a family. */
 export const normal: Strategy = {
-  preRoll: (ctx) => manage(ctx) ?? (ctx.me.quarantine ? leaveQuarantineEarly(ctx, false) : { type: 'rollDice', playerId: ctx.me.id }),
+  preRoll: (ctx) =>
+    proposal(ctx, purchaseOffer(ctx)) ??
+    manage(ctx) ??
+    (ctx.me.quarantine ? leaveQuarantineEarly(ctx, false) : { type: 'rollDice', playerId: ctx.me.id }),
   buyDecision: (ctx) => {
     const squareId = offeredSquare(ctx)
     const price = priceOf(squareId)
@@ -39,6 +45,7 @@ export const normal: Strategy = {
     return buyOrDecline(ctx, price <= ctx.me.cash && ((keepsReserve(ctx, price) && !outlook.contested) || outlook.completes))
   },
   auction: (ctx) => bidUpTo(ctx, squareValue(ctx.view, offeredSquare(ctx), ctx.me.id, 'normal')),
-  debt: (ctx) => settleDebt(ctx, byExpectedRent),
-  postRoll: (ctx) => manage(ctx) ?? rollOrEnd(ctx),
+  debt: (ctx) => proposal(ctx, debtSaleOffer(ctx)) ?? settleDebt(ctx, byExpectedRent),
+  postRoll: (ctx) => proposal(ctx, purchaseOffer(ctx)) ?? manage(ctx) ?? rollOrEnd(ctx),
+  tradeOffer: answerOffer,
 }

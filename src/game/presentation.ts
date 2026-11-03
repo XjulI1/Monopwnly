@@ -7,6 +7,7 @@ import {
   type PaymentReason,
   type PlayerId,
   type QuarantineReason,
+  type TradeOffer,
 } from '../engine'
 
 type StepContent =
@@ -19,6 +20,7 @@ type StepContent =
   | { kind: 'update' }
   | { kind: 'bankrupt'; playerId: PlayerId; creditor: PlayerId | 'bank' }
   | { kind: 'victory'; playerId: PlayerId }
+  | { kind: 'trade'; offer: TradeOffer }
   | { kind: 'silent' }
 
 /** One thing shown to the players, with the engine events it applies to the displayed state and the number of events of the action fully presented once it is played. */
@@ -114,6 +116,9 @@ function applyEvent(state: GameState, event: GameEvent): void {
     case 'assetsTransferred':
       transferAssets(state, event)
       return
+    case 'tradeAccepted':
+      acceptTrade(state, event.offer)
+      return
     case 'bankrupt': {
       const player = findPlayer(state, event.playerId)
       if (!player) return
@@ -141,6 +146,25 @@ function transferAssets(state: GameState, event: Extract<GameEvent, { type: 'ass
   if (from) from.keys = from.keys.filter((key) => !event.keys.includes(key))
   const to = event.to === 'bank' ? null : findPlayer(state, event.to)
   if (to) to.keys.push(...event.keys)
+}
+
+function acceptTrade(state: GameState, offer: TradeOffer): void {
+  const author = findPlayer(state, offer.from)
+  const recipient = findPlayer(state, offer.to)
+  if (!author || !recipient) return
+  for (const [side, giver, receiver] of [
+    [offer.give, author, recipient],
+    [offer.receive, recipient, author],
+  ] as const) {
+    for (const id of side.squares) {
+      const own = state.ownership[id]
+      if (own) own.owner = receiver.id
+    }
+    giver.cash -= side.cash
+    receiver.cash += side.cash
+    giver.keys = giver.keys.filter((key) => !side.keys.includes(key))
+    receiver.keys.push(...side.keys)
+  }
 }
 
 /** Applies the events of one step to a copy of the displayed state. */
@@ -173,6 +197,8 @@ function contentOf(event: GameEvent, positions: Map<PlayerId, number>): StepCont
       return { kind: 'bankrupt', playerId: event.playerId, creditor: event.creditor }
     case 'gameWon':
       return { kind: 'victory', playerId: event.playerId }
+    case 'tradeAccepted':
+      return { kind: 'trade', offer: event.offer }
     default:
       return UPDATE_EVENTS.has(event.type) ? { kind: 'update' } : null
   }

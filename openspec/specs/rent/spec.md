@@ -3,7 +3,9 @@
 ## Purpose
 Calculer et faire payer le loyer dû en s'arrêtant sur une case possédée par un adversaire :
 systèmes, nœuds et services.
+
 ## Requirements
+
 ### Requirement: Loyer d'un système
 
 Le loyer d'un système actif SHALL valoir : le loyer de base si son propriétaire ne possède pas toute
@@ -34,7 +36,7 @@ niveau correspondant s'il porte des backdoors ou un rootkit.
 #### Scenario: Rootkit
 
 - **WHEN** le joueur s'arrête sur le Noyau de l'IA portant un rootkit
-- **THEN** il paie 3 100 Ᵽ
+- **THEN** il paie 4 215 Ᵽ
 
 ### Requirement: Loyer d'un nœud
 
@@ -79,4 +81,3 @@ l'argent suffit, en règlement de dette sinon.
 
 - **WHEN** un joueur avec 100 Ᵽ doit 610 Ᵽ de loyer
 - **THEN** la partie passe en `debt` avec un paiement de 610 Ᵽ envers le propriétaire
-

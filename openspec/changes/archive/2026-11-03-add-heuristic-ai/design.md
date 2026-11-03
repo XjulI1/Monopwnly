@@ -34,12 +34,13 @@ boucle IA s'appuie donc sur « qui doit agir », pas sur « à qui est le tour �
 src/ai/
   index.ts                 chooseAction, playUntilHumanOrEnd (boucle automatique)
   playerView.ts            projection de l'état sur l'information visible
-  aiRandom.ts              aléa déterministe dérivé de la vue
   landingOdds.ts           fréquence d'arrivée sur chaque case (chaîne de Markov du plateau)
   valuation.ts             valeur d'une case, d'une famille, d'une construction ; réserve de sécurité
+  levels/strategy.ts       règles communes (enchère, dette, quarantaine, choix de construction)
   levels/easy.ts, levels/normal.ts, levels/hard.ts
   constants.ts             seuils et primes de chaque niveau
   worker.ts                Web Worker : reçoit (vue, joueur, niveau), renvoie l'action
+  workerProtocol.ts        messages échangés avec le worker
   tournament/
     runTournament.ts       boucle de parties simulées et agrégation des mesures
     balance.test.ts        tournoi d'équilibrage (pnpm test:balance)
@@ -51,23 +52,26 @@ worker lié à Vue vit dans `src/game/`.
 
 ### Qui doit agir
 
-Requête moteur `actingPlayerId(state)` : joueur courant en `preRoll`, `buyDecision` et `postRoll` ;
+Requête moteur `expectedActor(state)`, déjà présente depuis `add-rules-engine` : joueur courant en
+`preRoll`, `buyDecision` et `postRoll` ;
 `nextBidder` en `auction` ; `debtor` en `debt` ; `null` en `gameOver`. La session déclenche l'IA
 quand ce joueur est une IA et qu'aucune présentation n'est en cours. Ainsi un humain qui refuse un
 achat voit les IA miser chacune à son tour, et une IA débitrice hors de son tour règle sa dette.
 
 ### Vue joueur : l'anti-triche par le type
 
-`playerView(state, playerId)` produit un `PlayerView` sans `decks` détaillés (remplacés par leur
+`playerView(state)` produit un `PlayerView`, le même pour tous les joueurs, sans `decks` détaillés (remplacés par leur
 taille) ni `rngState`. Tout le reste est public dans ce genre de jeu (argent, propriétés,
 constructions, Clés détenues, position). Les fonctions de `levels/` ne reçoivent que ce type :
 accéder à l'ordre des paquets devient une erreur de typage. Les requêtes moteur utilisées par l'IA
 (actions légales, patrimoine disponible) sont typées pour accepter une `PlayerView`.
 
-### Aléa déterministe sans stockage
+### Décisions sans aléa
 
-Graine de l'IA = hachage FNV-1a de la `PlayerView` sérialisée, du joueur et du niveau, comme dans
-Risky. Même vue → même décision ; le générateur de la partie n'est jamais consommé par l'IA.
+Les règles de chaque niveau sont déterministes et les égalités se départagent dans l'ordre du
+plateau : une IA n'a pas besoin d'aléa propre. Même vue → même décision ; le générateur de la partie
+n'est jamais consommé par l'IA. (Un générateur dérivé d'un hachage de la vue, prévu au départ, a été
+retiré faute d'usage.)
 
 ### Fréquences d'arrivée
 
@@ -88,7 +92,11 @@ déterministe : aucune triche.
   tours restants estimé d'après l'argent total en jeu.
 
 Le niveau facile n'utilise que la valeur de base, le normal ajoute la prime de famille pour soi,
-le difficile ajoute le blocage et le rendement espéré.
+le difficile ajoute le blocage et le rendement espéré. Les niveaux normal et difficile décotent un
+système d'une famille dont un adversaire possède déjà un système, et refusent de l'acheter : sans
+échanges, elle ne peut pas être complétée, et le laisser aux enchères permet à celui qui a commencé
+la famille de la compléter. Sans cette règle, mesurée par le tournoi, les familles s'éparpillaient
+et la plupart des parties atteignaient la limite de 300 tours.
 
 ### Réserve de sécurité
 
@@ -123,6 +131,13 @@ directement, sans worker. Raison du worker : le niveau difficile recalcule loyer
 dépasser une frame sur tablette, et le worker garantit des animations fluides sans avoir à le
 mesurer d'abord.
 
+La table des vitesses gagne deux durées : la pause avant chaque action d'une IA (`aiPause` :
+600 ms en normale, 250 ms en rapide, 0 en instantanée) et l'affichage d'une carte tirée par une IA
+(`aiCard` : 2,4 s et 1,4 s), qui se ferme seule alors que celle d'un humain attend son toucher.
+Tant que le joueur attendu est une IA, `viewOf` ne propose aucune commande de jeu et nomme l'IA qui
+réfléchit. `dispose()`, appelé quand l'écran de partie se démonte, ignore toute réponse en vol et
+annule pauses, attentes et badges.
+
 ### Tournoi
 
 `runTournament({ games, players, levels, seeds, maxTurns })` joue des parties avec
@@ -139,10 +154,10 @@ interrompue est comptée comme telle et pèse dans les critères.
 
 ### Moteur et création de partie
 
-Le joueur du moteur reçoit `kind: { kind: 'human' } | { kind: 'ai'; level: 'easy' | 'normal' | 'hard' }`.
+Le joueur du moteur reçoit `controller: { kind: 'human' } | { kind: 'ai'; level: 'easy' | 'normal' | 'hard' }`.
 Le formulaire de création ajoute un choix Humain / IA par joueur et un niveau unique pour toutes les
 IA ; chaque IA reçoit un pseudonyme tiré d'une liste d'une vingtaine de pseudonymes de hackers
-inventés (`AI_NAMES` dans `src/game/gameForm.ts`), sans doublon dans la partie. Le moteur garde un
+inventés (`AI_NAMES` dans `src/game/setupForm.ts`), sans doublon dans la partie. Le moteur garde un
 niveau par joueur pour que le tournoi mélange les niveaux.
 
 ## Risks / Trade-offs

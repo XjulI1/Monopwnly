@@ -89,7 +89,7 @@ les précédents implémentés.
 - [x] `add-rules-engine` : socle du projet et moteur de règles
 - [x] `add-3d-board` : plateau 3D TresJS
 - [x] `add-game-ui` : écrans, HUD du tour, dés animés, achats, enchères, constructions
-- [ ] `add-heuristic-ai` : IA heuristique en trois niveaux
+- [x] `add-heuristic-ai` : IA heuristique en trois niveaux
 - [ ] `add-save-and-journal` : sauvegarde automatique, journal, statistiques de fin
 - [ ] `add-trading` : échanges entre joueurs, IA qui négocie
 - [ ] `add-game-options` : règles optionnelles et fins de partie alternatives

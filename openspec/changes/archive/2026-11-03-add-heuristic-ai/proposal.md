@@ -39,8 +39,9 @@ raisonnable : seules des parties simulées en grand nombre le permettent.
 
 ### Modified Capabilities
 
-(aucune : les changes précédents ne sont pas encore archivés ; les exigences sur le formulaire de
-création propres aux IA sont portées par `ai-players`)
+- `rent`, `board-data`, `property-management` : les scénarios qui citent un loyer suivent les
+  valeurs réajustées par le tournoi d'équilibrage (Noyau de l'IA, Intranet). Les exigences sur le
+  formulaire de création propres aux IA sont portées par `ai-players`.
 
 ## Hors périmètre
 
@@ -54,9 +55,10 @@ création propres aux IA sont portées par `ai-players`)
 
 - Nouveau module `src/ai/` (pur, sans Vue ni Three.js, soumis à la même règle d'isolement ESLint que
   le moteur) et `src/ai/worker.ts`.
-- Moteur : le joueur porte désormais un type `{ kind: 'human' } | { kind: 'ai'; level }` ; une
-  requête `actingPlayerId(state)` indique qui doit agir (joueur courant, enchérisseur attendu ou
-  débiteur). Aucune règle ne change.
+- Moteur : le joueur porte désormais un champ `controller` de type `{ kind: 'human' } |
+  { kind: 'ai'; level }` ; la requête existante `expectedActor(state)` indique qui doit agir (joueur
+  courant, enchérisseur attendu ou débiteur). Aucune règle ne change ; les loyers de six familles
+  sont réajustés d'après le tournoi d'équilibrage (`docs/plateau.md`).
 - Interface : formulaire de création (type par joueur, niveau commun des IA), pilotage des décisions
   IA dans la session de jeu.
 - Nouveau script `pnpm test:balance` (tournoi long, hors `pnpm test`).

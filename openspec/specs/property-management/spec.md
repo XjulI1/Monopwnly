@@ -18,7 +18,7 @@ achetable SHALL donner son nom et son effet.
 #### Scenario: Fiche d'un système construit
 
 - **WHEN** le joueur touche l'Intranet qui porte 2 backdoors
-- **THEN** la fiche affiche la table des loyers de l'Intranet avec la ligne « 2 backdoors : 170 Ᵽ » mise en évidence
+- **THEN** la fiche affiche la table des loyers de l'Intranet avec la ligne « 2 backdoors : 155 Ᵽ » mise en évidence
 
 #### Scenario: Fiche d'un nœud
 

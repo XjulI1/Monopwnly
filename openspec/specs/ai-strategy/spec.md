@@ -1,11 +1,10 @@
-# Spec Delta
+# ai-strategy Specification
 
 ## Purpose
-
 Décrire les comportements observables des trois niveaux d'IA sur chaque décision du jeu (achat,
 enchère, construction, dettes, quarantaine), et l'écart de force attendu entre eux.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Réserve de sécurité
 
@@ -30,8 +29,9 @@ de 100 Ᵽ.
 En décision d'achat, une IA SHALL suivre la règle de son niveau :
 
 - le niveau facile SHALL acheter si son argent après achat reste au moins égal à sa réserve ;
-- le niveau normal SHALL acheter dans les mêmes conditions, et SHALL acheter même en entamant sa
-  réserve une case qui lui complète une famille ;
+- le niveau normal SHALL acheter dans les mêmes conditions, sauf un système d'une famille dont un
+  adversaire possède déjà un système, qu'il laisse aux enchères, et SHALL acheter même en entamant
+  sa réserve une case qui lui complète une famille ;
 - le niveau difficile SHALL, en plus, acheter en entamant sa réserve une case qui empêche un
   adversaire de compléter une famille, et SHALL refuser une case de faible rendement espéré quand
   les enchères sont activées et que son argent est inférieur à celui de chaque adversaire, pour la
@@ -43,6 +43,11 @@ Une IA SHALL NOT acheter une case dont le prix dépasse son argent.
 
 - **WHEN** une IA normale, possédant Minitel, s'arrête sur Modem 56k avec 80 Ᵽ et une réserve de 100 Ᵽ
 - **THEN** elle achète Modem 56k
+
+#### Scenario: Famille entamée par un adversaire
+
+- **WHEN** une IA normale riche s'arrête sur Messagerie pro alors qu'un adversaire possède Intranet
+- **THEN** elle refuse l'achat
 
 #### Scenario: Refus faute de réserve
 
@@ -61,7 +66,8 @@ elle est inférieure ou égale à cette valeur et à son argent au-dessus de sa 
 L'estimation SHALL être :
 
 - facile : le prix de la case, réduit de 20 % ;
-- normal : le prix, augmenté d'une prime si la case complète ou approche une de ses familles ;
+- normal : le prix, augmenté d'une prime si la case complète ou approche une de ses familles, et
+  diminué d'une décote si un adversaire possède déjà un système de sa famille ;
 - difficile : la valeur normale, augmentée d'une prime si la case bloque une famille adverse et
   ajustée par le rendement espéré de la case.
 
@@ -90,14 +96,20 @@ backdoor à la fois, tant que son argent après construction reste au-dessus de 
 facile SHALL construire sur la première famille complète dans l'ordre du plateau ; les niveaux normal
 et difficile SHALL privilégier la famille dont la backdoor suivante apporte le plus de loyer espéré
 par PwnCoin investi. Le niveau difficile SHALL viser trois backdoors par système avant de passer à
-une autre famille, et SHALL construire de préférence quand le stock de backdoors de la banque est
-bas, pour en priver ses adversaires. Une IA normale ou difficile SHALL réactiver une case en veille
+une autre famille, SHALL construire de préférence quand le stock de backdoors de la banque est
+bas, pour en priver ses adversaires, et SHALL mettre en veille une case hors famille complète
+quand cela lui permet de financer la backdoor suivante au-dessus de sa réserve. Une IA normale ou difficile SHALL réactiver une case en veille
 d'une famille complète avant d'y construire, si sa réserve le permet.
 
 #### Scenario: Construction au-dessus de la réserve
 
 - **WHEN** une IA normale possède la famille Web complète, 1 000 Ᵽ et une réserve de 300 Ᵽ
 - **THEN** elle construit une backdoor à la fois, uniformément, jusqu'à ce que la suivante la fasse passer sous 300 Ᵽ
+
+#### Scenario: Mise en veille pour construire
+
+- **WHEN** une IA difficile possède la famille Rétro complète, le Satellite et 60 Ᵽ
+- **THEN** elle met le Satellite en veille pour pouvoir construire sur Rétro
 
 #### Scenario: Pas de construction sous la réserve
 
@@ -115,12 +127,12 @@ patrimoine disponible ne couvre pas le premier paiement restant.
 
 #### Scenario: Mise en veille plutôt que faillite
 
-- **WHEN** une IA doit 300 Ᵽ, a 100 Ᵽ en poche et possède Forum et Nœud Tor sans famille complète
+- **WHEN** une IA doit 250 Ᵽ, a 100 Ᵽ en poche et possède Forum et Nœud Tor sans famille complète
 - **THEN** elle met en veille au moins une de ces cases puis paie, sans déclarer faillite
 
 #### Scenario: Ordre de sacrifice
 
-- **WHEN** une IA difficile doit lever 60 Ᵽ et possède Minitel et Satellite, hors famille complète
+- **WHEN** une IA difficile doit lever 25 Ᵽ et possède Minitel et Satellite, hors famille complète
 - **THEN** elle met en veille la case au plus faible loyer espéré et conserve l'autre active
 
 #### Scenario: Faillite inévitable

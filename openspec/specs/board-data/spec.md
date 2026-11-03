@@ -5,7 +5,9 @@ Fournir le plateau original de Monopwnly sous forme de données : les 40 cases, 
 systèmes, les prix, loyers, coûts de construction et valeurs de mise en veille, ainsi que les cartes
 Exploit et Patch. Toutes les règles et le rendu s'appuient sur ces données, dont `docs/plateau.md`
 est la référence lisible.
+
 ## Requirements
+
 ### Requirement: Composition du plateau
 
 Le plateau SHALL comporter exactement 40 cases numérotées de 0 à 39 dans le sens du déplacement.
@@ -77,7 +79,7 @@ valoir le double du loyer de base. La valeur de mise en veille SHALL valoir la m
 
 - **WHEN** on lit le Minitel (case 1)
 - **THEN** son prix est 60 et ses loyers sont 4, 20, 55, 150, 200 et 250
-- **AND** quand on lit le Noyau de l'IA (case 39), son prix est 400 et ses loyers sont 50, 250, 700, 1900, 2500 et 3100
+- **AND** quand on lit le Noyau de l'IA (case 39), son prix est 400 et ses loyers sont 68, 340, 950, 2585, 3400 et 4215
 - **AND** quand on lit la Boutique en ligne (case 19), son prix est 200 et ses loyers sont 16, 80, 225, 610, 800 et 990
 
 #### Scenario: Loyers strictement croissants
@@ -121,4 +123,3 @@ SHALL contenir exactement une Clé de déchiffrement.
 
 - **WHEN** on parcourt les cartes dont l'effet déplace vers une case précise
 - **THEN** chaque case visée existe sur le plateau
-

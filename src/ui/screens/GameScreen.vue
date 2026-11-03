@@ -125,10 +125,7 @@ function skipOnTap(event: PointerEvent) {
     >
       <StatusBar @quit="confirmingQuit = true" />
       <PlayersPanel class="min-h-24 flex-1 overflow-y-auto" />
-      <ActivityFeed
-        class="border-t border-line px-2 py-2"
-        :size="4"
-      />
+      <ActivityFeed class="border-t border-line px-2 py-2" />
       <ActionPanel />
       <div class="border-t border-line p-3">
         <SpeedPicker />

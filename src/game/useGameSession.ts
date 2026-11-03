@@ -12,6 +12,7 @@ import {
   type PlayerId,
 } from '../engine'
 import type { AiDecider } from './aiDecider'
+import { appendToFeed, type FeedLine } from './feed'
 import {
   durationsFor,
   loadAnimationSpeed,
@@ -27,12 +28,11 @@ export type BoardHandle = {
   animateMove: (playerId: PlayerId, squares: readonly number[], msPerSquare: number) => Promise<void>
 }
 
+export type { FeedLine } from './feed'
+
 /** A short-lived change of cash shown next to a player. */
 export type CashBadge = { id: number; playerId: PlayerId; amount: number }
 
-
-/** A line of the activity feed. */
-export type FeedLine = { id: number; text: string }
 
 /** A notification of the HUD. */
 export type Toast = { id: number; message: string }
@@ -72,7 +72,6 @@ export type GameSessionOptions = {
 /** Key under which the game screen provides its session. */
 export const GAME_SESSION: InjectionKey<GameSession> = Symbol('gameSession')
 
-const FEED_SIZE = 40
 const QUARANTINE_HOP_FACTOR = 3
 const SALARY_PAUSE_FACTOR = 0.5
 const BADGE_MIN_MS = 1200
@@ -143,10 +142,9 @@ export function useGameSession(initial: GameState, options: GameSessionOptions =
     })
   }
 
-  function addLines(lines: readonly string[]) {
+  function addLines(lines: readonly string[], round: number) {
     if (lines.length === 0) return
-    const added = lines.map((text) => ({ id: nextId++, text }))
-    feed.value = [...feed.value, ...added].slice(-FEED_SIZE)
+    feed.value = appendToFeed(feed.value, lines.map((text) => ({ id: nextId++, text })), round)
   }
 
   function showBadge(playerId: PlayerId | 'bank', amount: number, durations: AnimationDurations) {
@@ -209,12 +207,12 @@ export function useGameSession(initial: GameState, options: GameSessionOptions =
       currentStep.value = step
       const isCard = step.kind === 'card'
       const awaitsHuman = isCard && controllerOf(step.playerId)?.kind !== 'ai'
-      if (isCard) addLines(step.lines)
+      if (isCard) addLines(step.lines, projected.turnNumber)
       if (awaitsHuman || !fastForward) await play(step, durations)
       if (disposed) return
-      if (!isCard) addLines(step.lines)
       projected = applyStep(projected, step)
       displayedState.value = projected
+      if (!isCard) addLines(step.lines, projected.turnNumber)
     }
     if (import.meta.env.DEV) {
       const found = divergences(projected, engineState.value)

@@ -30,7 +30,7 @@
 
 ## 6. Journal dans le HUD
 
-- [ ] 6.1 Implémenter `JournalPanel` (repliable, groupé par tour, couleurs des joueurs, entrées dépliables, défilement automatique sauf lecture en cours, indicateur « Nouvelles actions », 200 dernières entrées puis chargement en remontant) ; vérifier à la main pendant une partie contre deux IA, en 1024 × 768 et en 1920 × 1080.
+- [ ] 6.1 Implémenter `JournalPanel` (repliable, groupé par tour, couleurs des joueurs, entrées dépliables, défilement automatique sauf lecture en cours, indicateur « Nouvelles actions », 200 dernières entrées puis chargement en remontant) ; vérifier à la main pendant une partie contre deux IA, en 1024 × 768 et en 1920 × 1080. Partir de `ActivityFeed` (`src/ui/hud/ActivityFeed.vue` et `src/game/feed.ts`), qui défile déjà, regroupe par tour, suit les dernières actions sauf lecture en cours, propose un retour en bas et garde les 8 tours précédents en mémoire.
 
 ## 7. Statistiques de fin
 

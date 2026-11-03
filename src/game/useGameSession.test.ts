@@ -303,3 +303,24 @@ describe('AI players', () => {
     expect(vi.getTimerCount()).toBe(0)
   })
 })
+
+describe('activity feed', () => {
+  it('files each line under the round in which it happened', async () => {
+    const start = makeState({ current: 1, phase: { kind: 'postRoll', mayRollAgain: false } })
+    const session = useGameSession(start, { speed: 'normal' })
+    session.dispatch({ type: 'endTurn', playerId: B })
+    await vi.runAllTimersAsync()
+    expect(session.feed.value.at(-1)).toMatchObject({ text: 'Au tour de Joueur 1', round: 2 })
+  })
+
+  it('keeps more than the last few lines', async () => {
+    const start = forceDice(makeState({ players: 3 }), [[1, 2]])
+    const session = useGameSession(start, { speed: 'instant' })
+    session.dispatch({ type: 'rollDice', playerId: A })
+    session.dispatch({ type: 'declineProperty', playerId: A })
+    for (const playerId of [A, B, C]) session.dispatch({ type: 'passBid', playerId })
+    await vi.runAllTimersAsync()
+    expect(session.feed.value.length).toBeGreaterThan(5)
+    expect(session.feed.value.every((line) => line.round === 1)).toBe(true)
+  })
+})

@@ -25,7 +25,7 @@ describe('system rent', () => {
       const state = makeState({ ownership: { 'online-shop': { owner: B, level: (i + 1) as 1 | 2 | 3 | 4 | 5 } } })
       expect(rentFor(state, 'online-shop', 7)).toBe(rent)
     })
-    expect(rentFor(makeState({ ownership: { 'ai-kernel': { owner: B, level: 5 } } }), 'ai-kernel', 7)).toBe(3100)
+    expect(rentFor(makeState({ ownership: { 'ai-kernel': { owner: B, level: 5 } } }), 'ai-kernel', 7)).toBe(4215)
   })
 })
 

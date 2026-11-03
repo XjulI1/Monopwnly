@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { computed, onMounted, provide, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, provide, ref } from 'vue'
 import GameBoard from '../../board/GameBoard.vue'
 import type { GameState } from '../../engine'
+import { workerDecider } from '../../game/aiDecider'
 import { GAME_SESSION, useGameSession } from '../../game/useGameSession'
 import ActionPanel from '../hud/ActionPanel.vue'
 import ActivityFeed from '../hud/ActivityFeed.vue'
@@ -22,7 +23,8 @@ const emit = defineEmits<{
   replay: []
 }>()
 
-const session = useGameSession(props.initial)
+const ai = props.initial.players.some((p) => p.controller.kind === 'ai') ? workerDecider() : null
+const session = useGameSession(props.initial, { ai })
 provide(GAME_SESSION, session)
 
 const { displayedState, view, isPresenting, currentStep, dice, send, skip, dismissCard } = session
@@ -37,6 +39,11 @@ const bankruptName = computed(() => {
   return displayedState.value.players.find((p) => p.id === step.playerId)?.name ?? null
 })
 const gameOver = computed(() => displayedState.value.phase.kind === 'gameOver' && !isPresenting.value)
+
+onBeforeUnmount(() => {
+  session.dispose()
+  ai?.dispose()
+})
 
 onMounted(() => {
   session.attachBoard({

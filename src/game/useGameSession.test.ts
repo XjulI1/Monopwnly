@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { cardIdByTitle } from '../engine'
-import { A, B, forceDice, makeState, player } from '../engine/testUtils'
+import { chooseAction } from '../ai'
+import type { DecisionRequest } from '../ai/workerProtocol'
+import { cardIdByTitle, type Action } from '../engine'
+import { A, B, C, forceDice, makeState, player } from '../engine/testUtils'
+import type { AiDecider } from './aiDecider'
 import { useGameSession, type BoardHandle } from './useGameSession'
 
 function fakeBoard(): BoardHandle & { animateMove: ReturnType<typeof vi.fn> } {
@@ -35,7 +38,7 @@ describe('dispatch', () => {
     expect(session.currentStep.value?.kind).toBe('payment')
     expect(player(session.displayedState.value, A)).toMatchObject({ position: 14, cash: 1500 })
     await vi.runAllTimersAsync()
-    expect(player(session.displayedState.value, A).cash).toBe(1440)
+    expect(player(session.displayedState.value, A).cash).toBe(1445)
   })
 
   it('ignores inputs during the presentation', async () => {
@@ -179,5 +182,124 @@ describe('speed', () => {
     expect(session.speed.value).toBe('fast')
     expect(useGameSession(makeState()).speed.value).toBe('fast')
     localStorage.clear()
+  })
+})
+
+describe('AI players', () => {
+  const ai = { kind: 'ai', level: 'normal' } as const
+
+  function deciderOf(): AiDecider & { decide: ReturnType<typeof vi.fn> } {
+    return {
+      decide: vi.fn((request: DecisionRequest) => Promise.resolve(chooseAction(request.view, request.playerId, request.level, request.managementLeft))),
+      dispose: vi.fn(),
+    }
+  }
+
+  it('asks the AI who must act and submits its action only after the pause of the speed', async () => {
+    const start = forceDice(makeState({ overrides: [{ controller: ai }] }), [[2, 4]])
+    const decider = deciderOf()
+    const session = useGameSession(start, { speed: 'normal', ai: decider })
+    await vi.advanceTimersByTimeAsync(500)
+    expect(decider.decide).toHaveBeenCalledWith(expect.objectContaining({ playerId: A, level: 'normal' }))
+    expect(session.engineState.value).toBe(start)
+    await vi.advanceTimersByTimeAsync(100)
+    expect(session.engineState.value).not.toBe(start)
+    expect(session.isPresenting.value).toBe(true)
+    await vi.runAllTimersAsync()
+    const end = session.engineState.value
+    expect(end.ownership['wifi-bulb']?.owner).toBe(A)
+    expect(end.players[end.currentPlayerIndex]?.id).toBe(B)
+    expect(end.phase.kind).toBe('preRoll')
+    expect(session.displayedState.value).toBe(end)
+  })
+
+  it('waits for the presentation of the previous action before asking again', async () => {
+    const start = forceDice(makeState({ overrides: [{ controller: ai }] }), [[2, 4]])
+    const decider = deciderOf()
+    const session = useGameSession(start, { speed: 'normal', ai: decider })
+    await vi.advanceTimersByTimeAsync(600)
+    expect(decider.decide).toHaveBeenCalledTimes(1)
+    await vi.advanceTimersByTimeAsync(500)
+    expect(session.isPresenting.value).toBe(true)
+    expect(decider.decide).toHaveBeenCalledTimes(1)
+    await vi.advanceTimersByTimeAsync(500)
+    expect(session.isPresenting.value).toBe(false)
+    expect(decider.decide).toHaveBeenCalledTimes(2)
+  })
+
+  it('chains the actions of an AI without any delay at instant speed', async () => {
+    const start = forceDice(makeState({ overrides: [{ controller: ai }] }), [[2, 4]])
+    const session = useGameSession(start, { speed: 'instant', ai: deciderOf() })
+    const clock = Date.now()
+    await vi.runAllTimersAsync()
+    expect(Date.now()).toBe(clock)
+    expect(session.engineState.value.players[session.engineState.value.currentPlayerIndex]?.id).toBe(B)
+  })
+
+  it('closes the card drawn by an AI by itself after the delay of the speed', async () => {
+    const start = forceDice(
+      makeState({ overrides: [{ position: 10, controller: ai }], decks: { exploit: [cardIdByTitle('exploit', 'Rollback')] } }),
+      [[2, 3]],
+    )
+    const session = useGameSession(start, { speed: 'normal', ai: deciderOf() })
+    let sawCard = false
+    for (let elapsed = 0; elapsed < 20_000 && !sawCard; elapsed += 100) {
+      await vi.advanceTimersByTimeAsync(100)
+      sawCard = session.currentStep.value?.kind === 'card'
+    }
+    expect(sawCard).toBe(true)
+    await vi.advanceTimersByTimeAsync(2400)
+    expect(session.currentStep.value?.kind).not.toBe('card')
+  })
+
+  it('lets the AIs bid one after the other once the human has passed', async () => {
+    const start = forceDice(makeState({ players: 3, overrides: [{}, { controller: ai }, { controller: ai }] }), [[1, 2]])
+    const decider = deciderOf()
+    const session = useGameSession(start, { speed: 'fast', ai: decider })
+    session.dispatch({ type: 'rollDice', playerId: A })
+    await vi.runAllTimersAsync()
+    session.dispatch({ type: 'declineProperty', playerId: A })
+    await vi.runAllTimersAsync()
+    expect(session.engineState.value.phase).toMatchObject({ kind: 'auction', nextBidder: A })
+    expect(decider.decide).not.toHaveBeenCalled()
+    session.dispatch({ type: 'passBid', playerId: A })
+    await vi.runAllTimersAsync()
+    const bidders = decider.decide.mock.calls.map(([request]) => (request as DecisionRequest).playerId)
+    expect(new Set(bidders)).toEqual(new Set([B, C]))
+    expect(session.engineState.value.phase.kind).toBe('postRoll')
+    expect([B, C]).toContain(session.engineState.value.ownership['modem-56k']?.owner)
+  })
+
+  it('settles the debt of an AI out of its turn', async () => {
+    const start = forceDice(
+      makeState({
+        overrides: [{ position: 5 }, { cash: 5, controller: ai }],
+        ownership: { blog: { owner: B } },
+        decks: { patch: [cardIdByTitle('patch', 'Serveur de jeu partagé')] },
+      }),
+      [[1, 2]],
+    )
+    const session = useGameSession(start, { speed: 'fast', ai: deciderOf() })
+    session.dispatch({ type: 'rollDice', playerId: A })
+    await vi.runAllTimersAsync()
+    session.dismissCard()
+    await vi.runAllTimersAsync()
+    const end = session.engineState.value
+    expect(end.phase.kind).toBe('postRoll')
+    expect(player(end, A).cash).toBe(1510)
+    expect(end.ownership.blog?.mortgaged).toBe(true)
+  })
+
+  it('ignores an answer that arrives after the game was quit and leaves no timer behind', async () => {
+    let answer: (action: Action) => void = () => undefined
+    const decider: AiDecider = { decide: () => new Promise((resolve) => (answer = resolve)), dispose: vi.fn() }
+    const start = makeState({ overrides: [{ controller: ai }] })
+    const session = useGameSession(start, { speed: 'normal', ai: decider })
+    await vi.advanceTimersByTimeAsync(0)
+    session.dispose()
+    answer({ type: 'rollDice', playerId: A })
+    await vi.advanceTimersByTimeAsync(5000)
+    expect(session.engineState.value).toBe(start)
+    expect(vi.getTimerCount()).toBe(0)
   })
 })

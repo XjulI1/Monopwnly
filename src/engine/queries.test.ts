@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { legalActions } from './index'
 import { buildableSquares, expectedActor, mortgageableSquares, rentIfLanded, sellableSquares, unmortgageableSquares } from './queries'
 import { liquidationValue } from './payments'
-import { A, B, C, makeState } from './testUtils'
+import { cardIdByTitle } from './board/cards'
+import { A, B, C, makeState, roll } from './testUtils'
 
 describe('expected actor', () => {
   it('is the bidder during an auction and the debtor during a debt', () => {
@@ -14,6 +15,24 @@ describe('expected actor', () => {
       expectedActor(makeState({ phase: { kind: 'debt', debtor: B, payments: [], resume: { kind: 'postRoll' } } })),
     ).toBe(B)
     expect(expectedActor(makeState({ phase: { kind: 'gameOver' } }))).toBeNull()
+  })
+
+  it('is the current player before the roll, on a purchase decision and after the roll', () => {
+    for (const phase of [{ kind: 'preRoll' }, { kind: 'buyDecision', squareId: 'blog' }, { kind: 'postRoll', mayRollAgain: false }] as const) {
+      expect(expectedActor(makeState({ players: 3, current: 1, phase }))).toBe(B)
+    }
+  })
+
+  it('is an opponent who cannot pay the shared game server card, out of their turn', () => {
+    const start = makeState({
+      players: 3,
+      overrides: [{ position: 5 }, { cash: 5 }],
+      decks: { patch: [cardIdByTitle('patch', 'Serveur de jeu partagé')] },
+    })
+    const { state } = roll(start, [1, 2])
+    expect(state.phase.kind).toBe('debt')
+    expect(state.players[state.currentPlayerIndex]?.id).toBe(A)
+    expect(expectedActor(state)).toBe(B)
   })
 })
 

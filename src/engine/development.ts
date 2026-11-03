@@ -1,16 +1,16 @@
 import { FAMILY_SQUARES, UNMORTGAGE_INTEREST, purchasableById } from './board/squares'
 import { emit, fail, getPlayer, transfer, type Ctx } from './context'
-import type { BuildingLevel, GameState, PlayerId, RuleError, SquareId, SystemSquare } from './types'
+import type { BuildingLevel, PlayerId, PublicGameState, RuleError, SquareId, SystemSquare } from './types'
 
 function error(code: RuleError['code'], message: string): RuleError {
   return { code, message }
 }
 
-function familyLevels(state: GameState, square: SystemSquare): number[] {
+function familyLevels(state: PublicGameState, square: SystemSquare): number[] {
   return FAMILY_SQUARES[square.family].map((id) => state.ownership[id]?.level ?? 0)
 }
 
-function ownedSquare(state: GameState, playerId: PlayerId, squareId: SquareId) {
+function ownedSquare(state: PublicGameState, playerId: PlayerId, squareId: SquareId) {
   const square = purchasableById(squareId)
   if (!square) return { problem: error('UNKNOWN_SQUARE', 'Cette case ne peut pas être possédée.') }
   const own = state.ownership[squareId]
@@ -26,7 +26,7 @@ export function unmortgageCost(squareId: SquareId): number {
 }
 
 /** Explains why the player cannot add a backdoor (or a rootkit) on the square, or null if allowed. */
-export function buildProblem(state: GameState, playerId: PlayerId, squareId: SquareId): RuleError | null {
+export function buildProblem(state: PublicGameState, playerId: PlayerId, squareId: SquareId): RuleError | null {
   const found = ownedSquare(state, playerId, squareId)
   if ('problem' in found) return found.problem ?? null
   const { square, own } = found
@@ -51,7 +51,7 @@ export function buildProblem(state: GameState, playerId: PlayerId, squareId: Squ
 }
 
 /** Explains why the player cannot sell a building level on the square, or null if allowed. */
-export function sellProblem(state: GameState, playerId: PlayerId, squareId: SquareId): RuleError | null {
+export function sellProblem(state: PublicGameState, playerId: PlayerId, squareId: SquareId): RuleError | null {
   const found = ownedSquare(state, playerId, squareId)
   if ('problem' in found) return found.problem ?? null
   const { square, own } = found
@@ -67,7 +67,7 @@ export function sellProblem(state: GameState, playerId: PlayerId, squareId: Squa
 }
 
 /** Explains why the player cannot mortgage the square, or null if allowed. */
-export function mortgageProblem(state: GameState, playerId: PlayerId, squareId: SquareId): RuleError | null {
+export function mortgageProblem(state: PublicGameState, playerId: PlayerId, squareId: SquareId): RuleError | null {
   const found = ownedSquare(state, playerId, squareId)
   if ('problem' in found) return found.problem ?? null
   const { square, own } = found
@@ -79,7 +79,7 @@ export function mortgageProblem(state: GameState, playerId: PlayerId, squareId: 
 }
 
 /** Explains why the player cannot reactivate the square, or null if allowed. */
-export function unmortgageProblem(state: GameState, playerId: PlayerId, squareId: SquareId): RuleError | null {
+export function unmortgageProblem(state: PublicGameState, playerId: PlayerId, squareId: SquareId): RuleError | null {
   const found = ownedSquare(state, playerId, squareId)
   if ('problem' in found) return found.problem ?? null
   if (!found.own.mortgaged) return error('NOT_MORTGAGED', 'Cette case n’est pas en veille.')

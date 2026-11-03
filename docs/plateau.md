@@ -90,11 +90,10 @@ Décompte : 22 systèmes en 8 familles, 4 nœuds, 2 services, 6 cases carte, 2 t
 
 ## Systèmes et loyers
 
-Le loyer de base vaut environ 7 à 12 % du prix, croissant avec la famille. Les loyers avec
-constructions en sont des multiples fixes (×5, ×14, ×38, ×50, ×62), arrondis à 5 Ᵽ. Une famille
-complète sans construction double le loyer de base. Ces valeurs seront vérifiées par des parties
-simulées entre IA dans `add-heuristic-ai` (durée moyenne d'une partie, avantage du premier joueur)
-et pourront être réajustées.
+Le loyer de base croît avec la famille : de 4 % du prix pour les Objets connectés à 17 % pour le
+Noyau de l'IA. Les loyers avec constructions en sont des multiples fixes (×5, ×14, ×38, ×50, ×62),
+arrondis à 5 Ᵽ. Une famille complète sans construction double le loyer de base. Ces valeurs ont
+été réajustées d'après le tournoi d'équilibrage entre IA (voir [Équilibrage](#équilibrage)).
 
 | Système | Prix | Base | Famille | 1 BD | 2 BD | 3 BD | 4 BD | Rootkit | Coût BD | Veille |
 |---|---|---|---|---|---|---|---|---|---|---|
@@ -102,35 +101,69 @@ et pourront être réajustées.
 | Minitel | 60 | 4 | 8 | 20 | 55 | 150 | 200 | 250 | 50 | 30 |
 | Modem 56k | 60 | 4 | 8 | 20 | 55 | 150 | 200 | 250 | 50 | 30 |
 | **Objets connectés** | | | | | | | | | | |
-| Ampoule Wi‑Fi | 100 | 6 | 12 | 30 | 85 | 230 | 300 | 370 | 50 | 50 |
-| Frigo connecté | 100 | 6 | 12 | 30 | 85 | 230 | 300 | 370 | 50 | 50 |
-| Caméra IP | 120 | 8 | 16 | 40 | 110 | 305 | 400 | 495 | 50 | 60 |
+| Ampoule Wi‑Fi | 100 | 4 | 8 | 20 | 55 | 150 | 200 | 250 | 50 | 50 |
+| Frigo connecté | 100 | 4 | 8 | 20 | 55 | 150 | 200 | 250 | 50 | 50 |
+| Caméra IP | 120 | 5 | 10 | 25 | 70 | 190 | 250 | 310 | 50 | 60 |
 | **Bureautique** | | | | | | | | | | |
-| Imprimante réseau | 140 | 10 | 20 | 50 | 140 | 380 | 500 | 620 | 100 | 70 |
-| Messagerie pro | 140 | 10 | 20 | 50 | 140 | 380 | 500 | 620 | 100 | 70 |
-| Intranet | 160 | 12 | 24 | 60 | 170 | 455 | 600 | 745 | 100 | 80 |
+| Imprimante réseau | 140 | 9 | 18 | 45 | 125 | 340 | 450 | 560 | 100 | 70 |
+| Messagerie pro | 140 | 9 | 18 | 45 | 125 | 340 | 450 | 560 | 100 | 70 |
+| Intranet | 160 | 11 | 22 | 55 | 155 | 420 | 550 | 680 | 100 | 80 |
 | **Web** | | | | | | | | | | |
 | Forum | 180 | 14 | 28 | 70 | 195 | 530 | 700 | 870 | 100 | 90 |
 | Blog | 180 | 14 | 28 | 70 | 195 | 530 | 700 | 870 | 100 | 90 |
 | Boutique en ligne | 200 | 16 | 32 | 80 | 225 | 610 | 800 | 990 | 100 | 100 |
 | **Social** | | | | | | | | | | |
-| Fil d'actualité | 220 | 18 | 36 | 90 | 250 | 685 | 900 | 1115 | 150 | 110 |
-| Messagerie chiffrée | 220 | 18 | 36 | 90 | 250 | 685 | 900 | 1115 | 150 | 110 |
-| Plateforme vidéo | 240 | 20 | 40 | 100 | 280 | 760 | 1000 | 1240 | 150 | 120 |
+| Fil d'actualité | 220 | 21 | 42 | 105 | 295 | 800 | 1050 | 1300 | 150 | 110 |
+| Messagerie chiffrée | 220 | 21 | 42 | 105 | 295 | 800 | 1050 | 1300 | 150 | 110 |
+| Plateforme vidéo | 240 | 23 | 46 | 115 | 320 | 875 | 1150 | 1425 | 150 | 120 |
 | **Finance** | | | | | | | | | | |
-| Distributeur de billets | 260 | 22 | 44 | 110 | 310 | 835 | 1100 | 1365 | 150 | 130 |
-| Néobanque | 260 | 22 | 44 | 110 | 310 | 835 | 1100 | 1365 | 150 | 130 |
-| Bourse en ligne | 280 | 24 | 48 | 120 | 335 | 910 | 1200 | 1490 | 150 | 140 |
+| Distributeur de billets | 260 | 25 | 50 | 125 | 350 | 950 | 1250 | 1550 | 150 | 130 |
+| Néobanque | 260 | 25 | 50 | 125 | 350 | 950 | 1250 | 1550 | 150 | 130 |
+| Bourse en ligne | 280 | 28 | 56 | 140 | 390 | 1065 | 1400 | 1735 | 150 | 140 |
 | **Infrastructure** | | | | | | | | | | |
-| Réseau électrique | 300 | 26 | 52 | 130 | 365 | 990 | 1300 | 1610 | 200 | 150 |
-| Satellite | 300 | 26 | 52 | 130 | 365 | 990 | 1300 | 1610 | 200 | 150 |
-| Câble sous-marin | 320 | 28 | 56 | 140 | 390 | 1065 | 1400 | 1735 | 200 | 160 |
+| Réseau électrique | 300 | 40 | 80 | 200 | 560 | 1520 | 2000 | 2480 | 200 | 150 |
+| Satellite | 300 | 40 | 80 | 200 | 560 | 1520 | 2000 | 2480 | 200 | 150 |
+| Câble sous-marin | 320 | 44 | 88 | 220 | 615 | 1670 | 2200 | 2730 | 200 | 160 |
 | **Cœur** | | | | | | | | | | |
-| Mainframe d'État | 350 | 35 | 70 | 175 | 490 | 1330 | 1750 | 2170 | 200 | 175 |
-| Noyau de l'IA | 400 | 50 | 100 | 250 | 700 | 1900 | 2500 | 3100 | 200 | 200 |
+| Mainframe d'État | 350 | 48 | 96 | 240 | 670 | 1825 | 2400 | 2975 | 200 | 175 |
+| Noyau de l'IA | 400 | 68 | 136 | 340 | 950 | 2585 | 3400 | 4215 | 200 | 200 |
 
 BD = backdoor. Le coût d'un rootkit est celui d'une backdoor supplémentaire, les 4 backdoors
 retournant à la banque.
+
+### Équilibrage
+
+Le tournoi d'équilibrage (`pnpm test:balance`) joue 400 parties entre 4 IA de niveau normal,
+enchères activées. Il échoue si l'un de ces critères n'est pas tenu : au plus 5 % de parties
+interrompues à la limite de sécurité de 300 tours de table ; une durée médiane entre 25 et
+80 tours ; un taux de victoire de chaque place dans l'ordre de jeu entre 18 % et 32 % ; aucune
+famille dont le rendement (loyers encaissés rapportés au prix et aux constructions investis)
+dépasse 3 fois celui de la famille la moins rentable.
+
+Avec les loyers d'origine, les familles bon marché rapportaient trop par rapport aux familles
+chères (écart de 4,6). Les loyers de base ont été changés ainsi, les autres niveaux suivant les
+multiples ci-dessus : Objets connectés 6, 6, 8 → 4, 4, 5 ; Bureautique 10, 10, 12 → 9, 9, 11 ;
+Social 18, 18, 20 → 21, 21, 23 ; Finance 22, 22, 24 → 25, 25, 28 ; Infrastructure 26, 26, 28 →
+40, 40, 44 ; Cœur 35, 50 → 48, 68. Rétro et Web n'ont pas changé.
+
+Mesures du 3 novembre 2026 :
+
+| Mesure | Loyers d'origine | Loyers réajustés |
+|---|---|---|
+| Parties interrompues | 0,5 % | 0,5 % |
+| Durée médiane (90e centile) | 41 tours (73) | 41 tours (69) |
+| Victoires de la 1re, 2e, 3e et 4e place | 30,9 / 24,4 / 23,6 / 21,1 % | 27,9 / 24,1 / 23,6 / 24,4 % |
+| Rendement Rétro | 0,87 | 0,95 |
+| Rendement Objets connectés | 1,30 | 0,96 |
+| Rendement Bureautique | 0,84 | 0,85 |
+| Rendement Web | 0,76 | 0,82 |
+| Rendement Social | 0,46 | 0,52 |
+| Rendement Finance | 0,44 | 0,45 |
+| Rendement Infrastructure | 0,28 | 0,37 |
+| Rendement Cœur | 0,32 | 0,36 |
+| Rendement Nœuds | 0,81 | 0,85 |
+| Rendement Services | 0,68 | 0,65 |
+| Écart entre la famille la plus et la moins rentable | 4,6 (critère non tenu) | 2,7 |
 
 ## Nœuds et services
 

@@ -16,6 +16,10 @@ export default mergeConfig(
         },
         {
           extends: true,
+          test: { name: 'ai', environment: 'node', include: ['src/ai/**/*.test.ts'] },
+        },
+        {
+          extends: true,
           test: {
             name: 'ui',
             environment: 'happy-dom',

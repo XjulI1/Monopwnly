@@ -65,7 +65,7 @@ describe('prices and rents', () => {
   it('matches the reference rows', () => {
     const rows: [number, number, number[]][] = [
       [1, 60, [4, 20, 55, 150, 200, 250]],
-      [39, 400, [50, 250, 700, 1900, 2500, 3100]],
+      [39, 400, [68, 340, 950, 2585, 3400, 4215]],
       [19, 200, [16, 80, 225, 610, 800, 990]],
     ]
     for (const [index, price, rents] of rows) {

@@ -65,12 +65,17 @@ export type GameSettings = {
   auctions: boolean
 }
 
-export type PlayerSetup = { id: PlayerId; name: string; color: string }
+export type AiLevel = 'easy' | 'normal' | 'hard'
+
+export type PlayerController = { kind: 'human' } | { kind: 'ai'; level: AiLevel }
+
+export type PlayerSetup = { id: PlayerId; name: string; color: string; controller?: PlayerController }
 
 export type Player = {
   id: PlayerId
   name: string
   color: string
+  controller: PlayerController
   cash: number
   position: number
   quarantine: { failedAttempts: number } | null
@@ -136,6 +141,9 @@ export type GameState = {
   winner: PlayerId | null
 }
 
+/** What every player can see of a game: everything but the order of the decks and the random generator. */
+export type PublicGameState = Omit<GameState, 'decks' | 'rngState'>
+
 export type Action =
   | { type: 'rollDice'; playerId: PlayerId }
   | { type: 'payQuarantineFine'; playerId: PlayerId }
@@ -187,6 +195,7 @@ export type GameEvent =
 export type RuleErrorCode =
   | 'INVALID_PLAYER_COUNT'
   | 'DUPLICATE_PLAYER'
+  | 'INVALID_AI_LEVEL'
   | 'NOT_YOUR_TURN'
   | 'WRONG_PHASE'
   | 'GAME_OVER'

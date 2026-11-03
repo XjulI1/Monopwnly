@@ -271,7 +271,7 @@ describe('debt', () => {
   }
 
   it('opens the management mode limited to sales and mortgages', () => {
-    const state = rentDebt(300)
+    const state = rentDebt(200)
     const view = viewOf(state, IDLE)
     expect(view.panel).toBe('debt')
     expect(view.managing).toBe(true)
@@ -284,10 +284,10 @@ describe('debt', () => {
   })
 
   it('describes the debt', () => {
-    expect(viewOf(rentDebt(300), IDLE).debt).toMatchObject({
+    expect(viewOf(rentDebt(200), IDLE).debt).toMatchObject({
       debtor: A,
-      payment: { to: B, amount: 370, reason: 'rent' },
-      cash: 300,
+      payment: { to: B, amount: 250, reason: 'rent' },
+      cash: 200,
       raisable: 110,
       covered: false,
       unavoidable: false,
@@ -296,8 +296,8 @@ describe('debt', () => {
   })
 
   it('enables Payer only when the current payment is covered', () => {
-    expect(button(rentDebt(300), 'payDebt')).toMatchObject({ enabled: false, label: 'Payer', amount: 370 })
-    const covered = rentDebt(300)
+    expect(button(rentDebt(200), 'payDebt')).toMatchObject({ enabled: false, label: 'Payer', amount: 250 })
+    const covered = rentDebt(200)
     const debtor = covered.players.find((p) => p.id === A)
     if (debtor) debtor.cash = 400
     expect(button(covered, 'payDebt')?.enabled).toBe(true)
@@ -327,5 +327,37 @@ describe('debt', () => {
     const { interaction, actions } = sequence(state, [press('declareBankruptcy'), press('cancelBankruptcy')])
     expect(actions).toEqual([])
     expect(viewOf(state, interaction).debt?.confirming).toBe(false)
+  })
+})
+
+describe('while an AI acts', () => {
+  const ai = { kind: 'ai', level: 'normal' } as const
+
+  it('offers no game command, highlights nothing and names the AI who is thinking', () => {
+    const state = makeState({ overrides: [{ controller: ai }], ownership: retroAndBlog })
+    const view = viewOf(state, IDLE)
+    expect(view.thinking).toBe(A)
+    expect(view.buttons).toEqual([])
+    expect(view.highlights).toEqual({})
+    expect(sequence(state, [press('rollDice'), press('manage')]).actions).toEqual([])
+  })
+
+  it('still opens the sheet of a square, without management buttons', () => {
+    const state = makeState({ overrides: [{ controller: ai }], ownership: retroAndBlog })
+    const { interaction } = sequence(state, [tap(1)])
+    expect(viewOf(state, interaction).sheet).toEqual({ squareId: 'minitel', buttons: [] })
+  })
+
+  it('ignores a bid typed by the human while an AI must bid', () => {
+    const phase: Phase = { kind: 'auction', squareId: 'blog', highBid: 20, highBidder: A, bidders: [A, B], nextBidder: B }
+    const state = makeState({ overrides: [{}, { controller: ai }], phase })
+    expect(viewOf(state, IDLE).thinking).toBe(B)
+    expect(reduceInteraction(state, IDLE, { kind: 'bid', amount: 40 }).action).toBeUndefined()
+  })
+
+  it('gives the commands back when a human must act', () => {
+    const state = makeState({ overrides: [{}, { controller: ai }] })
+    expect(viewOf(state, IDLE).thinking).toBeNull()
+    expect(button(state, 'rollDice')?.enabled).toBe(true)
   })
 })

@@ -15,14 +15,14 @@ describe('durations', () => {
   it('plays every animation faster in fast mode than in normal mode', () => {
     const normal = durationsFor('normal')
     const fast = durationsFor('fast')
-    for (const key of ['diceRoll', 'perSquare', 'payment', 'bankruptcy'] as const) {
+    for (const key of ['diceRoll', 'perSquare', 'payment', 'bankruptcy', 'aiPause', 'aiCard'] as const) {
       expect(normal[key]).toBeGreaterThan(fast[key])
       expect(fast[key]).toBeGreaterThan(0)
     }
   })
 
   it('plays nothing in instant mode', () => {
-    expect(durationsFor('instant')).toEqual({ diceRoll: 0, perSquare: 0, payment: 0, bankruptcy: 0 })
+    expect(durationsFor('instant')).toEqual({ diceRoll: 0, perSquare: 0, payment: 0, bankruptcy: 0, aiPause: 0, aiCard: 0 })
   })
 
   it('offers three speeds with French labels', () => {

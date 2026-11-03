@@ -1,16 +1,16 @@
 import { FAMILY_SQUARES, NODE_RENTS, SERVICE_MULTIPLIERS, purchasableById } from './board/squares'
-import type { GameState, SquareId } from './types'
+import type { PublicGameState, SquareId } from './types'
 
 export type RentModifier = 'none' | 'double' | 'serviceTimesTen'
 
-function countOwnedOfKind(state: GameState, owner: string, kind: 'node' | 'service'): number {
+function countOwnedOfKind(state: PublicGameState, owner: string, kind: 'node' | 'service'): number {
   return Object.entries(state.ownership).filter(
     ([id, own]) => own.owner === owner && purchasableById(id)?.kind === kind,
   ).length
 }
 
 /** Returns true when the player owns every system of the family of the given square. */
-export function ownsWholeFamily(state: GameState, owner: string, squareId: SquareId): boolean {
+export function ownsWholeFamily(state: PublicGameState, owner: string, squareId: SquareId): boolean {
   const square = purchasableById(squareId)
   if (!square || square.kind !== 'system') return false
   return FAMILY_SQUARES[square.family].every((id) => state.ownership[id]?.owner === owner)
@@ -18,7 +18,7 @@ export function ownsWholeFamily(state: GameState, owner: string, squareId: Squar
 
 /** Rent due on an owned, active square; 0 for a free or mortgaged square. */
 export function rentFor(
-  state: GameState,
+  state: PublicGameState,
   squareId: SquareId,
   diceTotal: number,
   modifier: RentModifier = 'none',

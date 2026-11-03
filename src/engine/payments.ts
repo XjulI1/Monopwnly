@@ -3,7 +3,7 @@ import { purchasableById } from './board/squares'
 import { currentPlayer, emit, fail, getPlayer, transfer, type Ctx } from './context'
 import { moveForward, resolveLanding } from './movement'
 import { advanceToNextPlayer, checkVictory, enterPostRoll } from './turn'
-import type { GameState, Payment, PlayerId, ResumePoint } from './types'
+import type { Payment, PlayerId, PublicGameState, ResumePoint } from './types'
 
 /** Makes the debtor pay in order; switches to the debt phase on the first payment not covered. */
 export function charge(ctx: Ctx, debtorId: PlayerId, payments: Payment[], resume: ResumePoint): void {
@@ -68,7 +68,7 @@ export function payDebt(ctx: Ctx): void {
 }
 
 /** Amount a player could raise: cash, plus the sale of all buildings, plus mortgaging every active square. */
-export function liquidationValue(state: GameState, playerId: PlayerId): number {
+export function liquidationValue(state: PublicGameState, playerId: PlayerId): number {
   let total = getPlayer(state, playerId).cash
   for (const [id, own] of Object.entries(state.ownership)) {
     if (own.owner !== playerId) continue

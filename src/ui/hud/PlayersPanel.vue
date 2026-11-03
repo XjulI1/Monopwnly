@@ -80,6 +80,24 @@ const rows = computed(() => {
           data-test="player-name"
         >{{ row.player.name }}</span>
         <span
+          class="relative ml-auto shrink-0 tabular-nums text-sm"
+          :class="row.player.bankrupt ? 'text-muted line-through' : 'text-ink'"
+          data-test="cash"
+        >
+          {{ formatPwn(row.player.cash) }}
+          <span
+            v-for="badge in row.badges"
+            :key="badge.id"
+            class="cash-badge absolute right-0 -top-4 whitespace-nowrap font-bold"
+            :class="badge.amount >= 0 ? 'text-gain' : 'text-loss'"
+          >{{ formatPwnDelta(badge.amount) }}</span>
+        </span>
+      </div>
+      <div
+        v-if="row.player.quarantine || row.player.keys.length > 0 || row.expected"
+        class="mt-1 flex items-center gap-2 pl-5"
+      >
+        <span
           v-if="row.player.quarantine"
           class="shrink-0 rounded border border-warning/60 px-1 text-[11px] font-semibold uppercase tracking-wide text-warning"
           data-test="quarantine-marker"
@@ -112,19 +130,6 @@ const rows = computed(() => {
           v-if="row.expected"
           class="shrink-0 text-[11px] text-neon"
         >doit jouer</span>
-        <span
-          class="relative ml-auto shrink-0 tabular-nums text-sm"
-          :class="row.player.bankrupt ? 'text-muted line-through' : 'text-ink'"
-          data-test="cash"
-        >
-          {{ formatPwn(row.player.cash) }}
-          <span
-            v-for="badge in row.badges"
-            :key="badge.id"
-            class="cash-badge absolute right-0 -top-4 whitespace-nowrap font-bold"
-            :class="badge.amount >= 0 ? 'text-gain' : 'text-loss'"
-          >{{ formatPwnDelta(badge.amount) }}</span>
-        </span>
       </div>
       <div
         v-if="row.chips.length > 0"

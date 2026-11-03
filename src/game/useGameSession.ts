@@ -1,5 +1,17 @@
 import { computed, inject, ref, shallowRef, type ComputedRef, type InjectionKey, type Ref, type ShallowRef } from 'vue'
-import { applyAction, QUARANTINE_INDEX, type Action, type GameState, type PaymentReason, type PlayerId } from '../engine'
+import { isManagement, playerView } from '../ai'
+import { MANAGEMENT_LIMIT } from '../ai/constants'
+import {
+  applyAction,
+  expectedActor,
+  QUARANTINE_INDEX,
+  type Action,
+  type GameState,
+  type PaymentReason,
+  type PlayerController,
+  type PlayerId,
+} from '../engine'
+import type { AiDecider } from './aiDecider'
 import {
   durationsFor,
   loadAnimationSpeed,
@@ -17,6 +29,7 @@ export type BoardHandle = {
 
 /** A short-lived change of cash shown next to a player. */
 export type CashBadge = { id: number; playerId: PlayerId; amount: number }
+
 
 /** A line of the activity feed. */
 export type FeedLine = { id: number; text: string }
@@ -47,11 +60,13 @@ export type GameSession = {
   dismissToast: () => void
   setSpeed: (speed: AnimationSpeed) => void
   attachBoard: (board: BoardHandle | null) => void
+  dispose: () => void
 }
 
 export type GameSessionOptions = {
   speed?: AnimationSpeed
   board?: BoardHandle | null
+  ai?: AiDecider | null
 }
 
 /** Key under which the game screen provides its session. */
@@ -94,6 +109,15 @@ export function useGameSession(initial: GameState, options: GameSessionOptions =
   let pendingWaits: (() => void)[] = []
   let cardWait: (() => void) | null = null
   let fastForward = false
+  let disposed = false
+  let aiRun = 0
+  let managementInARow = 0
+  let aiPause: ReturnType<typeof setTimeout> | null = null
+  const badgeTimers = new Set<ReturnType<typeof setTimeout>>()
+
+  function controllerOf(playerId: PlayerId): PlayerController | undefined {
+    return engineState.value.players.find((p) => p.id === playerId)?.controller
+  }
 
   const view = computed<InteractionView>(() => {
     const current = viewOf(displayedState.value, interaction.value)
@@ -129,9 +153,11 @@ export function useGameSession(initial: GameState, options: GameSessionOptions =
     if (playerId === 'bank' || durations.payment <= 0) return
     const badge = { id: nextId++, playerId, amount }
     badges.value = [...badges.value, badge]
-    setTimeout(() => {
+    const timer = setTimeout(() => {
+      badgeTimers.delete(timer)
       badges.value = badges.value.filter((b) => b.id !== badge.id)
     }, Math.max(BADGE_MIN_MS, durations.payment * 2))
+    badgeTimers.add(timer)
   }
 
   async function play(step: PresentationStep, durations: AnimationDurations): Promise<void> {
@@ -152,10 +178,12 @@ export function useGameSession(initial: GameState, options: GameSessionOptions =
         return wait(EMPHASIZED_PAYMENTS.has(step.reason) ? durations.payment : 0)
       case 'card':
         return new Promise((resolve) => {
-          cardWait = () => {
+          const done = () => {
             cardWait = null
             resolve()
           }
+          cardWait = done
+          if (controllerOf(step.playerId)?.kind === 'ai') void wait(durations.aiCard).then(() => cardWait === done && done())
         })
       case 'bankrupt':
         return wait(durations.bankruptcy)
@@ -169,6 +197,7 @@ export function useGameSession(initial: GameState, options: GameSessionOptions =
     currentStep.value = null
     dice.value = null
     isPresenting.value = false
+    void playAi()
   }
 
   async function present(steps: PresentationStep[]): Promise<void> {
@@ -178,10 +207,12 @@ export function useGameSession(initial: GameState, options: GameSessionOptions =
     let projected = displayedState.value
     for (const step of steps) {
       currentStep.value = step
-      const awaitsPlayer = step.kind === 'card'
-      if (awaitsPlayer) addLines(step.lines)
-      if (awaitsPlayer || !fastForward) await play(step, durations)
-      if (!awaitsPlayer) addLines(step.lines)
+      const isCard = step.kind === 'card'
+      const awaitsHuman = isCard && controllerOf(step.playerId)?.kind !== 'ai'
+      if (isCard) addLines(step.lines)
+      if (awaitsHuman || !fastForward) await play(step, durations)
+      if (disposed) return
+      if (!isCard) addLines(step.lines)
       projected = applyStep(projected, step)
       displayedState.value = projected
     }
@@ -201,8 +232,38 @@ export function useGameSession(initial: GameState, options: GameSessionOptions =
       return false
     }
     engineState.value = result.state
+    managementInARow = isManagement(action) ? managementInARow + 1 : 0
     void present(presentationSteps(before, result.events))
     return true
+  }
+
+  function pauseBeforeAi(ms: number): Promise<void> {
+    return new Promise((resolve) => {
+      if (ms <= 0) return resolve()
+      aiPause = setTimeout(() => {
+        aiPause = null
+        resolve()
+      }, ms)
+    })
+  }
+
+  async function playAi(): Promise<void> {
+    const decider = options.ai
+    if (!decider || disposed || isPresenting.value) return
+    const state = engineState.value
+    const actor = expectedActor(state)
+    const controller = actor ? controllerOf(actor) : undefined
+    if (!actor || controller?.kind !== 'ai') return
+    const run = ++aiRun
+    const request = { view: playerView(state), playerId: actor, level: controller.level, managementLeft: MANAGEMENT_LIMIT - managementInARow }
+    let action: Action
+    try {
+      ;[action] = await Promise.all([decider.decide(request), pauseBeforeAi(durationsFor(speed.value).aiPause)])
+    } catch {
+      return
+    }
+    if (disposed || run !== aiRun || engineState.value !== state || isPresenting.value) return
+    dispatch(action)
   }
 
   function send(input: InteractionInput) {
@@ -221,6 +282,8 @@ export function useGameSession(initial: GameState, options: GameSessionOptions =
     for (const done of [...pendingWaits]) done()
     cardWait?.()
   }
+
+  void playAi()
 
   return {
     engineState,
@@ -247,6 +310,16 @@ export function useGameSession(initial: GameState, options: GameSessionOptions =
     },
     attachBoard: (handle) => {
       board = handle
+    },
+    dispose: () => {
+      disposed = true
+      aiRun++
+      if (aiPause) clearTimeout(aiPause)
+      aiPause = null
+      for (const timer of badgeTimers) clearTimeout(timer)
+      badgeTimers.clear()
+      for (const done of [...pendingWaits]) done()
+      cardWait?.()
     },
   }
 }

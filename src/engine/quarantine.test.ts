@@ -99,6 +99,6 @@ describe('rights in quarantine', () => {
       ownership: { 'intranet': { owner: A } },
     })
     const { state } = roll(start, [4, 6], B)
-    expect(player(state, A).cash).toBe(1512)
+    expect(player(state, A).cash).toBe(1511)
   })
 })

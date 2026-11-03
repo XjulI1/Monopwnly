@@ -1,7 +1,7 @@
 import { EXPLOIT_CARDS, PATCH_CARDS } from './board/cards'
 import { BANK_BACKDOORS, BANK_ROOTKITS, STARTING_CASH } from './board/squares'
 import { randomInt, shuffle } from './rng'
-import type { CreateGameResult, GameSettings, GameState, PlayerSetup } from './types'
+import type { AiLevel, CreateGameResult, GameSettings, GameState, PlayerController, PlayerSetup } from './types'
 
 export type CreateGameInput = {
   players: PlayerSetup[]
@@ -13,6 +13,20 @@ export const DEFAULT_SETTINGS: GameSettings = { auctions: true }
 
 export const MIN_PLAYERS = 2
 export const MAX_PLAYERS = 6
+
+/** AI levels, from the weakest to the strongest. */
+export const AI_LEVELS: readonly AiLevel[] = ['easy', 'normal', 'hard']
+
+function controllerOf(setup: PlayerSetup): PlayerController {
+  return setup.controller?.kind === 'ai' ? { kind: 'ai', level: setup.controller.level } : { kind: 'human' }
+}
+
+function unknownLevel(players: PlayerSetup[]): string | null {
+  for (const { controller } of players) {
+    if (controller?.kind === 'ai' && !AI_LEVELS.includes(controller.level)) return String(controller.level)
+  }
+  return null
+}
 
 /** Creates a new game ready to play, or explains why the request is invalid. */
 export function createGame(input: CreateGameInput): CreateGameResult {
@@ -32,6 +46,11 @@ export function createGame(input: CreateGameInput): CreateGameResult {
     }
   }
 
+  const level = unknownLevel(players)
+  if (level !== null) {
+    return { ok: false, error: { code: 'INVALID_AI_LEVEL', message: `Niveau d’IA inconnu : ${level}.` } }
+  }
+
   const rng = { rngState: seed | 0 }
   const exploit = shuffle(rng, EXPLOIT_CARDS.map((c) => c.id))
   const patch = shuffle(rng, PATCH_CARDS.map((c) => c.id))
@@ -44,6 +63,7 @@ export function createGame(input: CreateGameInput): CreateGameResult {
       id: p.id,
       name: p.name,
       color: p.color,
+      controller: controllerOf(p),
       cash: STARTING_CASH,
       position: 0,
       quarantine: null,

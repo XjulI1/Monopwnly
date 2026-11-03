@@ -71,10 +71,10 @@ describe('presentation steps', () => {
     const start = makeState({ overrides: [{ position: 4 }], ownership: { intranet: { owner: B, level: 1 } } })
     const { state, steps } = stepsOfRoll(start, [4, 6])
     expect(kinds(steps)).toEqual(['dice', 'move', 'payment'])
-    expect(steps[2]).toMatchObject({ kind: 'payment', from: A, to: B, amount: 60, reason: 'rent' })
+    expect(steps[2]).toMatchObject({ kind: 'payment', from: A, to: B, amount: 55, reason: 'rent' })
     const projected = applySteps(start, steps)
-    expect(player(projected, A).cash).toBe(1440)
-    expect(player(projected, B).cash).toBe(1560)
+    expect(player(projected, A).cash).toBe(1445)
+    expect(player(projected, B).cash).toBe(1555)
     expect(essentials(projected)).toEqual(essentials(state))
   })
 
@@ -125,7 +125,7 @@ describe('presentation steps', () => {
     expect(steps.flatMap((s) => s.lines)).toEqual([
       'Joueur 1 lance 4 + 6 = 10',
       'Joueur 1 avance jusqu’à Intranet',
-      'Joueur 1 paie 60\u00A0Ᵽ de loyer à Joueur 2',
+      'Joueur 1 paie 55\u00A0Ᵽ de loyer à Joueur 2',
     ])
   })
 

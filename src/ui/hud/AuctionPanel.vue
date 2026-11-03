@@ -5,6 +5,7 @@ import { formatPwn } from '../../game/format'
 import { bidCheck } from '../../game/interaction'
 import { useInjectedGameSession } from '../../game/useGameSession'
 import ActionButton from './ActionButton.vue'
+import AiThinking from './AiThinking.vue'
 
 const { view, displayedState, engineState, isPresenting, send } = useInjectedGameSession()
 
@@ -99,7 +100,11 @@ function placeBid() {
       À {{ nameOf(auction.nextBidder) }} d’enchérir
     </p>
 
-    <div class="flex flex-col gap-2">
+    <AiThinking v-if="view.thinking" />
+    <div
+      v-else
+      class="flex flex-col gap-2"
+    >
       <label class="flex items-center gap-2 text-sm">
         <span class="shrink-0 text-muted">Mise</span>
         <input

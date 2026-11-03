@@ -10,6 +10,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "test:balance": "MONOPWNLY_BALANCE=1 vitest run --project ai src/ai/tournament/balance.test.ts",
     "lint": "eslint .",
     "type-check": "vue-tsc --noEmit"
   },

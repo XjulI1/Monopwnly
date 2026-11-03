@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { PLAYER_COLORS } from '../../board/boardTheme'
-import type { GameState } from '../../engine'
+import { AI_LEVELS, type GameState } from '../../engine'
 import {
   addDraft,
+  AI_LEVEL_NAMES,
   chooseColor,
+  DEFAULT_AI_LEVEL,
   defaultDrafts,
   MAX_NAME_LENGTH,
   MAX_PLAYERS,
@@ -13,9 +15,11 @@ import {
   PLAYER_COLOR_NAMES,
   removeDraft,
   renameDraft,
+  setKind,
   startGame,
   toConfig,
   type GameConfig,
+  type PlayerKind,
 } from '../../game/setupForm'
 
 const emit = defineEmits<{
@@ -23,16 +27,23 @@ const emit = defineEmits<{
   back: []
 }>()
 
+const KINDS: { value: PlayerKind; label: string }[] = [
+  { value: 'human', label: 'Humain' },
+  { value: 'ai', label: 'IA' },
+]
+
 const drafts = ref(defaultDrafts())
 const auctions = ref(true)
+const aiLevel = ref(DEFAULT_AI_LEVEL)
 const engineError = ref<string | null>(null)
 
 const errors = computed(() => nameErrors(drafts.value))
 const valid = computed(() => Object.values(errors.value).every((error) => error === null))
+const hasAi = computed(() => drafts.value.some((draft) => draft.kind === 'ai'))
 
 function start() {
   if (!valid.value) return
-  const config = toConfig(drafts.value, auctions.value)
+  const config = toConfig(drafts.value, auctions.value, aiLevel.value)
   const result = startGame(config)
   if (!result.ok) {
     engineError.value = result.error.message
@@ -46,7 +57,7 @@ function start() {
 <template>
   <div class="flex min-h-full items-center justify-center p-4">
     <form
-      class="panel-card w-full max-w-3xl p-5 shadow-neon"
+      class="panel-card w-full max-w-4xl p-5 shadow-neon"
       @submit.prevent="start"
     >
       <header class="mb-4 flex items-center justify-between gap-4">
@@ -93,6 +104,24 @@ function start() {
                   @input="drafts = renameDraft(drafts, draft.id, ($event.target as HTMLInputElement).value)"
                 >
               </label>
+              <div
+                class="flex shrink-0 overflow-hidden rounded-md border border-line bg-void"
+                role="group"
+                :aria-label="`Type du joueur ${index + 1}`"
+              >
+                <button
+                  v-for="kind in KINDS"
+                  :key="kind.value"
+                  type="button"
+                  class="min-h-11 min-w-11 px-3 text-sm font-semibold transition-colors"
+                  :class="draft.kind === kind.value ? 'bg-neon text-void' : 'text-muted hover:text-ink'"
+                  :data-kind="kind.value"
+                  :aria-pressed="draft.kind === kind.value"
+                  @click="drafts = setKind(drafts, draft.id, kind.value)"
+                >
+                  {{ kind.label }}
+                </button>
+              </div>
               <div
                 class="flex gap-1"
                 role="group"
@@ -147,23 +176,53 @@ function start() {
         </button>
       </section>
 
-      <section class="mt-4 rounded-lg border border-line bg-panel px-4 py-3">
-        <label class="flex min-h-11 cursor-pointer items-center gap-3">
-          <input
-            v-model="auctions"
-            type="checkbox"
-            data-test="auctions"
-            class="h-5 w-5 accent-neon"
+      <section class="mt-4 grid grid-cols-2 gap-3">
+        <div class="rounded-lg border border-line bg-panel px-4 py-3">
+          <span
+            id="ai-level-title"
+            class="font-semibold"
+          >Niveau des IA</span>
+          <div
+            class="mt-2 grid grid-cols-3 gap-1 rounded-lg border border-line bg-void p-1"
+            role="radiogroup"
+            aria-labelledby="ai-level-title"
           >
-          <span class="font-semibold">Enchères</span>
-        </label>
-        <p class="mt-1 text-sm text-muted">
-          {{
-            auctions
-              ? 'Une case refusée par le joueur qui s’y arrête est mise aux enchères entre tous les joueurs.'
-              : 'Une case refusée par le joueur qui s’y arrête reste à la banque.'
-          }}
-        </p>
+            <button
+              v-for="level in AI_LEVELS"
+              :key="level"
+              type="button"
+              role="radio"
+              class="min-h-11 rounded-md px-2 text-sm font-semibold transition-colors"
+              :class="aiLevel === level ? 'bg-neon text-void' : 'text-muted hover:text-ink'"
+              :data-level="level"
+              :aria-checked="aiLevel === level"
+              @click="aiLevel = level"
+            >
+              {{ AI_LEVEL_NAMES[level] }}
+            </button>
+          </div>
+          <p class="mt-1 text-sm text-muted">
+            {{ hasAi ? 'Commun à toutes les IA de la partie.' : 'Aucune IA dans cette partie.' }}
+          </p>
+        </div>
+        <div class="rounded-lg border border-line bg-panel px-4 py-3">
+          <label class="flex min-h-11 cursor-pointer items-center gap-3">
+            <input
+              v-model="auctions"
+              type="checkbox"
+              data-test="auctions"
+              class="h-5 w-5 accent-neon"
+            >
+            <span class="font-semibold">Enchères</span>
+          </label>
+          <p class="mt-1 text-sm text-muted">
+            {{
+              auctions
+                ? 'Une case refusée par le joueur qui s’y arrête est mise aux enchères entre tous les joueurs.'
+                : 'Une case refusée par le joueur qui s’y arrête reste à la banque.'
+            }}
+          </p>
+        </div>
       </section>
 
       <p

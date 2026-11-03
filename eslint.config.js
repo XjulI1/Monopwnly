@@ -23,7 +23,7 @@ export default defineConfig(
     },
   },
   {
-    files: ['src/engine/**/*.ts'],
+    files: ['src/engine/**/*.ts', 'src/ai/**/*.ts'],
     rules: {
       'no-restricted-imports': [
         'error',
@@ -31,7 +31,7 @@ export default defineConfig(
           patterns: [
             {
               group: renderingLibraries,
-              message: 'The rules engine must stay independent from Vue and Three.js.',
+              message: 'The rules engine and the AI must stay independent from Vue and Three.js.',
             },
           ],
         },

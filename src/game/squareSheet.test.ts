@@ -22,13 +22,13 @@ describe('square sheet', () => {
       level: 2,
     })
     expect(sheet.kind === 'system' && sheet.rents).toEqual([
-      { label: 'Loyer de base', amount: 12, current: false },
-      { label: 'Famille complète', amount: 24, current: false },
-      { label: '1 backdoor', amount: 60, current: false },
-      { label: '2 backdoors', amount: 170, current: true },
-      { label: '3 backdoors', amount: 455, current: false },
-      { label: '4 backdoors', amount: 600, current: false },
-      { label: 'Rootkit', amount: 745, current: false },
+      { label: 'Loyer de base', amount: 11, current: false },
+      { label: 'Famille complète', amount: 22, current: false },
+      { label: '1 backdoor', amount: 55, current: false },
+      { label: '2 backdoors', amount: 155, current: true },
+      { label: '3 backdoors', amount: 420, current: false },
+      { label: '4 backdoors', amount: 550, current: false },
+      { label: 'Rootkit', amount: 680, current: false },
     ])
   })
 

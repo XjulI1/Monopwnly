@@ -7,8 +7,8 @@ describe('automatic payment', () => {
   it('pays immediately when cash covers the rent', () => {
     const start = makeState({ overrides: [{ position: 4, cash: 300 }], ownership: { 'intranet': { owner: B, level: 1 } } })
     const { state } = roll(start, [4, 6])
-    expect(player(state, A).cash).toBe(240)
-    expect(player(state, B).cash).toBe(1560)
+    expect(player(state, A).cash).toBe(245)
+    expect(player(state, B).cash).toBe(1555)
     expect(state.phase.kind).toBe('postRoll')
   })
 
@@ -40,7 +40,7 @@ describe('debt phase', () => {
     expect(state.phase).toEqual({
       kind: 'debt',
       debtor: A,
-      payments: [{ to: B, amount: 300, reason: 'rent' }],
+      payments: [{ to: B, amount: 200, reason: 'rent' }],
       resume: { kind: 'postRoll' },
     })
     expect(player(state, A).cash).toBe(100)
@@ -63,8 +63,8 @@ describe('debt phase', () => {
       { type: 'mortgage', playerId: A, squareId: 'tor-node' },
       { type: 'payDebt', playerId: A },
     ])
-    expect(player(state, A).cash).toBe(0)
-    expect(player(state, B).cash).toBe(1800)
+    expect(player(state, A).cash).toBe(100)
+    expect(player(state, B).cash).toBe(1700)
     expect(state.phase).toEqual({ kind: 'postRoll', mayRollAgain: true })
   })
 })

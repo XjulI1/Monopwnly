@@ -7,6 +7,8 @@ export type AnimationDurations = {
   perSquare: number
   payment: number
   bankruptcy: number
+  aiPause: number
+  aiCard: number
 }
 
 /** Speeds in the order they are offered. */
@@ -20,9 +22,9 @@ export const SPEED_LABELS: Record<AnimationSpeed, string> = {
 }
 
 const DURATIONS: Record<AnimationSpeed, AnimationDurations> = {
-  normal: { diceRoll: 1000, perSquare: 200, payment: 650, bankruptcy: 1450 },
-  fast: { diceRoll: 550, perSquare: 110, payment: 350, bankruptcy: 850 },
-  instant: { diceRoll: 0, perSquare: 0, payment: 0, bankruptcy: 0 },
+  normal: { diceRoll: 1000, perSquare: 200, payment: 650, bankruptcy: 1450, aiPause: 600, aiCard: 2400 },
+  fast: { diceRoll: 550, perSquare: 110, payment: 350, bankruptcy: 850, aiPause: 250, aiCard: 1400 },
+  instant: { diceRoll: 0, perSquare: 0, payment: 0, bankruptcy: 0, aiPause: 0, aiCard: 0 },
 }
 
 const STORAGE_KEY = 'monopwnly.animationSpeed'

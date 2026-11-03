@@ -29,6 +29,35 @@ describe('createGame', () => {
     }
   })
 
+  it('makes every player human unless told otherwise', () => {
+    expect(create(3).players.map((p) => p.controller)).toEqual([{ kind: 'human' }, { kind: 'human' }, { kind: 'human' }])
+  })
+
+  it('accepts AI players of every level', () => {
+    const levels = ['easy', 'normal', 'hard'] as const
+    const list = players(4).map((p, i) => ({ ...p, controller: i === 0 ? ({ kind: 'human' } as const) : { kind: 'ai' as const, level: levels[i - 1] ?? 'normal' } }))
+    const result = createGame({ players: list, seed: 1 })
+    expect(result.ok).toBe(true)
+    if (result.ok) {
+      expect(result.state.players.map((p) => p.controller)).toEqual([
+        { kind: 'human' },
+        { kind: 'ai', level: 'easy' },
+        { kind: 'ai', level: 'normal' },
+        { kind: 'ai', level: 'hard' },
+      ])
+    }
+  })
+
+  it('rejects an unknown AI level', () => {
+    const list = players(2).map((p, i) => (i === 1 ? { ...p, controller: { kind: 'ai', level: 'expert' } } : p)) as PlayerSetup[]
+    const result = createGame({ players: list, seed: 1 })
+    expect(result.ok).toBe(false)
+    if (!result.ok) {
+      expect(result.error.code).toBe('INVALID_AI_LEVEL')
+      expect(result.error.message).toBe('Niveau d’IA inconnu : expert.')
+    }
+  })
+
   it('rejects duplicate identifiers or colors', () => {
     const sameId = [...players(2), { id: 'p1', name: 'X', color: 'pink' }]
     const sameColor = [...players(2), { id: 'p9', name: 'X', color: 'red' }]

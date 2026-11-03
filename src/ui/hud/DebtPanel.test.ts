@@ -25,9 +25,9 @@ afterEach(() => {
 
 describe('DebtPanel', () => {
   it('shows the amount due, the creditor, the cash and what can still be raised', () => {
-    const { wrapper } = mountWithSession(DebtPanel, rentDebt(300))
-    expect(wrapper.text()).toContain('Joueur 1 doit 370\u00A0Ᵽ à Joueur 2')
-    expect(wrapper.get('[data-test="debt-cash"]').text()).toContain('300\u00A0Ᵽ')
+    const { wrapper } = mountWithSession(DebtPanel, rentDebt(200))
+    expect(wrapper.text()).toContain('Joueur 1 doit 250\u00A0Ᵽ à Joueur 2')
+    expect(wrapper.get('[data-test="debt-cash"]').text()).toContain('200\u00A0Ᵽ')
     expect(wrapper.get('[data-test="debt-raisable"]').text()).toContain('110\u00A0Ᵽ')
     expect(wrapper.find('[data-test="debt-remaining"]').exists()).toBe(false)
   })
@@ -50,23 +50,23 @@ describe('DebtPanel', () => {
   })
 
   it('enables Payer once the cash covers the payment', async () => {
-    const { wrapper, session } = mountWithSession(DebtPanel, rentDebt(300))
+    const { wrapper, session } = mountWithSession(DebtPanel, rentDebt(200))
     expect(wrapper.get('[data-button="payDebt"]').attributes('disabled')).toBeDefined()
     session.dispatch({ type: 'sellBackdoor', playerId: A, squareId: 'minitel' })
     session.dispatch({ type: 'sellBackdoor', playerId: A, squareId: 'modem-56k' })
     session.dispatch({ type: 'mortgage', playerId: A, squareId: 'minitel' })
     session.dispatch({ type: 'mortgage', playerId: A, squareId: 'modem-56k' })
     await wrapper.vm.$nextTick()
-    expect(wrapper.get('[data-test="debt-cash"]').text()).toContain('410\u00A0Ᵽ')
+    expect(wrapper.get('[data-test="debt-cash"]').text()).toContain('310\u00A0Ᵽ')
     await wrapper.get('[data-button="payDebt"]').trigger('click')
-    expect(player(session.engineState.value, A).cash).toBe(40)
+    expect(player(session.engineState.value, A).cash).toBe(60)
     expect(session.engineState.value.phase.kind).toBe('postRoll')
   })
 
   it('warns when the bankruptcy cannot be avoided', () => {
     const { wrapper } = mountWithSession(DebtPanel, rentDebt(100))
     expect(wrapper.get('[data-test="debt-unavoidable"]').text()).toContain('faillite est inévitable')
-    expect(mountWithSession(DebtPanel, rentDebt(300)).wrapper.find('[data-test="debt-unavoidable"]').exists()).toBe(false)
+    expect(mountWithSession(DebtPanel, rentDebt(200)).wrapper.find('[data-test="debt-unavoidable"]').exists()).toBe(false)
   })
 
   it('declares the bankruptcy after a confirmation naming the creditor', async () => {

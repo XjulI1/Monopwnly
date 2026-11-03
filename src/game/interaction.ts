@@ -93,6 +93,7 @@ export type AuctionView = {
 /** What the HUD shows for the current engine state and interaction. */
 export type InteractionView = {
   actor: PlayerId | null
+  thinking: PlayerId | null
   panel: PanelKind
   managing: boolean
   buttons: ButtonView[]
@@ -284,13 +285,35 @@ export function bidCheck(state: GameState, amount: number): ActionCheck {
   return checkAction(state, { type: 'placeBid', playerId: actor, amount })
 }
 
-/** Everything the HUD and the board need to show for the engine state and the interaction. */
+function aiActor(state: GameState, actor: PlayerId | null): PlayerId | null {
+  return actor && state.players.find((p) => p.id === actor)?.controller.kind === 'ai' ? actor : null
+}
+
+function withoutCommands(view: InteractionView, thinking: PlayerId): InteractionView {
+  return {
+    ...view,
+    thinking,
+    managing: false,
+    buttons: [],
+    highlights: {},
+    sheet: view.sheet ? { squareId: view.sheet.squareId, buttons: [] } : null,
+  }
+}
+
+/** Everything the HUD and the board need to show for the engine state and the interaction; while an AI must act, no game command is offered and the AI is named. */
 export function viewOf(state: GameState, interaction: Interaction): InteractionView {
   const actor = expectedActor(state)
+  const view = humanView(state, interaction, actor)
+  const thinking = aiActor(state, actor)
+  return thinking ? withoutCommands(view, thinking) : view
+}
+
+function humanView(state: GameState, interaction: Interaction, actor: PlayerId | null): InteractionView {
   const managing = isManaging(state, interaction)
   const summary = debtSummary(state)
   return {
     actor,
+    thinking: null,
     panel: panelOf(state),
     managing,
     buttons: mainButtons(state, interaction, actor),
@@ -360,7 +383,7 @@ export function reduceInteraction(state: GameState, interaction: Interaction, in
       return { interaction: { ...interaction, sheet: null } }
     case 'bid': {
       const actor = expectedActor(state)
-      if (!actor || !bidCheck(state, input.amount).allowed) return { interaction }
+      if (!actor || aiActor(state, actor) || !bidCheck(state, input.amount).allowed) return { interaction }
       return { interaction, action: { type: 'placeBid', playerId: actor, amount: input.amount } }
     }
     case 'button':

@@ -165,7 +165,7 @@ describe('bid limits', () => {
 describe('debt summary', () => {
   function rentDebt() {
     const start = makeState({
-      overrides: [{ position: 3, cash: 300 }],
+      overrides: [{ position: 3, cash: 200 }],
       ownership: {
         'smart-fridge': { owner: B, level: 5 },
         'wifi-bulb': { owner: B, level: 5 },
@@ -180,9 +180,9 @@ describe('debt summary', () => {
   it('describes the payment, its creditor, the cash and what can still be raised', () => {
     expect(debtSummary(rentDebt())).toEqual({
       debtor: A,
-      payment: { to: B, amount: 370, reason: 'rent' },
+      payment: { to: B, amount: 250, reason: 'rent' },
       remaining: [],
-      cash: 300,
+      cash: 200,
       raisable: 110,
       covered: false,
       unavoidable: false,
@@ -200,11 +200,11 @@ describe('debt summary', () => {
   it('becomes covered once the cash reaches the amount due', () => {
     let state = rentDebt()
     state = act(state, { type: 'sellBackdoor', playerId: A, squareId: 'minitel' }).state
-    expect(debtSummary(state)).toMatchObject({ cash: 325, raisable: 85, covered: false })
+    expect(debtSummary(state)).toMatchObject({ cash: 225, raisable: 85, covered: false })
     state = act(state, { type: 'sellBackdoor', playerId: A, squareId: 'modem-56k' }).state
     state = act(state, { type: 'mortgage', playerId: A, squareId: 'minitel' }).state
     state = act(state, { type: 'mortgage', playerId: A, squareId: 'modem-56k' }).state
-    expect(debtSummary(state)).toMatchObject({ cash: 410, raisable: 0, covered: true, unavoidable: false })
+    expect(debtSummary(state)).toMatchObject({ cash: 310, raisable: 0, covered: true, unavoidable: false })
   })
 
   it('lists the payments left after the current one', () => {

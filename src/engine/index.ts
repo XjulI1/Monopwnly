@@ -114,6 +114,8 @@ export {
   unmortgageableSquares,
 } from './queries'
 export { ownsWholeFamily } from './rent'
-export { createGame, DEFAULT_SETTINGS, MAX_PLAYERS, MIN_PLAYERS } from './setup'
+export { randomInt } from './rng'
+export type { RngHolder } from './rng'
+export { AI_LEVELS, createGame, DEFAULT_SETTINGS, MAX_PLAYERS, MIN_PLAYERS } from './setup'
 export type { CreateGameInput } from './setup'
 export type * from './types'

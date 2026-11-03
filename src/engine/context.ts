@@ -1,4 +1,4 @@
-import type { GameEvent, GameState, Player, PlayerId, PaymentReason, RuleErrorCode } from './types'
+import type { GameEvent, GameState, PaymentReason, Player, PlayerId, PublicGameState, RuleErrorCode } from './types'
 
 export type Ctx = { state: GameState; events: GameEvent[] }
 
@@ -19,20 +19,20 @@ export function emit(ctx: Ctx, event: GameEvent): void {
   ctx.events.push(event)
 }
 
-export function currentPlayer(state: GameState): Player {
+export function currentPlayer(state: PublicGameState): Player {
   const player = state.players[state.currentPlayerIndex]
   if (!player) throw new Error('No current player')
   return player
 }
 
-export function getPlayer(state: GameState, id: PlayerId): Player {
+export function getPlayer(state: PublicGameState, id: PlayerId): Player {
   const player = state.players.find((p) => p.id === id)
   if (!player) throw new Error(`Unknown player ${id}`)
   return player
 }
 
 /** Non-bankrupt players in play order, starting at the given index (included). */
-export function playersFrom(state: GameState, startIndex: number): Player[] {
+export function playersFrom(state: PublicGameState, startIndex: number): Player[] {
   const count = state.players.length
   const result: Player[] = []
   for (let offset = 0; offset < count; offset++) {
@@ -43,7 +43,7 @@ export function playersFrom(state: GameState, startIndex: number): Player[] {
 }
 
 /** Non-bankrupt players other than the current one, in play order after the current player. */
-export function otherPlayersInOrder(state: GameState): Player[] {
+export function otherPlayersInOrder(state: PublicGameState): Player[] {
   return playersFrom(state, state.currentPlayerIndex + 1).filter(
     (p) => p.id !== currentPlayer(state).id,
   )

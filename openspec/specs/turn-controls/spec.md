@@ -10,7 +10,7 @@ proposer que des actions légales et transmettre les choix au moteur.
 
 Le HUD SHALL afficher en permanence le joueur courant (nom et couleur), la phase courante en
 français et le dernier lancer de dés. Les phases SHALL être nommées « Avant le lancer », « Décision
-d'achat », « Enchère », « Règlement de dette » et « Après le lancer ».
+d'achat », « Enchère », « Règlement de dette », « Après le lancer » et « Offre d'échange ».
 
 #### Scenario: Début du tour
 
@@ -64,10 +64,11 @@ SHALL être affiché dans une notification sans modifier l'état.
 
 ### Requirement: Lancer et fin du tour
 
-Avant le lancer, le HUD SHALL proposer « Lancer les dés » et « Gérer mes systèmes ». Après le
-lancer, il SHALL proposer « Relancer » si le joueur a fait un double et peut rejouer, sinon « Fin du
-tour », ainsi que « Gérer mes systèmes ». Ces boutons SHALL émettre respectivement `rollDice` et
-`endTurn`.
+Avant le lancer, le HUD SHALL proposer « Lancer les dés », « Gérer mes systèmes » et « Échanger ».
+Après le lancer, il SHALL proposer « Relancer » si le joueur a fait un double et peut rejouer, sinon
+« Fin du tour », ainsi que « Gérer mes systèmes » et « Échanger ». Les boutons de lancer et de fin
+SHALL émettre respectivement `rollDice` et `endTurn` ; « Échanger » ouvre le panneau de composition
+d'une offre (voir `trade-interface`).
 
 #### Scenario: Lancer
 

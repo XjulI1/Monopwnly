@@ -3,13 +3,17 @@
 ## Purpose
 Orchestrer une partie : phases d'un tour, passage d'un joueur à l'autre, validation des actions,
 événements produits, déterminisme et sérialisation.
+
 ## Requirements
+
 ### Requirement: Phases d'un tour
 
 Le tour d'un joueur SHALL commencer en phase `preRoll`. Après le lancer et la résolution de
 l'arrivée, la partie SHALL passer en `postRoll`, en s'arrêtant au besoin sur `buyDecision`,
 `auction` ou `debt`. Après un double, `postRoll` SHALL autoriser un nouveau lancer
-(`mayRollAgain`) et interdire la fin du tour.
+(`mayRollAgain`) et interdire la fin du tour. Depuis `preRoll`, `postRoll` ou `debt`, une
+proposition d'échange SHALL faire passer la partie en `tradeOffer`, qui revient à la phase d'origine
+une fois l'offre acceptée ou refusée (voir `trading`).
 
 #### Scenario: Tour simple
 
@@ -103,4 +107,3 @@ désérialisé SHALL se poursuivre exactement comme l'original.
 - **WHEN** on sérialise un état en cours de partie puis on le désérialise
 - **THEN** l'état obtenu est égal en profondeur à l'original
 - **AND** la même action appliquée aux deux produit le même résultat
-

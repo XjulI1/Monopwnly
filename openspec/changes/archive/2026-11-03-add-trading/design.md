@@ -41,7 +41,7 @@ type TradeOffer = { from: PlayerId; to: PlayerId; give: TradeSide; receive: Trad
 
 Nouvelle phase : `{ kind: 'tradeOffer'; offer: TradeOffer; resume: Phase }`. `resume` est la phase
 d'origine, restaurée telle quelle après la réponse (une dette en cours reste en cours, avec ses
-paiements). `actingPlayerId` renvoie `offer.to` dans cette phase.
+paiements). `expectedActor` (le `actingPlayerId` d'origine) renvoie `offer.to` dans cette phase.
 
 ### Validation
 
@@ -57,12 +57,34 @@ mais la double validation coûte peu et protège d'une sauvegarde altérée) :
 - Clés détenues par le bon côté (`NO_KEY`) ;
 - limite de propositions (`TRADE_LIMIT_REACHED`) et proposition déjà refusée (`TRADE_ALREADY_REJECTED`).
 
+Les erreurs de forme (auteur égal au destinataire, destinataire absent ou en faillite, montant
+négatif ou non entier, case ou Clé en double, offre faite au nom d'un autre) portent le code
+`INVALID_TRADE`, l'offre vide `EMPTY_TRADE`. `validateTrade`, exposée comme requête, contrôle les
+limites puis le contenu ; `offerProblem` ne contrôle que le contenu et sert à la revalidation lors
+de l'acceptation.
+
 ### Limites par tour
 
-`GameState` gagne `tradeLimits: { turnNumber: number; byPlayer: Record<PlayerId, { count: number; rejected: string[] }> }`,
-remis à zéro quand `turnNumber` change. La clé d'une offre refusée est sa forme canonique sérialisée
-(listes triées) pour qu'un réordonnancement des cases ne contourne pas la règle. Le compteur est par
-auteur : un débiteur hors de son tour a ses propres trois propositions.
+`GameState` gagne `tradeLimits` :
+
+```ts
+type TradeLimits = {
+  thisTurn: Record<PlayerId, { count: number; partners: PlayerId[]; rejected: string[] }>
+  refusedAsks: Record<PlayerId, Record<SquareId, { holder: PlayerId; count: number }>>
+}
+```
+
+`thisTurn` est vidé à chaque début de tour d'un joueur (et non à chaque tour de table, sinon un
+débiteur hors de son tour aurait entamé les propositions de son propre tour). La clé d'une offre
+refusée est sa forme canonique sérialisée (listes triées) pour qu'un réordonnancement des cases ne
+contourne pas la règle. Le compteur est par auteur : un débiteur hors de son tour a ses propres
+trois propositions. `partners` liste les destinataires du tour, pour qu'une IA ne relance pas un
+même joueur.
+
+`refusedAsks` garde pour toute la partie, par auteur et par case demandée, le détenteur sollicité
+et le nombre de refus. C'est une information publique (le journal la montre) dont l'IA a besoin
+pour monter ses prix d'un tour à l'autre, puisqu'elle ne garde aucune mémoire entre deux décisions.
+Le compteur repart de zéro quand la case change de détenteur.
 
 ### Transfert
 
@@ -91,8 +113,9 @@ gain = Σ valeur(cases reçues) − Σ valeur(cases données) + argent reçu −
   prime de famille complète n'apparaisse que si l'échange la complète réellement.
 - `danger` (normal et difficile) : pour chaque famille que l'échange complète chez l'autre joueur,
   le loyer espéré de cette famille à trois backdoors (difficile : au niveau que l'autre peut payer
-  avec son argent après l'échange) sur un horizon de tours, multiplié par le nombre de joueurs
-  exposés ; le niveau facile l'ignore.
+  avec son argent après l'échange) sur un horizon de 3 tours de table (`TRADE_DANGER_ROUNDS`),
+  multiplié par le nombre de joueurs exposés ; le niveau facile l'ignore. Un horizon de 10 tours
+  rendait tout échange qui complète une famille inacceptable, quel qu'en soit le prix.
 - Le niveau difficile ajoute une pénalité quand l'échange fait passer l'autre joueur en tête du
   patrimoine.
 
@@ -105,20 +128,24 @@ seuls, normal 10 %, difficile 20 %), refuser sinon.
 
 - facile : ne propose jamais ;
 - normal : quand il lui manque une seule case pour compléter une famille et qu'un autre joueur la
-  détient sans en tirer de famille, propose de l'acheter contre de l'argent, à un prix croissant
-  (prix de la case, puis +50 %, puis +100 %) dans la limite de sa réserve ;
-- difficile : en plus, cherche des échanges croisés où chacun complète une famille, et ne les
-  propose que si sa famille obtenue a un loyer espéré supérieur à celle qu'il cède ; ajoute de
-  l'argent pour rendre l'offre acceptable selon sa propre estimation de l'évaluation adverse (avec
-  le seuil du niveau normal, faute de connaître le niveau d'un humain).
+  détient, propose de l'acheter contre de l'argent, à un prix croissant d'un tour à l'autre selon
+  les refus de ce détenteur (prix de la case, puis +50 %, puis +100 %, puis abandon), dans la
+  limite de son argent au-dessus de sa réserve ;
+- difficile : en plus, et avant, cherche des échanges croisés où chacun complète une famille, et
+  ne les propose que si sa famille obtenue a un loyer espéré supérieur à celle qu'il cède ; ajoute
+  le moins d'argent possible pour rendre l'offre acceptable selon sa propre estimation de
+  l'évaluation adverse (le niveau de l'IA adverse, celui du normal pour un humain), recherché par
+  dichotomie par pas de 10 Ᵽ. Il garde de quoi poser une backdoor sur chaque système de la famille
+  obtenue et ne paie jamais plus que son surcroît de loyer espéré sur l'horizon de la partie : sans
+  ces bornes, il offrait 1 230 Ᵽ en plus de Forum pour le Câble sous-marin.
 
 En `debt`, normal et difficile proposent la vente d'une case hors famille complète contre de l'argent
 (au moins 1,5 × sa valeur de veille) au joueur le plus riche qui n'est pas le créancier, avant de
 mettre en veille.
 
 Une IA respecte les limites du moteur, ne répète jamais une offre refusée et propose au plus une
-offre par destinataire et par tour. Comme pour toute décision, l'offre est dérivée de la vue et de
-`aiRandom` : même vue, même offre.
+offre par destinataire et par tour. Comme pour toute décision, l'offre ne dépend que de la vue :
+même vue, même offre.
 
 ### Interface
 
@@ -132,12 +159,23 @@ offre par destinataire et par tour. Comme pour toute décision, l'offre est dér
   résumé en deux colonnes, cases concernées mises en avant sur le plateau, boutons « Accepter » et
   « Refuser ». Entre deux humains, la fenêtre s'adresse nommément au destinataire, sans écran de
   passage de main (aucune information n'est cachée dans ce jeu).
-- Quand un humain propose à une IA : « <nom> étudie votre offre… », puis un message de résultat.
+- Quand un humain propose à une IA : « <nom> étudie votre offre… », puis un message de résultat
+  (« <nom> accepte votre offre » ou « <nom> refuse votre offre »), dans une notification de ton
+  neutre, distincte des erreurs.
+- Un échange accepté est présenté par une étape « trade » : les cases changent de propriétaire sur
+  le plateau, les gains et pertes d'argent s'affichent à côté des joueurs, avec la même pause qu'un
+  paiement.
+- Pendant une dette sans issue, le panneau précise « sans échange, la faillite est inévitable »
+  quand un échange reste possible.
 
 ### Tournois
 
 Le tournoi de force et le tournoi d'équilibrage (`add-heuristic-ai`) sont relancés avec les échanges
 activés : les échanges raccourcissent les parties, et les critères de durée doivent rester tenus.
+Le tournoi de force passe de 60 à 180 parties : les échanges ajoutent de la variance, et sur les
+60 parties d'origine la normale passait parfois devant la difficile par le seul hasard des graines
+(25 victoires contre 30), alors que sur 180 et 600 parties la difficile reste nettement devant
+(48 % et 53 %).
 
 ## Risks / Trade-offs
 

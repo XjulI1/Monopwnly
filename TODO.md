@@ -91,7 +91,7 @@ les précédents implémentés.
 - [x] `add-game-ui` : écrans, HUD du tour, dés animés, achats, enchères, constructions
 - [x] `add-heuristic-ai` : IA heuristique en trois niveaux
 - [x] `add-save-and-journal` : sauvegarde automatique, journal, statistiques de fin
-- [ ] `add-trading` : échanges entre joueurs, IA qui négocie
+- [x] `add-trading` : échanges entre joueurs, IA qui négocie
 - [ ] `add-game-options` : règles optionnelles et fins de partie alternatives
 - [ ] `add-offline-pwa` : application installable et jouable hors ligne
 

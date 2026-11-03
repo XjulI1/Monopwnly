@@ -1,12 +1,11 @@
-# Spec Delta
+# trade-ai Specification
 
 ## Purpose
-
 Faire de l'IA un partenaire d'échange crédible : évaluer une offre selon son niveau, en pesant la
 valeur des familles complètes et le danger d'en offrir une à un adversaire, l'accepter ou la refuser,
 et proposer elle-même des échanges.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Évaluation d'une offre reçue
 
@@ -53,10 +52,11 @@ compte que si l'échange complète réellement la famille.
 
 Le niveau facile SHALL NOT proposer d'échange. Le niveau normal SHALL proposer, avant son lancer ou
 sa fin de tour, l'achat contre de l'argent de la dernière case qui lui manque pour compléter une
-famille, quand son détenteur n'en tire pas de famille, à un prix croissant d'une proposition à
-l'autre (prix de la case, puis +50 %, puis +100 %) dans la limite de son argent au-dessus de sa
-réserve. Le niveau difficile SHALL, en plus, proposer des échanges croisés où chacun complète une
-famille, seulement si la famille qu'il obtient a un loyer espéré supérieur à celle qu'il cède. Une IA
+famille, à un prix croissant d'une proposition à l'autre, donc d'un tour à l'autre (prix de la
+case, puis +50 %, puis +100 %, après chaque refus du même détenteur), dans la limite de son argent
+au-dessus de sa réserve ; après trois refus du même détenteur, il SHALL cesser de proposer. Le niveau difficile SHALL, en plus, proposer des échanges croisés où chacun complète une
+famille, seulement si la famille qu'il obtient a un loyer espéré supérieur à celle qu'il cède, en
+gardant de quoi poser une backdoor sur chaque système de cette famille. Une IA
 SHALL NOT répéter une offre refusée, SHALL respecter les limites du moteur, et SHALL faire au plus une
 proposition par destinataire et par tour.
 
@@ -74,6 +74,11 @@ proposition par destinataire et par tour.
 
 - **WHEN** une IA difficile possède Réseau électrique, Satellite et Forum, et qu'un adversaire possède Câble sous-marin, Blog et Boutique en ligne
 - **THEN** elle propose Forum contre Câble sous-marin, la famille Infrastructure ayant un loyer espéré supérieur à la famille Web
+
+#### Scenario: Prix croissant d'un tour à l'autre
+
+- **WHEN** le détenteur de Boutique en ligne a refusé une puis deux offres de l'IA normale, à des tours différents
+- **THEN** l'IA propose ensuite 300 Ᵽ, puis 400 Ᵽ, puis ne propose plus rien après un troisième refus
 
 #### Scenario: Pas de répétition
 

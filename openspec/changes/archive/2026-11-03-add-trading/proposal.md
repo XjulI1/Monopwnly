@@ -36,8 +36,14 @@ une offre, de flairer le piège d'une famille offerte à un adversaire, et de pr
 
 ### Modified Capabilities
 
-(aucune : les changes précédents ne sont pas forcément archivés à la rédaction ; les nouvelles
-exigences sont portées par les trois capacités ci-dessus)
+- `turn-flow` : la phase `tradeOffer` s'intercale depuis `preRoll`, `postRoll` ou `debt`.
+- `ai-players` : le destinataire d'une offre est le joueur qui doit agir.
+- `ai-strategy` : une IA normale ou difficile en dette propose une vente avant de mettre en veille ;
+  le tournoi de force passe à 180 parties.
+- `ai-balance-tournament` : le rapport compte les échanges proposés et acceptés.
+- `turn-controls` : bouton « Échanger » et phase « Offre d'échange » dans le bandeau.
+- `debt-interface` : une faillite sans issue est annoncée « sans échange » quand un échange reste
+  possible.
 
 ## Hors périmètre
 

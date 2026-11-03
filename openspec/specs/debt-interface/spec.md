@@ -58,7 +58,8 @@ suivant ; sinon la partie reprend.
 
 Le bouton « Déclarer faillite » (`declareBankruptcy`) SHALL demander une confirmation qui rappelle à
 qui iront les biens du joueur. Quand la somme réunissable ne suffit pas à couvrir le paiement en
-cours, le panneau SHALL l'indiquer.
+cours, le panneau SHALL l'indiquer, en précisant « sans échange » quand le débiteur peut encore
+proposer un échange.
 
 #### Scenario: Faillite inévitable
 
@@ -74,3 +75,8 @@ cours, le panneau SHALL l'indiquer.
 
 - **WHEN** Bob touche « Déclarer faillite » puis annule
 - **THEN** le règlement de dette continue sans changement
+
+#### Scenario: Échange encore possible
+
+- **WHEN** la somme réunissable de Bob ne couvre pas le paiement et qu'il peut encore proposer un échange
+- **THEN** le panneau indique « sans échange, la faillite est inévitable » et propose le bouton « Échanger »

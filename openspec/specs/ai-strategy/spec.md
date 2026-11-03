@@ -119,8 +119,10 @@ d'une famille complète avant d'y construire, si sa réserve le permet.
 ### Requirement: Règlement des dettes
 
 En règlement de dette, une IA SHALL payer dès que le premier paiement restant est couvert. Sinon,
-elle SHALL lever des fonds dans cet ordre : revente des backdoors, puis mise en veille des cases hors
-famille complète, puis mise en veille des familles complètes sans construction. Les niveaux normal
+elle SHALL lever des fonds dans cet ordre : revente des backdoors, puis, aux niveaux normal et
+difficile, proposition de vente d'une case hors famille complète (voir `trade-ai`), puis mise en
+veille des cases hors famille complète, puis mise en veille des familles complètes sans
+construction. Les niveaux normal
 et difficile SHALL, dans chaque étape, sacrifier d'abord ce qui rapporte le moins de loyer espéré ;
 le niveau facile SHALL suivre l'ordre du plateau. Une IA SHALL déclarer faillite seulement quand son
 patrimoine disponible ne couvre pas le premier paiement restant.
@@ -170,5 +172,5 @@ difficile, et le niveau difficile SHALL gagner au moins 45 % des parties termin�
 
 #### Scenario: Tournoi de force
 
-- **WHEN** on joue 60 parties facile / normal / difficile avec les six ordres de jeu à parts égales
+- **WHEN** on joue 180 parties facile / normal / difficile, échanges compris, avec les six ordres de jeu à parts égales
 - **THEN** les victoires sont strictement croissantes par niveau et le difficile en remporte au moins 45 % des parties terminées

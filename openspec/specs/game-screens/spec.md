@@ -24,33 +24,36 @@ une nouvelle partie.
 ### Requirement: Écran de partie
 
 Une fois la partie créée, l'application SHALL afficher le plateau 3D avec le panneau latéral du HUD.
-L'utilisateur SHALL pouvoir abandonner la partie et revenir à l'accueil après confirmation.
+« Quitter la partie » SHALL ramener aussitôt à l'accueil, sans confirmation, en conservant la
+sauvegarde de la partie pour pouvoir la reprendre.
 
 #### Scenario: Démarrage d'une partie
 
 - **WHEN** l'utilisateur valide la création d'une partie
 - **THEN** l'écran de partie s'affiche avec le plateau, tous les pions sur Boot et le HUD du premier joueur
 
-#### Scenario: Abandon confirmé
+#### Scenario: Quitter la partie
 
-- **WHEN** l'utilisateur choisit « Quitter la partie » puis confirme
-- **THEN** l'écran d'accueil s'affiche
-
-#### Scenario: Abandon annulé
-
-- **WHEN** l'utilisateur choisit « Quitter la partie » puis annule
-- **THEN** la partie continue sans changement
+- **WHEN** l'utilisateur choisit « Quitter la partie »
+- **THEN** l'écran d'accueil s'affiche aussitôt, sans confirmation, et propose « Reprendre la partie »
 
 ### Requirement: Écran de fin de partie
 
-Quand le moteur déclare un vainqueur, l'application SHALL afficher un écran de fin de partie
-nommant le vainqueur dans sa couleur avec son argent final, par-dessus le plateau final, avec les
-choix « Rejouer avec les mêmes paramètres » et « Retour à l'accueil ».
+Quand le moteur déclare un vainqueur, l'application SHALL afficher par-dessus le plateau final et le
+HUD un écran de fin de partie nommant le vainqueur dans sa couleur avec son argent final, avec un
+onglet « Résultat » classant les joueurs, le vainqueur puis les autres de la faillite la plus
+récente à la plus ancienne avec son tour et son créancier, un onglet « Statistiques », et les choix
+« Rejouer avec les mêmes paramètres » et « Retour à l'accueil ».
 
 #### Scenario: Victoire
 
 - **WHEN** le moteur déclare la victoire d'Alice
 - **THEN** l'écran de fin affiche « Alice remporte la partie » dans la couleur d'Alice
+
+#### Scenario: Classement
+
+- **WHEN** Carol gagne, que Bob a fait faillite au tour 30 au profit de la banque et Alice au tour 18 au profit de Carol
+- **THEN** l'onglet « Résultat » liste Carol « Vainqueur », Bob « Faillite au tour 30 au profit de la banque », puis Alice « Faillite au tour 18 au profit de Carol »
 
 #### Scenario: Rejouer
 

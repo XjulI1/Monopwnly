@@ -29,13 +29,18 @@ proposal.md ; exigences : `specs/`.
 
 ```
 src/game/
-  persistence.ts            lecture, validation, écriture, suppression
+  persistence.ts            lecture, écriture, suppression, création du « saver » de la session
+  savedGame.ts              format SavedGame et gardes de type de la validation
+  storageGuard.ts           neutralise un localStorage dont l'accès lève une exception
   history/journal.ts        événements → entrées de journal
+  history/journalView.ts    regroupement par tour et pagination du panneau
   history/statistics.ts     événements + état → relevés et compteurs
-  history/format.ts         montants (« 1 500 Ᵽ »), accords, noms de cases
+  history/summary.ts        classement, courbes et cases les plus rentables de l'écran de fin
+  history/positions.ts      suivi des cases des joueurs au fil des événements d'une action
+  history/format.ts         accords, énumérations, élisions, noms de cases (montants : game/format.ts)
 src/ui/
   hud/JournalPanel.vue
-  screens/StatisticsTab.vue, LineChart.vue
+  screens/StatisticsTab.vue, LineChart.vue, lineChart.ts
 ```
 
 ### Numéro de tour
@@ -77,13 +82,27 @@ journal est visible, ce qui est cohérent avec un état affiché directement fin
 
 Une enchère entre IA produit beaucoup d'actions rapprochées : l'écriture reste synchrone, mais les
 écritures d'une même rafale d'actions IA sans attente d'animation sont regroupées en une seule à la
-fin de la rafale (`queueMicrotask`). Une rafale interrompue par un rechargement perd au plus les
-mises de cette enchère, que l'IA rejoue à la reprise de façon déterministe.
+fin de la rafale. Une action humaine est écrite aussitôt ; une action d'IA marque seulement la
+sauvegarde comme en retard, et l'écriture a lieu juste avant la première étape de présentation qui
+attend réellement (dés, déplacement, paiement mis en avant, carte, faillite), quand la main revient
+à un humain ou que la partie se termine, à la fermeture de la session et sur `pagehide`. Un simple
+`queueMicrotask` ne suffisait pas : les décisions de l'IA arrivent de façon asynchrone, chaque
+action aurait donc été écrite séparément. Une rafale interrompue par un rechargement perd au plus
+les mises de cette enchère, que l'IA rejoue à la reprise de façon déterministe.
+
+Une nouvelle partie est écrite dès la création de sa session, pour remplacer aussitôt l'ancienne
+sauvegarde ; une partie reprise ne l'est qu'à sa prochaine action.
 
 ### Journal synchronisé avec les animations
 
 `journal.ts` produit les entrées dès que le moteur répond. La session stocke la liste complète et un
-index « affiché jusqu'à », avancé par chaque étape de présentation terminée. Le panneau ne montre
+index « affiché jusqu'à », avancé par chaque étape de présentation terminée. Pour cela, chaque
+nouvelle entrée indique combien d'événements de l'action doivent être présentés avant qu'elle
+s'affiche, et chaque étape de présentation indique combien d'événements elle a fini de présenter
+(un déplacement coupé par le passage par Boot ne compte qu'à la fin de sa seconde partie).
+
+Le journal remplace le fil d'activité d'`add-game-ui` (`feed.ts`, `ActivityFeed.vue`) et les
+descriptions portées jusque-là par les étapes de présentation : une seule source de texte. Le panneau ne montre
 que les entrées jusqu'à cet index ; passer l'animation avance l'index au bout.
 
 Regroupements :
@@ -99,8 +118,8 @@ Regroupements :
 `statistics.ts` est une fonction de réduction `(stats, events, stateAfter) → stats` :
 
 - **relevé** au début de chaque tour de table : argent liquide et patrimoine de chaque joueur non
-  failli, calculés par la requête de patrimoine du moteur (`queries.ts`), pour ne pas dupliquer sa
-  définition ;
+  failli, calculés par la requête de patrimoine du moteur (`netWorth` dans `queries.ts`, ajoutée par
+  ce change et réutilisée par `add-game-options`), pour ne pas dupliquer sa définition ;
 - **compteurs** par joueur : loyers perçus, loyers payés, taxes et amendes payées, salaires de Boot,
   cartes piochées, systèmes achetés et dépensé en achats, enchères remportées, backdoors et rootkits
   construits, passages en quarantaine, doubles, tour de faillite et créancier ;
@@ -124,3 +143,8 @@ faillite.
   accepté.
 - [Écriture perdue au milieu d'une rafale d'enchères IA] → acceptable : le déterminisme de l'IA
   rejoue la même enchère.
+- [Stockage bloqué au point que la simple lecture de `localStorage` lève une exception] → en
+  développement, le kit des devtools de Vue embarqué par `@tresjs/core` le lit au chargement et
+  empêchait l'application de démarrer ; `storageGuard.ts`, importé en premier par `main.ts`,
+  remplace alors `localStorage` par `null`. Le bundle de production n'embarque pas ce kit, la
+  protection y est sans effet.

@@ -56,8 +56,8 @@ Quand le joueur pioche une carte Exploit ou Patch, la carte SHALL être affiché
 titre et le texte de son effet avant que l'effet ne soit présenté. La carte SHALL rester affichée
 jusqu'à ce que le joueur la touche, à toutes les vitesses d'animation et même quand l'animation a été
 passée : elle ne se ferme jamais seule. Toucher hors de la carte la ferme et passe le reste de
-l'action. Dès que la carte s'affiche, le journal des actions SHALL indiquer le joueur, le paquet, le
-titre et l'effet de la carte.
+l'action. Une fois la carte et son effet présentés, le journal SHALL indiquer le joueur, le paquet,
+le titre et l'effet de la carte.
 
 #### Scenario: Carte de déplacement
 
@@ -76,8 +76,8 @@ titre et l'effet de la carte.
 
 #### Scenario: Carte dans le journal
 
-- **WHEN** Alice pioche la carte Exploit « Rollback »
-- **THEN** le journal affiche la ligne `Alice pioche la carte Exploit « Rollback » : Reculez de 3 cases.`
+- **WHEN** Alice pioche la carte Exploit « Rollback » sur la case Exploit qui suit l'Intranet, ferme la carte et que son pion a reculé
+- **THEN** le journal affiche la ligne « Alice pioche Exploit : Rollback — recule sur Messagerie pro »
 
 #### Scenario: Carte après un passage d'animation
 

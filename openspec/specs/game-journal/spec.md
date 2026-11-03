@@ -1,11 +1,10 @@
-# Spec Delta
+# game-journal Specification
 
 ## Purpose
-
 Garder une trace lisible de tout ce qui se passe dans la partie, pour suivre les tours des IA, savoir
 qui a payé quoi à qui et comprendre l'évolution de la partie.
 
-## ADDED Requirements
+## Requirements
 
 ### Requirement: Entrées du journal
 
@@ -29,12 +28,15 @@ les suivantes :
 | Carte | « <joueur> pioche <Exploit ou Patch> : <titre> — <effet> » |
 | Clé de déchiffrement conservée | « <joueur> garde une Clé de déchiffrement » |
 | Entrée en quarantaine | « <joueur> est placé en quarantaine » |
-| Sortie de quarantaine | « <joueur> sort de quarantaine (<amende, clé ou double>) » |
+| Tentative de sortie ratée | « <joueur> lance <d1> et <d2> sans faire de double (tentative <n> sur 3) » |
+| Sortie de quarantaine | « <joueur> sort de quarantaine (<amende, amende après trois échecs, clé ou double>) » |
+| Déplacement sans lancer | « <joueur> avance sur <case> » / « … recule sur <case> » (après l'amende forcée, par exemple) |
 | Construction | « <joueur> installe une backdoor sur <case> » / « … un rootkit sur <case> » |
 | Revente | « <joueur> revend une backdoor de <case> » / « … le rootkit de <case> » |
 | Mise en veille | « <joueur> met <case> en veille et reçoit <montant> » |
 | Réactivation | « <joueur> réactive <case> pour <montant> » |
-| Dette | « <joueur> doit réunir <montant> » |
+| Dette | « <joueur> doit réunir <montant> » (total des paiements restants) |
+| Paiement après une dette | « <joueur> paie <montant> à <joueur ou la banque> » |
 | Faillite | « <joueur> fait faillite au profit de <joueur ou la banque> » |
 | Victoire | « <joueur> remporte la partie » |
 
@@ -53,17 +55,37 @@ les suivantes :
 - **WHEN** Carol pioche la carte Patch « Victoire au CTF »
 - **THEN** le journal contient « Carol pioche Patch : Victoire au CTF — reçoit 25 Ᵽ »
 
+#### Scenario: Élision devant une voyelle
+
+- **WHEN** Bob fait faillite au profit d'Alice
+- **THEN** l'entrée est « Bob fait faillite au profit d'Alice »
+
 ### Requirement: Entrées condensées
 
 Les lancers suivis du passage par Boot SHALL former une seule entrée avec une sous-ligne pour le
 salaire. Les mises d'une même enchère SHALL être regroupées en une seule entrée résumant le résultat,
-dépliable en une ligne par mise ou abandon. Les paiements d'une même carte à plusieurs joueurs SHALL
-former une seule entrée dépliable.
+dépliable en une ligne par mise ou abandon ; tant que l'enchère dure, l'entrée s'intitule « Enchère
+sur <case> ». Les paiements d'une même carte à plusieurs joueurs SHALL former une seule entrée
+dépliable. Les conséquences directes d'une carte (déplacement, salaire de Boot, entrée en
+quarantaine, Clé de déchiffrement conservée, montant calculé selon les constructions) SHALL être
+décrites dans l'effet de l'entrée de la carte plutôt que dans des entrées séparées. Une faillite
+SHALL se déplier en une ligne pour les constructions revendues, l'argent cédé, les systèmes et les
+Clés transmis.
 
 #### Scenario: Enchère condensée
 
-- **WHEN** Bob refuse le Nœud Proxy, puis Alice mise 10 Ᵽ, Bob 50 Ᵽ, Alice 120 Ᵽ et Bob passe
-- **THEN** le journal contient une entrée « Alice remporte Nœud Proxy aux enchères pour 120 Ᵽ », dépliable en 4 lignes
+- **WHEN** Alice refuse le Nœud Proxy, puis mise 10 Ᵽ, Bob 50 Ᵽ, Alice 120 Ᵽ et Bob passe
+- **THEN** le journal contient « Alice n'achète pas Nœud Proxy », puis une entrée « Alice remporte Nœud Proxy aux enchères pour 120 Ᵽ » dépliable en 4 lignes
+
+#### Scenario: Carte qui déplace
+
+- **WHEN** Alice pioche la carte Exploit « Rollback » sur la case Exploit qui suit l'Intranet
+- **THEN** le journal contient « Alice pioche Exploit : Rollback — recule sur Messagerie pro »
+
+#### Scenario: Carte qui envoie en quarantaine
+
+- **WHEN** Alice pioche la carte Patch « Alerte du SOC »
+- **THEN** le journal contient « Alice pioche Patch : Alerte du SOC — est placé en quarantaine » et aucune autre entrée de quarantaine
 
 #### Scenario: Conférence de sécurité
 

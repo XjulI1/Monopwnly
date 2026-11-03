@@ -30,8 +30,10 @@ payé quoi à qui pendant leurs tours, ou de comprendre a posteriori comment la 
 
 ### Modified Capabilities
 
-(aucune : le changement de sens de « Quitter la partie » et les ajouts à l'accueil et à l'écran de fin
-sont décrits dans `game-persistence` et `game-statistics`)
+- `game-screens` : « Quitter la partie » revient à l'accueil sans confirmation et conserve la
+  partie ; l'écran de fin couvre le HUD et gagne les onglets « Résultat » et « Statistiques ».
+- `dice-display` : la carte piochée entre dans le journal une fois la carte et son effet présentés,
+  avec la formulation de `game-journal`.
 
 ## Hors périmètre
 

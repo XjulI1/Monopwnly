@@ -19,7 +19,7 @@ avant d'ajouter l'IA.
   du moteur sont affichées.
 - **Dés et présentation** : deux dés animés, double signalé, pion qui avance case par case,
   passage par Boot, paiements visibles sur l'argent des joueurs, carte Exploit ou Patch affichée
-  avant son effet ; vitesse d'animation réglable (lente, normale, rapide, instantanée).
+  avant son effet ; vitesse d'animation réglable (normale, rapide, instantanée).
 - **Gestion des systèmes** : fiche d'un système (loyers, coûts, propriétaire), construction et
   revente de backdoors et de rootkits, mise en veille et réactivation, depuis le plateau.
 - **Décision d'achat et enchère** : panneau d'achat ou de refus, puis enchère en tour de table avec

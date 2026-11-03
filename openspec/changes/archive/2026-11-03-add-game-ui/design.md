@@ -62,8 +62,9 @@ src/
 sur `displayedState` (par exemple : position du pion à l'arrivée, argent débité et crédité d'un
 paiement). À la fin de la file, `displayedState` reçoit `engineState` tel quel ; en développement, un
 contrôle signale toute divergence entre la projection et l'état réel. Les entrées utilisateur sont
-ignorées tant que `isPresenting` est vrai, sauf le toucher qui passe l'animation (la file est vidée
-et `displayedState` reçoit directement `engineState`).
+ignorées tant que `isPresenting` est vrai, sauf le toucher qui passe l'animation : les étapes
+restantes sont appliquées sans animation, sauf les cartes, qui s'affichent quand même et attendent
+le toucher du joueur. La vitesse « instantanée » joue la file de la même façon dès le départ.
 
 Alternative écartée : faire produire par le moteur un état intermédiaire par étape. Les événements
 contiennent déjà toutes les données nécessaires ; l'API du moteur reste étroite.
@@ -79,7 +80,7 @@ Les états sont des `shallowRef` ; la session est fournie par `provide` dans `Ga
 | lancer de dés | dés qui roulent puis s'arrêtent sur les valeurs, double signalé |
 | `moved` | `GameBoard.animateMove(joueur, cases, duréeParCase)` |
 | `passedBoot` | salaire crédité, petit badge « +200 Ᵽ » sur le joueur |
-| carte piochée | `CardReveal` : type (Exploit ou Patch), titre et effet ; attente d'un toucher ou d'un délai selon la vitesse |
+| carte piochée | `CardReveal` : type (Exploit ou Patch), titre et effet ; attente du toucher du joueur, sans délai, à toutes les vitesses ; ligne du journal ajoutée dès l'affichage |
 | `paid` | argent du payeur débité et du bénéficiaire crédité, flèche animée dans le panneau des joueurs |
 | achat, enchère gagnée, construction, revente, mise en veille | mise à jour de la case sur le plateau |
 | entrée et sortie de quarantaine | déplacement direct du pion vers la case 10, marqueur dans le panneau |
@@ -124,9 +125,10 @@ roulement, arrêt forcé sur les faces de l'événement, total affiché, mention
 
 ### Vitesses d'animation
 
-Une table unique dans `animationSpeed.ts` donne, par vitesse, la durée du roulement des dés, d'une
-case de déplacement, de l'affichage d'une carte et d'un paiement ; « instantanée » vaut 0 partout et
-remplace les animations par une ligne de texte dans le HUD. La préférence est mémorisée dans
+Une table unique dans `animationSpeed.ts` donne, pour les vitesses normale, rapide et instantanée,
+la durée du roulement des dés, d'une case de déplacement, d'un paiement et du bandeau de faillite ;
+« instantanée » vaut 0 partout et remplace les animations par une ligne de texte dans le HUD. Une
+carte n'a pas de durée : elle attend toujours le toucher du joueur. La préférence est mémorisée dans
 `localStorage` (accès protégés par `try/catch`, valeur par défaut si indisponible), avec repli sur
 `prefers-reduced-motion`.
 
@@ -142,7 +144,18 @@ Tailwind CSS v4 via `@tailwindcss/vite`. Thème sombre néon cohérent avec le p
 de thème, couleurs des joueurs et des familles reprises de `boardTheme.ts` et appliquées en style en
 ligne. Mise en page pour l'écran paysage d'au moins 1024 × 768 : plateau à gauche, panneau latéral à
 droite (joueurs en haut, panneau d'action en bas), dés et carte révélée en surimpression au centre du
-plateau. Zones tactiles d'au moins 44 × 44 px.
+plateau. La fiche d'une case s'ouvre en bas à droite du plateau, au-dessus du bouton « Recentrer » et
+à côté du panneau d'action, pour garder le regard près des boutons. Zones tactiles d'au moins
+44 × 44 px.
+
+### Cadrage du plateau
+
+La caméra regarde le plateau sous une inclinaison fixe ; en perspective, la moitié proche paraît
+plus grande que la moitié lointaine, et un cadrage visant le centre du plateau le pousse vers le bas
+de l'écran. `centeredTarget(distance)` déplace donc la cible vers Boot de la distance qui place les
+bords proche et lointain à égale distance du bas et du haut de l'écran, et `fitDistance` cherche la
+plus petite distance qui laisse le plateau dans 92 % de la demi-largeur et de la demi-hauteur de
+l'écran.
 
 ### Tests
 

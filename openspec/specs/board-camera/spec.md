@@ -3,12 +3,16 @@
 ## Purpose
 Cadrer le plateau dans une vue du haut inclinée et permettre au joueur de zoomer et de se déplacer
 sur le plateau, à la souris comme au tactile, sans jamais le perdre de vue.
+
 ## Requirements
+
 ### Requirement: Cadrage initial
 
 Au chargement, la caméra SHALL regarder le plateau depuis le haut avec une inclinaison fixe comprise
 entre 45° et 60° par rapport à l'horizontale, côté Boot, et SHALL cadrer le plateau entier dans la
-zone d'affichage, quel que soit son format à partir de 1024 × 768.
+zone d'affichage, quel que soit son format à partir de 1024 × 768. Le plateau cadré SHALL être
+centré verticalement dans la zone d'affichage et laisser une marge entre ses bords et ceux de la
+zone.
 
 #### Scenario: Plateau entier visible sur ordinateur
 
@@ -19,6 +23,11 @@ zone d'affichage, quel que soit son format à partir de 1024 × 768.
 
 - **WHEN** le plateau s'affiche dans une zone de 1024 × 768
 - **THEN** les 40 cases sont visibles
+
+#### Scenario: Plateau centré
+
+- **WHEN** le plateau est cadré, au chargement ou après un recentrage
+- **THEN** son bord proche est aussi loin du bas de la zone que son bord lointain l'est du haut, et aucun bord du plateau ne touche celui de la zone
 
 #### Scenario: Redimensionnement
 
@@ -82,4 +91,3 @@ de zoom. Au zoom minimal, le suivi SHALL NOT déplacer la caméra.
 
 - **WHEN** la caméra est au cadrage initial et qu'un pion est animé avec suivi actif
 - **THEN** la caméra ne bouge pas
-

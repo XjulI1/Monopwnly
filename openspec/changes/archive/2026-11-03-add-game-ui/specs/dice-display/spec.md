@@ -54,8 +54,11 @@ fin de l'étape qui les concerne, et non avant.
 ### Requirement: Carte affichée
 
 Quand le joueur pioche une carte Exploit ou Patch, la carte SHALL être affichée avec son type, son
-titre et le texte de son effet avant que l'effet ne soit présenté. La carte SHALL se fermer au
-toucher ou après un délai qui dépend de la vitesse d'animation.
+titre et le texte de son effet avant que l'effet ne soit présenté. La carte SHALL rester affichée
+jusqu'à ce que le joueur la touche, à toutes les vitesses d'animation et même quand l'animation a été
+passée : elle ne se ferme jamais seule. Toucher hors de la carte la ferme et passe le reste de
+l'action. Dès que la carte s'affiche, le journal des actions SHALL indiquer le joueur, le paquet, le
+titre et l'effet de la carte.
 
 #### Scenario: Carte de déplacement
 
@@ -67,10 +70,26 @@ toucher ou après un délai qui dépend de la vitesse d'animation.
 - **WHEN** le joueur pioche une Clé de déchiffrement
 - **THEN** la carte est affichée puis le compteur de Clés du joueur augmente de 1
 
+#### Scenario: Carte jamais fermée seule
+
+- **WHEN** le joueur pioche une carte et ne touche pas l'écran
+- **THEN** la carte reste affichée et la suite de l'action attend
+
+#### Scenario: Carte dans le journal
+
+- **WHEN** Alice pioche la carte Exploit « Rollback »
+- **THEN** le journal affiche la ligne `Alice pioche la carte Exploit « Rollback » : Reculez de 3 cases.`
+
+#### Scenario: Carte après un passage d'animation
+
+- **WHEN** le joueur touche l'écran pendant le déplacement qui l'amène sur une case Exploit
+- **THEN** le pion arrive aussitôt sur la case et la carte s'affiche jusqu'à ce que le joueur la touche
+
 ### Requirement: Passer l'animation
 
 L'utilisateur SHALL pouvoir passer l'animation restante d'un toucher : le plateau et le HUD affichent
-alors immédiatement l'état final de l'action.
+alors immédiatement l'état final de l'action. Une carte piochée pendant l'action SHALL tout de même
+s'afficher jusqu'au toucher (voir « Carte affichée »).
 
 #### Scenario: Toucher pendant un déplacement
 
@@ -79,10 +98,10 @@ alors immédiatement l'état final de l'action.
 
 ### Requirement: Vitesse d'animation
 
-L'utilisateur SHALL pouvoir choisir la vitesse d'animation parmi lente, normale, rapide et
-instantanée, depuis le HUD, à tout moment. Le choix SHALL être mémorisé sur l'appareil. En vitesse
-instantanée, aucune animation n'est jouée : le résultat du lancer, la carte et les paiements sont
-résumés en texte dans le HUD.
+L'utilisateur SHALL pouvoir choisir la vitesse d'animation parmi normale, rapide et instantanée,
+depuis le HUD, à tout moment. Le choix SHALL être mémorisé sur l'appareil. En vitesse instantanée,
+aucune animation n'est jouée : le résultat du lancer et les paiements sont résumés en texte dans le
+HUD, et une carte piochée s'affiche toujours jusqu'au toucher.
 
 #### Scenario: Vitesse mémorisée
 

@@ -96,12 +96,19 @@ hors de son tour. Aucune commande de jeu ne SHALL être proposée à l'humain pe
 
 Les actions d'une IA SHALL être espacées selon la vitesse d'animation choisie, et chaque action SHALL
 attendre la fin de la présentation des événements de l'action précédente (déplacement du pion,
-carte, paiement). En vitesse instantanée, les actions d'une IA SHALL s'enchaîner sans pause.
+carte, paiement). En vitesse instantanée, les actions d'une IA SHALL s'enchaîner sans pause. Une
+carte piochée par une IA SHALL se fermer seule après un délai qui dépend de la vitesse, alors que
+celle d'un humain attend son toucher.
 
 #### Scenario: Déplacement visible
 
 - **WHEN** une IA lance les dés en vitesse normale
 - **THEN** son action suivante n'est soumise qu'après l'animation de son pion jusqu'à la case d'arrivée
+
+#### Scenario: Carte d'une IA
+
+- **WHEN** une IA pioche une carte en vitesse normale
+- **THEN** la carte s'affiche puis se ferme seule après le délai de la vitesse, sans toucher
 
 ### Requirement: Calcul hors du fil principal
 

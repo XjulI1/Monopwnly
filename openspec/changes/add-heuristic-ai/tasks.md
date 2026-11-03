@@ -50,7 +50,7 @@
 ## 7. Worker et intégration
 
 - [ ] 7.1 Implémenter `src/ai/worker.ts` (reçoit vue, joueur et niveau, renvoie l'action) et son client dans `src/game/` ; vérifier avec `pnpm build` que le worker est bien empaqueté.
-- [ ] 7.2 Écrire les tests de `useGameSession` pour les IA, avec un faux worker : décision demandée quand `actingPlayerId` est une IA, soumission après la présentation et le délai de la vitesse, aucun délai en « instantanée », mises d'enchère des IA après un refus humain, dette d'une IA hors de son tour, réponse ignorée après avoir quitté la partie.
+- [ ] 7.2 Écrire les tests de `useGameSession` pour les IA, avec un faux worker : décision demandée quand `actingPlayerId` est une IA, soumission après la présentation et le délai de la vitesse, aucun délai en « instantanée », carte d'une IA fermée seule après le délai de la vitesse, mises d'enchère des IA après un refus humain, dette d'une IA hors de son tour, réponse ignorée après avoir quitté la partie.
 - [ ] 7.3 Brancher la boucle IA dans `useGameSession` et le message « <nom> réfléchit… » sans commandes dans le HUD ; vérifier que les tests 7.2 passent.
 - [ ] 7.4 Écrire les tests de composant du formulaire de création : choix Humain / IA par joueur, niveau unique commun, joueur 1 humain et autres IA normales par défaut, partie sans humain autorisée, pseudonymes distincts, nom numéroté pour une IA repassée en humain.
 - [ ] 7.5 Ajouter `AI_NAMES` (une vingtaine de pseudonymes inventés) et le tirage dans `src/game/gameForm.ts`, mettre à jour l'écran de création ; vérifier que les tests 7.4 passent.

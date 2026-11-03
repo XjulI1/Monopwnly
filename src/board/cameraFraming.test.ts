@@ -4,21 +4,43 @@ import {
   CAMERA_FOV,
   CAMERA_TILT_DEG,
   cameraPosition,
+  centeredTarget,
   clampDistance,
   clampTarget,
   fitDistance,
+  FRAME_FILL,
   maxZoomDistance,
   shouldFollow,
 } from './cameraFraming'
-import { tiles } from './geometry/layout'
+import { BOARD_SIDE, tiles } from './geometry/layout'
+
+const RESOLUTIONS = [
+  [1920, 1080],
+  [1748, 1059],
+  [1024, 768],
+  [704, 768],
+] as const
 
 function project(aspect: number, distance: number, point: Vector3): Vector3 {
   const camera = new PerspectiveCamera(CAMERA_FOV, aspect, 0.1, 10_000)
-  const position = cameraPosition({ x: 0, z: 0 }, distance)
+  const target = centeredTarget(distance)
+  const position = cameraPosition(target, distance)
   camera.position.set(position.x, position.y, position.z)
-  camera.lookAt(0, 0, 0)
+  camera.lookAt(target.x, 0, target.z)
   camera.updateMatrixWorld()
   return point.clone().project(camera)
+}
+
+function framedEdges(width: number, height: number) {
+  const aspect = width / height
+  const distance = fitDistance(aspect)
+  const half = BOARD_SIDE / 2
+  const corners = [-half, half].flatMap((x) => [-half, half].map((z) => project(aspect, distance, new Vector3(x, 0, z))))
+  return {
+    top: Math.max(...corners.map((c) => c.y)),
+    bottom: Math.min(...corners.map((c) => c.y)),
+    side: Math.max(...corners.map((c) => Math.abs(c.x))),
+  }
 }
 
 describe('camera framing', () => {
@@ -30,11 +52,8 @@ describe('camera framing', () => {
     expect(position.z).toBeGreaterThan(0)
   })
 
-  for (const [width, height] of [
-    [1920, 1080],
-    [1024, 768],
-  ] as const) {
-    it(`fits every square in ${width} × ${height}`, () => {
+  for (const [width, height] of RESOLUTIONS) {
+    it(`fits every square with a margin in ${width} × ${height}`, () => {
       const aspect = width / height
       const distance = fitDistance(aspect)
       for (const tile of tiles()) {
@@ -42,13 +61,29 @@ describe('camera framing', () => {
           for (const dz of [-1, 1]) {
             const corner = new Vector3(tile.center.x + (dx * tile.width) / 2, 0, tile.center.z + (dz * tile.depth) / 2)
             const p = project(aspect, distance, corner)
-            expect(Math.abs(p.x)).toBeLessThanOrEqual(1.0001)
-            expect(Math.abs(p.y)).toBeLessThanOrEqual(1.0001)
+            expect(Math.abs(p.x)).toBeLessThanOrEqual(FRAME_FILL + 0.0001)
+            expect(Math.abs(p.y)).toBeLessThanOrEqual(FRAME_FILL + 0.0001)
           }
         }
       }
     })
+
+    it(`centres the board vertically in ${width} × ${height}`, () => {
+      const { top, bottom } = framedEdges(width, height)
+      expect(top + bottom).toBeCloseTo(0, 4)
+    })
+
+    it(`makes the board as large as the margin allows in ${width} × ${height}`, () => {
+      const { top, side } = framedEdges(width, height)
+      expect(Math.max(top, side)).toBeCloseTo(FRAME_FILL, 3)
+    })
   }
+
+  it('looks at a point a little towards Boot so that the near edge does not touch the bottom of the screen', () => {
+    const { z } = centeredTarget(fitDistance(16 / 9))
+    expect(z).toBeGreaterThan(0)
+    expect(z).toBeLessThan(BOARD_SIDE / 4)
+  })
 
   it('keeps the target inside the board', () => {
     expect(clampTarget({ x: 300, z: -300 })).toEqual({ x: 50, z: -50 })

@@ -14,6 +14,14 @@ export default mergeConfig(
           extends: true,
           test: { name: 'board', environment: 'node', include: ['src/board/**/*.test.ts'] },
         },
+        {
+          extends: true,
+          test: {
+            name: 'ui',
+            environment: 'happy-dom',
+            include: ['src/game/**/*.test.ts', 'src/ui/**/*.test.ts'],
+          },
+        },
       ],
     },
   }),

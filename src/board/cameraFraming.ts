@@ -7,6 +7,9 @@ export const CAMERA_FOV = 45
 /** Fixed tilt of the board camera above the horizon, in degrees. */
 export const CAMERA_TILT_DEG = 55
 
+/** Share of the half-width and half-height of the viewport the whole board fills once framed. */
+export const FRAME_FILL = 0.92
+
 /** Share of the viewport width taken by an ordinary square at the maximal zoom. */
 const SQUARE_SHARE_AT_MAX_ZOOM = 1 / 5
 
@@ -32,19 +35,27 @@ function boardCorners(): Vector3[] {
   ]
 }
 
+/** Camera target that puts the near and the far edges of the board at the same distance from the screen edges. */
+export function centeredTarget(distance: number): BoardPoint {
+  const cosTilt = Math.cos(MathUtils.degToRad(CAMERA_TILT_DEG))
+  const half = BOARD_SIDE / 2
+  return { x: 0, z: (Math.sqrt(distance ** 2 + 4 * (cosTilt * half) ** 2) - distance) / (2 * cosTilt) }
+}
+
 function boardFits(aspect: number, distance: number, corners: Vector3[]): boolean {
   const camera = new PerspectiveCamera(CAMERA_FOV, aspect, 0.1, 10_000)
-  const position = cameraPosition({ x: 0, z: 0 }, distance)
+  const target = centeredTarget(distance)
+  const position = cameraPosition(target, distance)
   camera.position.set(position.x, position.y, position.z)
-  camera.lookAt(0, 0, 0)
+  camera.lookAt(target.x, 0, target.z)
   camera.updateMatrixWorld()
   return corners.every((corner) => {
     const projected = corner.clone().project(camera)
-    return Math.abs(projected.x) <= 1 && Math.abs(projected.y) <= 1
+    return Math.abs(projected.x) <= FRAME_FILL && Math.abs(projected.y) <= FRAME_FILL
   })
 }
 
-/** Smallest camera distance that keeps the whole board in view for a viewport aspect ratio (minimal zoom). */
+/** Smallest camera distance that keeps the whole board in view, centred, for a viewport aspect ratio (minimal zoom). */
 export function fitDistance(aspect: number): number {
   const corners = boardCorners()
   let near = 1

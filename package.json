@@ -14,8 +14,10 @@
     "type-check": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "@tailwindcss/vite": "^4.3.3",
     "@tresjs/cientos": "^5.9.3",
     "@tresjs/core": "^5.9.3",
+    "tailwindcss": "^4.3.3",
     "three": "^0.186.1",
     "vue": "^3.5.44"
   },
@@ -24,9 +26,11 @@
     "@types/node": "^24.19.2",
     "@types/three": "^0.186.0",
     "@vitejs/plugin-vue": "^6.0.10",
+    "@vue/test-utils": "^2.5.1",
     "eslint": "^10.12.0",
     "eslint-plugin-vue": "^10.11.1",
     "globals": "^17.13.0",
+    "happy-dom": "^21.0.4",
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.71.2",
     "vite": "^8.3.4",

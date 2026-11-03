@@ -2,6 +2,7 @@ import { MOUSE, TOUCH, Vector3, type PerspectiveCamera } from 'three'
 import { MapControls } from 'three/examples/jsm/controls/MapControls.js'
 import {
   cameraPosition,
+  centeredTarget,
   clampTarget,
   fitDistance,
   maxZoomDistance,
@@ -56,8 +57,9 @@ export function useBoardCamera(camera: PerspectiveCamera, element: HTMLElement):
 
   const recenter = () => {
     updateBounds()
-    const position = cameraPosition({ x: 0, z: 0 }, controls.maxDistance)
-    controls.target.set(0, 0, 0)
+    const target = centeredTarget(controls.maxDistance)
+    const position = cameraPosition(target, controls.maxDistance)
+    controls.target.set(target.x, 0, target.z)
     camera.position.set(position.x, position.y, position.z)
     controls.update()
   }

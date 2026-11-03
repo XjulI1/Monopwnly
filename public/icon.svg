@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <title>Monopwnly</title>
+  <defs>
+    <radialGradient id="core" cx="50%" cy="45%" r="55%">
+      <stop offset="0" stop-color="#121a2a" />
+      <stop offset="1" stop-color="#04060c" />
+    </radialGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="9" result="blur" />
+      <feMerge>
+        <feMergeNode in="blur" />
+        <feMergeNode in="SourceGraphic" />
+      </feMerge>
+    </filter>
+  </defs>
+
+  <!-- Fond plein cadre : rogné par les masques des plateformes (variante « maskable »). -->
+  <rect width="512" height="512" fill="#04060c" />
+  <circle cx="256" cy="256" r="196" fill="url(#core)" />
+
+  <!-- Tout le motif tient dans la zone de sécurité centrale (rayon 204,8 px). -->
+  <g fill="none" stroke="#19e3ff" stroke-linecap="round" filter="url(#glow)">
+    <circle cx="256" cy="256" r="172" stroke-width="10" />
+    <path d="M256 84 v22 M256 406 v22 M84 256 h22 M406 256 h22" stroke-width="10" stroke-opacity="0.8" />
+  </g>
+
+  <!-- Symbole Ᵽ (PwnCoin) dessiné en traits, sans police. -->
+  <g fill="none" stroke="#e8f1ff" stroke-width="30" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)">
+    <path d="M222 372 V150 H284 A58 58 0 0 1 284 266 H222" />
+    <path d="M186 322 H286" />
+  </g>
+</svg>

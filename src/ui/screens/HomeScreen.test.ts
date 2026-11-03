@@ -19,8 +19,8 @@ function inRound(turnNumber: number): GameState {
   return state
 }
 
-function home() {
-  return mount(HomeScreen, { attachTo: document.body })
+function home(props: { updateReady?: boolean } = {}) {
+  return mount(HomeScreen, { props, attachTo: document.body })
 }
 
 function blockStorage(): () => void {
@@ -110,6 +110,24 @@ describe('HomeScreen', () => {
     await wrapper.get('[data-test="new-game"]').trigger('click')
     expect(wrapper.find('[role="alertdialog"]').exists()).toBe(false)
     expect(wrapper.emitted('create')).toHaveLength(1)
+  })
+
+  it('announces a new version with a reload button when an update is ready', async () => {
+    const wrapper = home({ updateReady: true })
+    const banner = wrapper.get('[data-test="update-banner"]')
+    expect(banner.text()).toContain('Nouvelle version disponible')
+    const reload = banner.get('[data-test="reload"]')
+    expect(reload.text()).toBe('Recharger')
+    await reload.trigger('click')
+    expect(wrapper.emitted('reload')).toHaveLength(1)
+  })
+
+  it('shows no update banner while no new version is ready', async () => {
+    expect(home().find('[data-test="update-banner"]').exists()).toBe(false)
+    const wrapper = home({ updateReady: false })
+    expect(wrapper.find('[data-test="update-banner"]').exists()).toBe(false)
+    await wrapper.setProps({ updateReady: true })
+    expect(wrapper.find('[data-test="update-banner"]').exists()).toBe(true)
   })
 
   it('shows up without resume when the storage is blocked, and still lets a game be created', async () => {

@@ -5,10 +5,16 @@ import { loadSavedGame } from '../../game/persistence'
 import type { SavedGame } from '../../game/savedGame'
 import ConfirmDialog from '../hud/ConfirmDialog.vue'
 
+defineProps<{
+  /** Une nouvelle version de l'application est prête à être activée (faux par défaut). */
+  updateReady?: boolean
+}>()
+
 const emit = defineEmits<{
   create: []
   resume: [game: SavedGame]
   review: [game: SavedGame]
+  reload: []
 }>()
 
 const lookup = loadSavedGame()
@@ -37,6 +43,22 @@ function replace() {
       class="grid-backdrop pointer-events-none absolute inset-0"
       aria-hidden="true"
     />
+    <div
+      v-if="updateReady"
+      class="panel-card absolute top-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-4 py-2 pr-2 pl-5 shadow-neon"
+      role="status"
+      data-test="update-banner"
+    >
+      <span class="text-sm font-semibold">Nouvelle version disponible</span>
+      <button
+        type="button"
+        class="btn btn-primary"
+        data-test="reload"
+        @click="emit('reload')"
+      >
+        Recharger
+      </button>
+    </div>
     <div class="relative flex flex-col items-center gap-3 text-center">
       <p class="font-mono text-sm tracking-[0.4em] text-patch">
         &gt; ./connect --target=board

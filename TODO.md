@@ -95,6 +95,15 @@ les précédents implémentés.
 - [ ] `add-game-options` : règles optionnelles et fins de partie alternatives
 - [ ] `add-offline-pwa` : application installable et jouable hors ligne
 
+## Déploiement
+
+- [ ] Servir `dist/` en **HTTPS** (obligatoire pour le service worker, sauf sur `localhost`).
+- [ ] En-tête `Cache-Control: no-cache` sur `sw.js`, `index.html` et `manifest.webmanifest`, sans
+  quoi les nouvelles versions ne sont jamais vues ; les fichiers de `assets/` (noms hachés) peuvent
+  être mis en cache longue durée.
+- [ ] Tester l'installation sur iPad (« Sur l'écran d'accueil ») : icône, nom, ouverture en
+  paysage sans barre d'adresse, lancement hors ligne.
+
 ## Après la V1
 
 - [ ] IA experte par simulation (sur le modèle de Risky).

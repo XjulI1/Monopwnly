@@ -28,7 +28,8 @@ joueur solvable l'emporte.
 - **Plateau 3D** façon jeu de société : cases en relief, pions qui avancent case par case, dés
   animés, vitesse d'animation réglable.
 - **Sauvegarde automatique** dans le navigateur, journal de partie et statistiques de fin.
-- **Jouable hors ligne et installable.**
+- **Jouable hors ligne et installable** sur l'écran d'accueil d'une tablette ou comme application
+  de bureau.
 
 ### Sauvegarde, journal et statistiques
 
@@ -66,6 +67,19 @@ joueur solvable l'emporte.
   normale et difficile se méfient d'une offre qui compléterait une famille adverse. Elles proposent
   aussi des échanges, aux humains comme entre elles. Le détail est dans [`docs/ia.md`](docs/ia.md).
 
+### Hors ligne et installation
+
+- Après une première visite en ligne, l'application se lance et se joue **sans réseau** : partie
+  contre l'IA, sauvegarde et reprise comprises.
+- Elle s'**installe** depuis le navigateur (icône d'installation de la barre d'adresse sur
+  ordinateur, « Sur l'écran d'accueil » sur iPad) et s'ouvre alors dans sa propre fenêtre, en
+  paysage, sans barre d'adresse.
+- Une **nouvelle version** déployée se télécharge en arrière-plan. Un bandeau « Nouvelle version
+  disponible » propose de recharger, sur l'écran d'accueil seulement, jamais en pleine partie. Sans
+  action, la nouvelle version s'applique au lancement suivant.
+- En développement (`pnpm dev`), aucun service worker n'est enregistré : le mode hors ligne se
+  teste avec `pnpm build` puis `pnpm preview`.
+
 ## Stack technique
 
 - [Vue 3](https://vuejs.org/) (Composition API, `<script setup lang="ts">`) et [Vite](https://vite.dev/)
@@ -87,8 +101,6 @@ puis archivé avec `/opsx:archive`.
 
 ## Démarrage
 
-Les commandes arriveront avec le premier change (`add-rules-engine`) :
-
 ```bash
 pnpm install       # installer les dépendances
 pnpm dev           # lancer l'application en développement
@@ -96,6 +108,8 @@ pnpm test          # lancer les tests
 pnpm lint          # analyser le code
 pnpm type-check    # vérifier les types
 pnpm build         # construire la version de production
+pnpm preview       # servir la version construite (service worker et mode hors ligne actifs)
+pnpm generate-pwa-assets  # régénérer les icônes PNG de public/ depuis public/icon.svg
 ```
 
 ## Licence

@@ -5,6 +5,7 @@ import { deleteSavedGame } from './game/persistence'
 import type { SavedGame } from './game/savedGame'
 import { startGame, type GameConfig } from './game/setupForm'
 import type { GameHistory } from './game/useGameSession'
+import { createUpdateState, type UpdateState } from './pwa/updateState'
 import CreateGameScreen from './ui/screens/CreateGameScreen.vue'
 import GameScreen from './ui/screens/GameScreen.vue'
 import HomeScreen from './ui/screens/HomeScreen.vue'
@@ -13,6 +14,10 @@ type Screen =
   | { kind: 'home' }
   | { kind: 'create' }
   | { kind: 'game'; id: number; config: GameConfig; state: GameState; history: GameHistory | null }
+
+const props = defineProps<{ updates?: UpdateState }>()
+// Fixé au montage par main.ts : sans service worker, l'état reste « pas de mise à jour ».
+const { updateReady, applyUpdate } = props.updates ?? createUpdateState()
 
 const screen = shallowRef<Screen>({ kind: 'home' })
 let gamesStarted = 0
@@ -43,6 +48,8 @@ function replay() {
 <template>
   <HomeScreen
     v-if="screen.kind === 'home'"
+    :update-ready="updateReady"
+    @reload="applyUpdate"
     @create="screen = { kind: 'create' }"
     @resume="resume"
     @review="resume"

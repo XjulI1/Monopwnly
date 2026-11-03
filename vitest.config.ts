@@ -20,6 +20,10 @@ export default mergeConfig(
         },
         {
           extends: true,
+          test: { name: 'pwa', environment: 'node', include: ['src/pwa/**/*.test.ts'] },
+        },
+        {
+          extends: true,
           test: {
             name: 'ui',
             environment: 'happy-dom',

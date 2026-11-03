@@ -86,9 +86,12 @@ la logique d'écran.
 Défini dans `src/pwa/manifest.ts` et passé au plugin : `name` et `short_name` « Monopwnly »,
 `description` en français, `lang: 'fr'`, `id`, `start_url` et `scope` à `'./'` (relatifs, pour le
 sous-chemin), `display: 'standalone'`, `orientation: 'landscape'`, `background_color` et
-`theme_color` repris des variables CSS du thème sombre néon de `add-game-ui` (fond de `body` et
-couleur d'encre du HUD). Les deux valeurs sont importées d'un module de constantes partagé avec
-`index.html` et le thème, pour qu'un changement de palette ne crée pas d'écart.
+`theme_color` repris des variables CSS du thème sombre néon de `add-game-ui` : fond de `body`
+(`--color-void`) et fond des panneaux du HUD (`--color-panel`). La couleur d'encre, d'abord
+envisagée pour `theme_color`, est écartée : elle donnerait une barre de titre claire au-dessus d'une
+interface sombre. Les deux valeurs viennent de `src/theme.ts` ; un test vérifie qu'elles restent
+égales aux variables de `style.css` et à la balise `theme-color` d'`index.html`, pour qu'un
+changement de palette ne crée pas d'écart.
 
 `standalone` plutôt que `fullscreen` : iPadOS ne connaît que `standalone`, et sur ordinateur
 `fullscreen` empêche de redimensionner la fenêtre.
@@ -99,7 +102,9 @@ Une icône source `public/icon.svg` dessinée à la main, originale (aucun élé
 existant), aux couleurs du thème, avec une marge de sécurité pour la variante « maskable ». Les PNG
 sont produits par `@vite-pwa/assets-generator` (préréglage `minimal2023Preset` : 64, 192, 512,
 maskable 512, Apple 180, `favicon.ico`) via un script `pnpm generate-pwa-assets`, puis
-**versionnés** dans `public/`.
+**versionnés** dans `public/`. L'icône source étant déjà pleine page, avec son motif dans la zone de
+sécurité, les variantes « maskable » et Apple sont produites sans la marge ni le fond blanc du
+préréglage, sur le fond du thème.
 
 Alternative écartée : l'option `pwaAssets` du plugin, qui génère les icônes à chaque construction et
 rendrait `sharp` (binaire natif) indispensable au build ; l'icône change rarement.

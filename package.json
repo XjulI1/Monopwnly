@@ -12,7 +12,8 @@
     "test:watch": "vitest",
     "test:balance": "MONOPWNLY_BALANCE=1 vitest run --project ai src/ai/tournament/balance.test.ts",
     "lint": "eslint .",
-    "type-check": "vue-tsc --noEmit"
+    "type-check": "vue-tsc --noEmit",
+    "generate-pwa-assets": "pwa-assets-generator"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.3.3",
@@ -26,6 +27,7 @@
     "@eslint/js": "^10.0.1",
     "@types/node": "^24.19.2",
     "@types/three": "^0.186.0",
+    "@vite-pwa/assets-generator": "^2.0.0",
     "@vitejs/plugin-vue": "^6.0.10",
     "@vue/test-utils": "^2.5.1",
     "eslint": "^10.12.0",
@@ -35,8 +37,10 @@
     "typescript": "~6.0.3",
     "typescript-eslint": "^8.71.2",
     "vite": "^8.3.4",
+    "vite-plugin-pwa": "^2.0.0",
     "vitest": "^5.0.5",
     "vue-eslint-parser": "^10.4.1",
-    "vue-tsc": "^3.3.13"
+    "vue-tsc": "^3.3.13",
+    "workbox-window": "^7.4.1"
   }
 }

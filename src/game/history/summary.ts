@@ -1,4 +1,4 @@
-import { FAMILY_NAMES, purchasableById, squareById, type GameState, type PlayerId, type SquareId } from '../../engine'
+import { FAMILY_NAMES, purchasableById, squareById, standings, type GameState, type PlayerId, type SquareId } from '../../engine'
 import { ofName } from './format'
 import type { Bankruptcy, GameStatistics } from './statistics'
 
@@ -11,11 +11,13 @@ export type RentedSquare = { squareId: SquareId; name: string; family: string; t
 /** Number of squares in the ranking of the most profitable ones. */
 export const TOP_SQUARES = 5
 
-/** Players from the winner to the first one who went bankrupt. */
+/** Players from the winner, then those still in the game by net worth, then from the last one who went bankrupt to the first. */
 export function ranking(state: GameState, stats: GameStatistics): PlayerId[] {
   const rankOf = (id: PlayerId) => stats.players[id]?.bankruptcy?.rank ?? 0
+  const order = standings(state).map((s) => s.playerId)
+  const placeOf = (id: PlayerId) => (order.includes(id) ? order.indexOf(id) : order.length)
   const others = state.players.map((p) => p.id).filter((id) => id !== state.winner)
-  const standing = others.filter((id) => rankOf(id) === 0)
+  const standing = others.filter((id) => rankOf(id) === 0).sort((a, b) => placeOf(a) - placeOf(b))
   const ruined = others.filter((id) => rankOf(id) > 0).sort((a, b) => rankOf(b) - rankOf(a))
   return [...(state.winner ? [state.winner] : []), ...standing, ...ruined]
 }

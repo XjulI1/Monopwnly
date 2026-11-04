@@ -156,7 +156,7 @@ export function nameErrors(drafts: readonly PlayerDraft[]): Record<number, strin
 }
 
 /** Turns the form into the configuration given to the engine; every AI plays at the common level. */
-export function toConfig(drafts: readonly PlayerDraft[], auctions: boolean, aiLevel: AiLevel = DEFAULT_AI_LEVEL): GameConfig {
+export function toConfig(drafts: readonly PlayerDraft[], settings: GameSettings = DEFAULT_SETTINGS, aiLevel: AiLevel = DEFAULT_AI_LEVEL): GameConfig {
   return {
     players: drafts.map((draft, i) => ({
       id: `p${i + 1}`,
@@ -164,7 +164,7 @@ export function toConfig(drafts: readonly PlayerDraft[], auctions: boolean, aiLe
       color: draft.color,
       controller: draft.kind === 'ai' ? { kind: 'ai', level: aiLevel } : { kind: 'human' },
     })),
-    settings: { ...DEFAULT_SETTINGS, auctions },
+    settings: { ...settings },
   }
 }
 

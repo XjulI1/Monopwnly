@@ -116,6 +116,9 @@ export function recordStatistics(stats: GameStatistics, before: GameState, event
       case 'paid':
         onPayment(event)
         return
+      case 'potIncreased':
+        if (event.reason === 'tax') add(event.playerId, 'taxesPaid', event.amount)
+        return
       case 'diceRolled':
         if (event.purpose !== 'serviceRent' && event.dice[0] === event.dice[1]) add(event.playerId, 'doubles')
         return

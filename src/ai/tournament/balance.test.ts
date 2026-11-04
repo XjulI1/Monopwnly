@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { FAMILY_NAMES, type FamilyId } from '../../engine'
+import { FAMILY_NAMES, NET_WORTH_TARGETS, type FamilyId } from '../../engine'
 import { runTournament, type TournamentReport } from './runTournament'
 
 const GAMES = 400
@@ -7,6 +7,8 @@ const MAX_INTERRUPTED_SHARE = 0.05
 const MEDIAN_ROUNDS = { min: 25, max: 80 } as const
 const PLACE_WIN_RATE = { min: 0.18, max: 0.32 } as const
 const MAX_FAMILY_YIELD_SPREAD = 3
+const TARGET_GAMES = 200
+const MIN_TARGET_ENDINGS = 0.9
 
 const percent = (share: number) => `${(share * 100).toFixed(1)} %`
 const families = Object.keys(FAMILY_NAMES) as FamilyId[]
@@ -61,5 +63,24 @@ describe.skipIf(!enabled)('balance of the board', () => {
       highest.ratio,
       `Rendement de ${FAMILY_NAMES[highest.family]} : ${highest.ratio.toFixed(2)}, plus de ${MAX_FAMILY_YIELD_SPREAD} fois celui de ${FAMILY_NAMES[lowest.family]} (${lowest.ratio.toFixed(2)})`,
     ).toBeLessThanOrEqual(lowest.ratio * MAX_FAMILY_YIELD_SPREAD)
+  }, 600_000)
+})
+
+describe.skipIf(!enabled)('net worth targets', () => {
+  it.each(NET_WORTH_TARGETS)(`ends most games between four normal AIs on a target of %i Ᵽ`, (netWorthTarget) => {
+    const report = runTournament({
+      games: TARGET_GAMES,
+      lineups: [['normal', 'normal', 'normal', 'normal']],
+      seeds: Array.from({ length: TARGET_GAMES }, (_, i) => i + 1),
+      settings: { auctions: true, netWorthTarget },
+    })
+    const byTarget = report.winsByReason.netWorthTarget / report.finished
+    process.stdout.write(
+      `Objectif ${netWorthTarget} Ᵽ : médiane ${report.rounds.median} tours, 90e centile ${report.rounds.p90}, fin par l’objectif ${percent(byTarget)}\n`,
+    )
+    expect(report.interrupted / report.games).toBeLessThanOrEqual(MAX_INTERRUPTED_SHARE)
+    expect(byTarget, `Fin par l’objectif : ${percent(byTarget)}, au moins ${percent(MIN_TARGET_ENDINGS)} attendus`).toBeGreaterThanOrEqual(
+      MIN_TARGET_ENDINGS,
+    )
   }, 600_000)
 })

@@ -11,6 +11,7 @@ import {
   type GameState,
   type PlayerSetup,
   type SquareId,
+  type WinReason,
 } from '../../engine'
 import { playUntilHumanOrEnd } from '../index'
 import { backdoorCostOf } from '../levels/strategy'
@@ -31,6 +32,7 @@ export type TournamentReport = {
   winRateByPlace: number[]
   winsByLevel: Record<AiLevel, number>
   winRateByLevel: Record<AiLevel, number>
+  winsByReason: Record<WinReason, number>
   yieldByGroup: Record<SquareGroup, GroupYield>
   trades: { proposed: number; accepted: number; acceptedPerGame: number }
 }
@@ -66,7 +68,7 @@ function newGame(lineup: AiLevel[], seed: number, settings: Partial<GameSettings
   }))
   const created = createGame({ players, seed, settings })
   if (!created.ok) throw new Error(`${created.error.code}: ${created.error.message}`)
-  return { ...created.state, currentPlayerIndex: 0 }
+  return { ...created.state, currentPlayerIndex: 0, firstPlayerIndex: 0 }
 }
 
 function percentile(sorted: number[], share: number): number {
@@ -108,6 +110,7 @@ export function runTournament(options: TournamentOptions): TournamentReport {
   const seats = Math.max(...options.lineups.map((lineup) => lineup.length))
   const winsByPlace = new Array<number>(seats).fill(0)
   const winsByLevel = Object.fromEntries(AI_LEVELS.map((level) => [level, 0])) as Record<AiLevel, number>
+  const winsByReason: Record<WinReason, number> = { lastStanding: 0, turnLimit: 0, netWorthTarget: 0 }
   const rounds: number[] = []
   const yields = emptyYields()
   let interrupted = 0
@@ -134,6 +137,7 @@ export function runTournament(options: TournamentOptions): TournamentReport {
     winsByPlace[place] = (winsByPlace[place] ?? 0) + 1
     const level = lineup[place]
     if (level) winsByLevel[level] += 1
+    if (state.winReason) winsByReason[state.winReason] += 1
   }
   const finished = rounds.length
   const sorted = [...rounds].sort((a, b) => a - b)
@@ -151,6 +155,7 @@ export function runTournament(options: TournamentOptions): TournamentReport {
     winRateByPlace: winsByPlace.map(rate),
     winsByLevel,
     winRateByLevel: Object.fromEntries(AI_LEVELS.map((level) => [level, rate(winsByLevel[level])])) as Record<AiLevel, number>,
+    winsByReason,
     yieldByGroup: Object.fromEntries(
       GROUPS.map((group) => {
         const { rent, invested } = yields[group]

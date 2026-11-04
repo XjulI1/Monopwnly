@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import { PLAYER_COLORS } from '../../board/boardTheme'
-import { AI_LEVELS, type GameState } from '../../engine'
+import { AI_LEVELS, DEFAULT_SETTINGS, NET_WORTH_TARGETS, TURN_LIMITS, type GameSettings, type GameState } from '../../engine'
+import { formatPwn } from '../../game/format'
+import { HOUSE_RULES, NET_WORTH_TARGET_HELP, TURN_LIMIT_HELP } from '../../game/gameOptions'
 import {
   addDraft,
   AI_LEVEL_NAMES,
@@ -33,7 +35,7 @@ const KINDS: { value: PlayerKind; label: string }[] = [
 ]
 
 const drafts = ref(defaultDrafts())
-const auctions = ref(true)
+const settings = ref<GameSettings>({ ...DEFAULT_SETTINGS })
 const aiLevel = ref(DEFAULT_AI_LEVEL)
 const engineError = ref<string | null>(null)
 
@@ -43,7 +45,7 @@ const hasAi = computed(() => drafts.value.some((draft) => draft.kind === 'ai'))
 
 function start() {
   if (!valid.value) return
-  const config = toConfig(drafts.value, auctions.value, aiLevel.value)
+  const config = toConfig(drafts.value, settings.value, aiLevel.value)
   const result = startGame(config)
   if (!result.ok) {
     engineError.value = result.error.message
@@ -208,7 +210,7 @@ function start() {
         <div class="rounded-lg border border-line bg-panel px-4 py-3">
           <label class="flex min-h-11 cursor-pointer items-center gap-3">
             <input
-              v-model="auctions"
+              v-model="settings.auctions"
               type="checkbox"
               data-test="auctions"
               class="h-5 w-5 accent-neon"
@@ -217,11 +219,87 @@ function start() {
           </label>
           <p class="mt-1 text-sm text-muted">
             {{
-              auctions
+              settings.auctions
                 ? 'Une case refusée par le joueur qui s’y arrête est mise aux enchères entre tous les joueurs.'
                 : 'Une case refusée par le joueur qui s’y arrête reste à la banque.'
             }}
           </p>
+        </div>
+      </section>
+
+      <section
+        class="mt-4"
+        aria-labelledby="rules-title"
+      >
+        <h2
+          id="rules-title"
+          class="mb-3 text-sm font-semibold uppercase tracking-wider text-muted"
+        >
+          Options de règles
+        </h2>
+        <div class="grid grid-cols-2 gap-3">
+          <div
+            v-for="option in HOUSE_RULES"
+            :key="option.rule"
+            class="rounded-lg border border-line bg-panel px-4 py-3"
+          >
+            <label class="flex min-h-11 cursor-pointer items-center gap-3">
+              <input
+                v-model="settings[option.rule]"
+                type="checkbox"
+                :data-test="`rule-${option.rule}`"
+                class="h-5 w-5 accent-neon"
+              >
+              <span class="font-semibold">{{ option.name }}</span>
+            </label>
+            <p class="mt-1 text-sm text-muted">
+              {{ option.help }}
+            </p>
+          </div>
+          <div class="rounded-lg border border-line bg-panel px-4 py-3">
+            <label class="flex min-h-11 items-center justify-between gap-3">
+              <span class="font-semibold">Limite de tours</span>
+              <select
+                v-model="settings.turnLimit"
+                data-test="turn-limit"
+                class="min-h-11 rounded-md border border-line bg-void px-3 text-ink outline-none focus:border-neon"
+              >
+                <option :value="null">Aucune</option>
+                <option
+                  v-for="limit in TURN_LIMITS"
+                  :key="limit"
+                  :value="limit"
+                >
+                  {{ limit }} tours
+                </option>
+              </select>
+            </label>
+            <p class="mt-1 text-sm text-muted">
+              {{ TURN_LIMIT_HELP }}
+            </p>
+          </div>
+          <div class="rounded-lg border border-line bg-panel px-4 py-3">
+            <label class="flex min-h-11 items-center justify-between gap-3">
+              <span class="font-semibold">Objectif de patrimoine</span>
+              <select
+                v-model="settings.netWorthTarget"
+                data-test="net-worth-target"
+                class="min-h-11 rounded-md border border-line bg-void px-3 text-ink outline-none focus:border-neon"
+              >
+                <option :value="null">Aucun</option>
+                <option
+                  v-for="target in NET_WORTH_TARGETS"
+                  :key="target"
+                  :value="target"
+                >
+                  {{ formatPwn(target) }}
+                </option>
+              </select>
+            </label>
+            <p class="mt-1 text-sm text-muted">
+              {{ NET_WORTH_TARGET_HELP }}
+            </p>
+          </div>
         </div>
       </section>
 

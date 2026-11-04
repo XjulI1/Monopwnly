@@ -1,12 +1,13 @@
 import { BOARD_SIZE, QUARANTINE_INDEX, SALARY, squareAt } from './board/squares'
 import { drawCard } from './cards'
 import { currentPlayer, emit, fail, getPlayer, transfer, type Ctx } from './context'
+import { collectPot } from './dmzPot'
 import { charge } from './payments'
 import { attemptQuarantineExit } from './quarantine'
 import { rentFor, type RentModifier } from './rent'
 import { rollTwoDice } from './rng'
 import { enterPostRoll } from './turn'
-import type { PlayerId, QuarantineReason } from './types'
+import type { CornerKind, GameState, PlayerId, QuarantineReason } from './types'
 
 export function rollDice(ctx: Ctx): void {
   const state = ctx.state
@@ -68,6 +69,23 @@ export function sendToQuarantine(ctx: Ctx, playerId: PlayerId, reason: Quarantin
   emit(ctx, { type: 'sentToQuarantine', playerId, reason })
 }
 
+function ownerCollectsNoRent(state: GameState, ownerId: PlayerId): boolean {
+  return state.settings.noRentInQuarantine && getPlayer(state, ownerId).quarantine !== null
+}
+
+function payBootBonus(ctx: Ctx, playerId: PlayerId): void {
+  if (!ctx.state.settings.doubleBootBonus) return
+  emit(ctx, { type: 'bootBonus', playerId })
+  transfer(ctx, 'bank', playerId, SALARY, 'salary')
+}
+
+function resolveCorner(ctx: Ctx, corner: CornerKind): void {
+  const playerId = currentPlayer(ctx.state).id
+  if (corner === 'boot') payBootBonus(ctx, playerId)
+  if (corner === 'detected') sendToQuarantine(ctx, playerId, 'detected')
+  if (corner === 'dmz') collectPot(ctx, playerId)
+}
+
 /** Resolves the arrival of the current player on their square, then enters postRoll or a waiting phase. */
 export function resolveLanding(ctx: Ctx, modifier: RentModifier = 'none'): void {
   const state = ctx.state
@@ -75,7 +93,7 @@ export function resolveLanding(ctx: Ctx, modifier: RentModifier = 'none'): void 
   const square = squareAt(player.position)
   switch (square.kind) {
     case 'corner':
-      if (square.corner === 'detected') sendToQuarantine(ctx, player.id, 'detected')
+      resolveCorner(ctx, square.corner)
       enterPostRoll(ctx)
       return
     case 'tax':
@@ -91,6 +109,11 @@ export function resolveLanding(ctx: Ctx, modifier: RentModifier = 'none'): void 
         return
       }
       if (own.owner === player.id || own.mortgaged) {
+        enterPostRoll(ctx)
+        return
+      }
+      if (ownerCollectsNoRent(state, own.owner)) {
+        emit(ctx, { type: 'rentWaived', playerId: player.id, ownerId: own.owner, squareId: square.id })
         enterPostRoll(ctx)
         return
       }

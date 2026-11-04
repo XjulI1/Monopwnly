@@ -73,6 +73,25 @@ describe('counters', () => {
     expect(stats.players[A]).toMatchObject({ taxesPaid: 250, salaries: 200, cardsDrawn: 1 })
   })
 
+  it('counts a tax paid into the DMZ pot as a tax, and a card paid into it as nothing more', () => {
+    const before = game({ settings: { dmzJackpot: true } })
+    const stats = withEvents(before, [
+      { type: 'potIncreased', playerId: A, amount: 200, reason: 'tax' },
+      { type: 'potIncreased', playerId: A, amount: 100, reason: 'card' },
+    ])
+    expect(stats.players[A]?.taxesPaid).toBe(200)
+  })
+
+  it('counts the double bonus of Boot as a salary', () => {
+    const before = game({ settings: { doubleBootBonus: true } })
+    const stats = withEvents(before, [
+      { type: 'paid', from: 'bank', to: A, amount: 200, reason: 'salary' },
+      { type: 'bootBonus', playerId: A },
+      { type: 'paid', from: 'bank', to: A, amount: 200, reason: 'salary' },
+    ])
+    expect(stats.players[A]?.salaries).toBe(400)
+  })
+
   it('counts the purchases, the auctions won and what they cost', () => {
     const before = game()
     const stats = withEvents(before, [

@@ -23,6 +23,7 @@ import {
 } from '../../engine'
 import { BID_STEP, EARLY_GAME_FREE_SQUARES, REACTIVATION_MARGIN } from '../constants'
 import { diceTotalOdds } from '../landingOdds'
+import { endGameNear, optionsRefuseOffer } from '../options'
 import type { PlayerView } from '../playerView'
 import { evaluateOffer } from '../trade/evaluateOffer'
 import { expectedRent, reserve } from '../valuation'
@@ -99,15 +100,25 @@ export function buildCandidates(ctx: DecisionContext): SquareId[] {
   return buildableSquares(ctx.view, ctx.me.id)
 }
 
-/** Mortgaged squares of complete families the player can reactivate while keeping its reserve. */
+/** Build candidates on the least built systems of their family, as the even building rule requires. */
+export function evenBuildCandidates(ctx: DecisionContext): SquareId[] {
+  return buildCandidates(ctx).filter((id) => {
+    const family = familyOf(id)
+    return family === null || (ctx.view.ownership[id]?.level ?? 0) <= Math.min(...familyLevels(ctx.view, family))
+  })
+}
+
+/** Mortgaged squares of complete families the player can reactivate while keeping its reserve, none near the end of a limited game. */
 export function familyReactivations(ctx: DecisionContext): SquareId[] {
+  if (endGameNear(ctx.view)) return []
   return unmortgageableSquares(ctx.view, ctx.me.id).filter(
     (id) => inCompleteFamily(ctx, id) && ctx.me.cash - unmortgageCost(id) >= ctx.reserve,
   )
 }
 
-/** Other mortgaged squares the player can reactivate while keeping a comfortable margin above its reserve. */
+/** Other mortgaged squares the player can reactivate while keeping a comfortable margin above its reserve, none near the end of a limited game. */
 export function comfortableReactivations(ctx: DecisionContext): SquareId[] {
+  if (endGameNear(ctx.view)) return []
   return unmortgageableSquares(ctx.view, ctx.me.id).filter(
     (id) => ctx.me.cash - unmortgageCost(id) >= ctx.reserve + REACTIVATION_MARGIN,
   )
@@ -145,7 +156,7 @@ export function proposal(ctx: DecisionContext, offer: TradeOffer | null): Action
 /** Accepts the trade offered to the player when its evaluation at the level of the player says so, refuses it otherwise. */
 export function answerOffer(ctx: DecisionContext): Action {
   const phase = ctx.view.phase
-  const accept = phase.kind === 'tradeOffer' && evaluateOffer(ctx.view, phase.offer, ctx.level).accept
+  const accept = phase.kind === 'tradeOffer' && evaluateOffer(ctx.view, phase.offer, ctx.level).accept && !optionsRefuseOffer(ctx, phase.offer)
   return { type: accept ? 'acceptTrade' : 'rejectTrade', playerId: ctx.me.id }
 }
 

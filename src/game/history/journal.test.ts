@@ -320,7 +320,7 @@ describe('bankruptcy and victory', () => {
       phase: { kind: 'debt', debtor: B, payments: [{ to: A, amount: 500, reason: 'rent' }], resume: { kind: 'postRoll' } },
     })
     const entries = entriesOf(start, { type: 'declareBankruptcy', playerId: B })
-    expect(entries.map((entry) => entry.text)).toEqual(['Bob fait faillite au profit d’Alice', 'Alice remporte la partie'])
+    expect(entries.map((entry) => entry.text)).toEqual(['Bob fait faillite au profit d’Alice', 'Alice remporte la partie : dernier hacker solvable'])
     expect(entries[0]?.details).toEqual([
       { actor: B, text: `Bob cède ${pwn(10)} à Alice` },
       { actor: B, text: 'Forum passe à Alice' },
@@ -416,3 +416,55 @@ describe('trades', () => {
     expect(textsOf(proposed, { type: 'rejectTrade', playerId: B })).toEqual([`Bob refuse l’offre d’Alice : Forum contre ${pwn(150)}`])
   })
 })
+
+describe('game options', () => {
+  const allTexts = (entries: JournalEntry[]) => entries.flatMap((entry) => [entry.text, ...entry.details.map((d) => d.text)])
+  const withCard = (state: GameState, deck: 'exploit' | 'patch', title: string) => {
+    const id = cardIdByTitle(deck, title)
+    state.decks[deck] = [id, ...state.decks[deck].filter((c) => c !== id)]
+    return state
+  }
+
+  it('tells who feeds the DMZ pot with a tax or a card', () => {
+    const taxed = rolling(game({ settings: { dmzJackpot: true }, overrides: [{ position: 0 }] }), [2, 3])
+    expect(allTexts(entriesOf(taxed, rollOf(taxed)))).toContain(`Alice alimente la cagnotte de ${pwn(200)}`)
+    const billed = rolling(withCard(game({ settings: { dmzJackpot: true }, overrides: [{ position: 6 }] }), 'patch', 'Facture du fournisseur cloud'), [1, 1])
+    expect(allTexts(entriesOf(billed, rollOf(billed)))).toContain(`Alice alimente la cagnotte de ${pwn(100)}`)
+  })
+
+  it('tells who wins the DMZ pot', () => {
+    const start = rolling(game({ settings: { dmzJackpot: true }, overrides: [{ position: 17 }] }), [1, 2])
+    start.dmzPot = 300
+    expect(allTexts(entriesOf(start, rollOf(start)))).toContain(`Alice remporte la cagnotte de la DMZ : ${pwn(300)}`)
+  })
+
+  it('tells the double bonus of Boot once, after the salary', () => {
+    const start = rolling(game({ settings: { doubleBootBonus: true }, overrides: [{ position: 35 }] }), [2, 3])
+    const texts = allTexts(entriesOf(start, rollOf(start)))
+    expect(texts.filter((text) => text.includes('passe par Boot'))).toEqual([`Alice passe par Boot et reçoit ${pwn(200)}`])
+    expect(texts).toContain('Alice reçoit le bonus double de Boot')
+  })
+
+  it('tells the rent the owner in quarantine does not collect', () => {
+    const start = rolling(
+      game({
+        settings: { noRentInQuarantine: true },
+        current: 1,
+        overrides: [{ position: 10, quarantine: { failedAttempts: 0 } }, { position: 14 }],
+        ownership: { forum: { owner: A } },
+      }),
+      [1, 1],
+    )
+    const entries = entriesOf(start, rollOf(start))
+    const waived = entries.find((entry) => entry.text === 'Alice ne perçoit pas de loyer (en quarantaine)')
+    expect(waived?.actor).toBe(A)
+  })
+
+  it('gives the reason of the victory', () => {
+    const start = game({ settings: { turnLimit: 30 }, current: 1, phase: { kind: 'postRoll', mayRollAgain: false } })
+    start.turnNumber = 30
+    const texts = textsOf(start, { type: 'endTurn', playerId: B })
+    expect(texts.at(-1)).toMatch(/remporte la partie : limite de 30 tours atteinte$/)
+  })
+})
+

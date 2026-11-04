@@ -9,6 +9,9 @@ export const MIN_RESERVE = 50
 /** Weight of the rent risk in the reserve of each level. */
 export const PRUDENCE: Record<AiLevel, number> = { easy: 0, normal: 1, hard: 0.8 }
 
+/** Weight of the rent risk in the reserve of a hard AI when building is free: rents gather on a few systems and hit harder. */
+export const FREE_BUILDING_HARD_PRUDENCE = 1.6
+
 /** Share of the worst rent within reach of the dice added to the expected rent in the reserve. */
 export const WORST_RENT_WEIGHT = 0.5
 
@@ -86,3 +89,9 @@ export const TRADE_CASH_STEP = 10
 
 /** Most management actions (build, sell, mortgage, reactivate) an AI takes in a single phase. */
 export const MANAGEMENT_LIMIT = 40
+
+/** Last rounds of a limited game during which normal and hard AIs play for their immediate net worth. */
+export const END_GAME_ROUNDS = 3
+
+/** Share of the net worth target from which normal and hard AIs treat an opponent as close to winning. */
+export const TARGET_THREAT_SHARE = 0.8

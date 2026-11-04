@@ -2,13 +2,14 @@
 import { TresCanvas } from '@tresjs/core'
 import { DirectionalLight, PCFSoftShadowMap } from 'three'
 import { computed, ref } from 'vue'
-import { BOARD, type GameState, type PlayerId } from '../engine'
+import { BOARD, squareById, type GameState, type PlayerId } from '../engine'
 import BoardCenter from './BoardCenter.vue'
 import BoardControls, { type HoveredSquare } from './BoardControls.vue'
 import { HOVER_LIFT, TILE_HEIGHT } from './boardLayout'
 import { SCENE_COLORS } from './boardTheme'
 import { boardViewModel, HIGHLIGHT_STYLES, type Highlights } from './boardViewModel'
 import BuildingStack from './BuildingStack.vue'
+import DmzPotCounter from './DmzPotCounter.vue'
 import { CAMERA_FOV } from './cameraFraming'
 import { BOARD_SIDE, tiles } from './geometry/layout'
 import { buildingSlots } from './geometry/slots'
@@ -39,7 +40,10 @@ light.shadow.camera.top = SHADOW_EXTENT
 light.shadow.camera.bottom = -SHADOW_EXTENT
 light.shadow.bias = -0.0005
 
+const DMZ_INDEX = squareById('dmz').index
+
 const layouts = tiles()
+const dmzTile = layouts.find((tile) => tile.index === DMZ_INDEX)
 const hovered = ref<HoveredSquare | null>(null)
 const controls = ref<InstanceType<typeof BoardControls> | null>(null)
 const { animated, animateMove } = usePawnAnimation()
@@ -150,6 +154,13 @@ defineExpose({
         :slots="building.slots"
         :color="building.color"
         :lift="building.lift"
+      />
+
+      <DmzPotCounter
+        v-if="props.state.settings.dmzJackpot && dmzTile"
+        :amount="props.state.dmzPot"
+        :position="dmzTile.center"
+        :lift="liftOf(DMZ_INDEX)"
       />
 
       <PlayerPawn

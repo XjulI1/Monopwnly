@@ -157,7 +157,8 @@ describe('bankruptcy', () => {
     const { state, events } = act(start, { type: 'declareBankruptcy', playerId: A })
     expect(state.winner).toBe(B)
     expect(state.phase).toEqual({ kind: 'gameOver' })
-    expect(events).toContainEqual({ type: 'gameWon', playerId: B })
+    expect(state.winReason).toBe('lastStanding')
+    expect(events).toContainEqual({ type: 'gameWon', playerId: B, reason: 'lastStanding' })
   })
 
   it('resumes in postRoll of the current player after a payer bankruptcy at 3 solvent players', () => {

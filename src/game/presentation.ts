@@ -16,6 +16,7 @@ type StepContent =
   | { kind: 'salary'; playerId: PlayerId; amount: number }
   | { kind: 'card'; playerId: PlayerId; cardId: CardId }
   | { kind: 'payment'; from: PlayerId | 'bank'; to: PlayerId | 'bank'; amount: number; reason: PaymentReason }
+  | { kind: 'pot'; playerId: PlayerId; amount: number; collected: boolean }
   | { kind: 'quarantine'; playerId: PlayerId; from: number; reason: QuarantineReason }
   | { kind: 'update' }
   | { kind: 'bankrupt'; playerId: PlayerId; creditor: PlayerId | 'bank' }
@@ -97,6 +98,18 @@ function applyEvent(state: GameState, event: GameEvent): void {
       if (to) to.cash += event.amount
       return
     }
+    case 'potIncreased': {
+      const player = findPlayer(state, event.playerId)
+      if (player) player.cash -= event.amount
+      state.dmzPot += event.amount
+      return
+    }
+    case 'potCollected': {
+      const player = findPlayer(state, event.playerId)
+      if (player) player.cash += event.amount
+      state.dmzPot = 0
+      return
+    }
     case 'propertyBought':
     case 'auctionWon':
       state.ownership[event.squareId] = { owner: event.playerId, mortgaged: false, level: 0 }
@@ -128,6 +141,7 @@ function applyEvent(state: GameState, event: GameEvent): void {
     }
     case 'gameWon':
       state.winner = event.playerId
+      state.winReason = event.reason
       state.phase = { kind: 'gameOver' }
       return
     default:
@@ -193,6 +207,10 @@ function contentOf(event: GameEvent, positions: Map<PlayerId, number>): StepCont
       return event.reason === 'salary' && event.to !== 'bank'
         ? { kind: 'salary', playerId: event.to, amount: event.amount }
         : { kind: 'payment', from: event.from, to: event.to, amount: event.amount, reason: event.reason }
+    case 'potIncreased':
+      return { kind: 'pot', playerId: event.playerId, amount: event.amount, collected: false }
+    case 'potCollected':
+      return { kind: 'pot', playerId: event.playerId, amount: event.amount, collected: true }
     case 'bankrupt':
       return { kind: 'bankrupt', playerId: event.playerId, creditor: event.creditor }
     case 'gameWon':

@@ -286,3 +286,31 @@ export function centerTexture(side: number): CanvasTexture {
   texture.colorSpace = SRGBColorSpace
   return texture
 }
+
+/** Draws the counter of the DMZ pot: its title and the amount, on a dark rounded plate with a neon edge. */
+export function drawPotCounter(canvas: HTMLCanvasElement, amount: number): void {
+  const ctx = canvas.getContext('2d')
+  if (!ctx) return
+  const { width: w, height: h } = canvas
+  const edge = h * 0.06
+  ctx.clearRect(0, 0, w, h)
+  ctx.beginPath()
+  ctx.roundRect(edge, edge, w - 2 * edge, h - 2 * edge, h * 0.22)
+  ctx.fillStyle = 'rgba(4, 8, 16, 0.88)'
+  ctx.fill()
+  ctx.lineWidth = edge
+  ctx.strokeStyle = SCENE_COLORS.tileEdge
+  ctx.shadowColor = SCENE_COLORS.tileEdge
+  ctx.shadowBlur = edge * 2
+  ctx.stroke()
+  ctx.shadowBlur = 0
+  ctx.textAlign = 'center'
+  ctx.textBaseline = 'middle'
+  ctx.fillStyle = SCENE_COLORS.mutedText
+  ctx.font = `700 ${h * 0.2}px ${FONT}`
+  ctx.fillText('CAGNOTTE', w / 2, h * 0.3)
+  ctx.fillStyle = SCENE_COLORS.text
+  ctx.font = `900 ${h * 0.36}px ${FONT}`
+  ctx.fillText(formatPrice(amount), w / 2, h * 0.64)
+}
+

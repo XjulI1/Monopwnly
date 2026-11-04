@@ -12,7 +12,8 @@ paysage (1024 px de large minimum).
 Chaque joueur est un hacker qui parcourt un réseau de 40 cases, prend le contrôle des systèmes sur
 lesquels il s'arrête (du Minitel au Noyau de l'IA), y installe des **backdoors** puis des
 **rootkits**, et fait payer un loyer en **PwnCoins** (Ᵽ) à ceux qui les traversent. Le dernier
-joueur solvable l'emporte.
+joueur solvable l'emporte, à moins qu'une limite de tours ou un objectif de patrimoine ne termine la
+partie plus tôt.
 
 - **Plateau original** : 22 systèmes en 8 familles, 4 nœuds réseau, 2 services, des cartes
   **Exploit** et **Patch**, une **quarantaine** et une **DMZ**. Le détail est dans
@@ -41,7 +42,8 @@ joueur solvable l'emporte.
   qu'une autre est en cours demande confirmation avant de la remplacer.
 - Une partie terminée reste disponible (« Voir la dernière partie ») tant que l'on n'a pas quitté
   l'écran de fin.
-- Une sauvegarde illisible ou d'une ancienne version est écartée avec un message. Si le navigateur
+- Une sauvegarde d'une version précédente de l'application est mise à jour au chargement, sans
+  perdre la partie en cours. Une sauvegarde illisible est écartée avec un message. Si le navigateur
   bloque le stockage (navigation privée stricte, données de site bloquées), on joue normalement et
   un avertissement indique que la partie ne pourra pas être sauvegardée.
 - **Journal** : chaque action est décrite en français dans un panneau repliable, regroupée par tour
@@ -66,6 +68,34 @@ joueur solvable l'emporte.
 - Les IA évaluent chaque offre selon leur niveau : l'IA facile ne regarde que les prix, les IA
   normale et difficile se méfient d'une offre qui compléterait une famille adverse. Elles proposent
   aussi des échanges, aux humains comme entre elles. Le détail est dans [`docs/ia.md`](docs/ia.md).
+
+### Options de partie
+
+L'écran de création propose, sous les réglages habituels, une section **« Options de règles »**.
+Toutes les options sont désactivées par défaut et se cumulent ; chacune est expliquée par une
+phrase d'aide, et « Rejouer avec les mêmes paramètres » les conserve.
+
+- **Cagnotte de la DMZ** : les taxes et les cartes qui font payer la banque remplissent une
+  cagnotte, que remporte le joueur qui s'arrête sur la DMZ. Son montant flotte au-dessus de la case
+  et s'affiche dans le HUD.
+- **Bonus double sur Boot** : s'arrêter sur Boot rapporte 400 Ᵽ au lieu de 200 Ᵽ, y compris par
+  une carte.
+- **Construction libre** : plus besoin de construire ni de revendre de façon égale dans une famille.
+- **Pas de loyer en quarantaine** : un joueur en quarantaine ne touche aucun loyer.
+- **Limite de tours** (20, 30, 40 ou 60 tours de table) : à la fin du dernier tour, le plus gros
+  patrimoine gagne. Le HUD affiche « Tour 12 / 30 ».
+- **Objectif de patrimoine** (3 000, 4 000, 5 000 ou 6 000 Ᵽ) : la partie s'arrête dès qu'un
+  joueur l'atteint à la fin d'un tour. Une jauge montre la progression de chaque joueur.
+
+Le patrimoine compte l'argent liquide, le prix des cases actives, la valeur de veille des cases en
+veille et le coût des constructions. À égalité, l'argent liquide puis l'ordre de jeu départagent.
+Les tours de table partent du premier joueur tiré au sort, pour que chacun joue autant de tours.
+
+Les règles actives sont rappelées en jeu par des pastilles. L'écran de fin donne le motif de la
+victoire et classe les joueurs encore en jeu par patrimoine, avant les faillis. Les IA normale et
+difficile adaptent leur jeu aux options : patrimoine immédiat dans les trois derniers tours,
+méfiance envers un adversaire proche de l'objectif, constructions concentrées sur le meilleur
+système, sortie rapide d'une quarantaine qui leur coûte des loyers.
 
 ### Hors ligne et installation
 

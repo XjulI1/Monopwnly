@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { FAMILY_COLORS } from '../../board/boardTheme'
-import { BOARD, type Player, type Square } from '../../engine'
+import { BOARD, netWorth, type Player, type Square } from '../../engine'
 import { formatPwn, formatPwnDelta } from '../../game/format'
 import { spotlightPlayer } from '../../game/spotlight'
 import { useInjectedGameSession } from '../../game/useGameSession'
@@ -42,6 +42,19 @@ function chipsOf(player: Player): Chip[] {
   })
 }
 
+type TargetProgress = { percent: number; title: string }
+
+function targetProgress(player: Player): TargetProgress | null {
+  const state = displayedState.value
+  const target = state.settings.netWorthTarget
+  if (target === null || player.bankrupt) return null
+  const worth = netWorth(state, player.id)
+  return {
+    percent: Math.min(100, Math.round((worth / target) * 100)),
+    title: `Patrimoine ${formatPwn(worth)} sur ${formatPwn(target)}`,
+  }
+}
+
 const rows = computed(() => {
   const state = displayedState.value
   const currentId = spotlightPlayer(state)?.id
@@ -51,6 +64,7 @@ const rows = computed(() => {
     expected: player.id === view.value.actor && player.id !== currentId,
     chips: chipsOf(player),
     badges: badges.value.filter((b) => b.playerId === player.id),
+    progress: targetProgress(player),
   }))
 })
 </script>
@@ -92,6 +106,23 @@ const rows = computed(() => {
             :class="badge.amount >= 0 ? 'text-gain' : 'text-loss'"
           >{{ formatPwnDelta(badge.amount) }}</span>
         </span>
+      </div>
+      <div
+        v-if="row.progress"
+        class="mt-1.5 ml-5 h-1.5 overflow-hidden rounded-full bg-line"
+        role="progressbar"
+        aria-valuemin="0"
+        aria-valuemax="100"
+        :aria-valuenow="row.progress.percent"
+        :aria-label="row.progress.title"
+        :title="row.progress.title"
+        data-test="target-gauge"
+      >
+        <div
+          class="h-full rounded-full transition-[width] duration-500"
+          :style="{ width: `${row.progress.percent}%`, background: row.player.color }"
+          data-test="target-gauge-fill"
+        />
       </div>
       <div
         v-if="row.player.quarantine || row.player.keys.length > 0 || row.expected"

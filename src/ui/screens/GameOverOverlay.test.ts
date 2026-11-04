@@ -5,6 +5,7 @@ import { startJournal } from '../../game/history/journal'
 import { startStatistics, type GameStatistics } from '../../game/history/statistics'
 import { useGameSession } from '../../game/useGameSession'
 import { mountOnSession, mountWithSession } from '../testUtils'
+import { formatPwn } from '../../game/format'
 import GameOverOverlay from './GameOverOverlay.vue'
 
 function wonByB(): GameState {
@@ -52,6 +53,34 @@ describe('GameOverOverlay', () => {
     expect(title.text()).toBe('Joueur 2 remporte la partie')
     expect(title.attributes('style')).toContain('color: blue')
     expect(wrapper.text()).toContain('Argent final : 1 510 Ᵽ')
+  })
+
+  it('gives the reason of the victory', () => {
+    const { wrapper } = mountWithSession(GameOverOverlay, wonByB())
+    expect(wrapper.get('[data-test="win-reason"]').text()).toBe('Dernier hacker solvable')
+  })
+
+  it('shows the turn limit reached and the net worth of every player still in the game', () => {
+    const state = makeState({
+      players: 3,
+      settings: { turnLimit: 30 },
+      overrides: [{ name: 'Alice', cash: 4000 }, { name: 'Bob', cash: 0, bankrupt: true }, { name: 'Carol', cash: 7000 }],
+    })
+    state.phase = { kind: 'gameOver' }
+    state.winner = C
+    state.winReason = 'turnLimit'
+    state.turnNumber = 30
+    const statistics = startStatistics(state)
+    const bob = statistics.players[B]
+    if (bob) bob.bankruptcy = { turn: 12, creditor: 'bank', rank: 1 }
+    const session = useGameSession(state, { speed: 'instant', history: { journal: startJournal(state), statistics } })
+    const wrapper = mountOnSession(GameOverOverlay, session)
+    expect(wrapper.get('[data-test="win-reason"]').text()).toBe('Limite de 30 tours atteinte')
+    expect(wrapper.findAll('[data-test="standings"] li').map((li) => li.text())).toEqual([
+      `1CarolVainqueur · ${formatPwn(7000)}`,
+      `2Alice${formatPwn(4000)}`,
+      '3BobFaillite au tour 12 au profit de la banque',
+    ])
   })
 
   it('offers to replay or to go back home', async () => {

@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { CARDS } from './board/cards'
 import { createGame } from './setup'
-import type { GameState, PlayerSetup } from './types'
+import type { GameSettings, GameState, PlayerSetup } from './types'
 
 function players(n: number): PlayerSetup[] {
   const colors = ['red', 'blue', 'green', 'yellow', 'purple', 'cyan', 'orange']
   return Array.from({ length: n }, (_, i) => ({ id: `p${i + 1}`, name: `Joueur ${i + 1}`, color: colors[i] as string }))
 }
 
-function create(n: number, seed = 1, settings?: { auctions?: boolean }): GameState {
+function create(n: number, seed = 1, settings?: Partial<GameSettings>): GameState {
   const result = createGame({ players: players(n), seed, settings })
   if (!result.ok) throw new Error(result.error.code)
   return result.state
@@ -69,8 +69,55 @@ describe('createGame', () => {
   })
 
   it('applies default settings and partial settings', () => {
-    expect(create(2).settings).toEqual({ auctions: true })
+    expect(create(2).settings).toEqual({
+      auctions: true,
+      dmzJackpot: false,
+      doubleBootBonus: false,
+      freeBuilding: false,
+      noRentInQuarantine: false,
+      turnLimit: null,
+      netWorthTarget: null,
+    })
     expect(create(2, 1, { auctions: false }).settings.auctions).toBe(false)
+  })
+
+  it('accepts every game option at once', () => {
+    const all: Partial<GameSettings> = {
+      dmzJackpot: true,
+      doubleBootBonus: true,
+      freeBuilding: true,
+      noRentInQuarantine: true,
+      turnLimit: 30,
+      netWorthTarget: 5000,
+    }
+    expect(create(2, 1, all).settings).toEqual({ auctions: true, ...all })
+  })
+
+  it('accepts every proposed turn limit and net worth target', () => {
+    for (const turnLimit of [20, 30, 40, 60] as const) expect(create(2, 1, { turnLimit }).settings.turnLimit).toBe(turnLimit)
+    for (const netWorthTarget of [3000, 4000, 5000, 6000] as const) {
+      expect(create(2, 1, { netWorthTarget }).settings.netWorthTarget).toBe(netWorthTarget)
+    }
+  })
+
+  it('rejects a turn limit or a net worth target outside the proposed values', () => {
+    const invalid = [{ turnLimit: 25 }, { netWorthTarget: 7500 }, { turnLimit: 0 }] as unknown as Partial<GameSettings>[]
+    for (const settings of invalid) {
+      const result = createGame({ players: players(2), seed: 1, settings })
+      expect(result.ok).toBe(false)
+      if (!result.ok) expect(result.error.code).toBe('INVALID_SETTINGS')
+    }
+  })
+
+  it('starts with an empty DMZ pot and no reason of victory', () => {
+    const state = create(3, 1, { dmzJackpot: true })
+    expect(state.dmzPot).toBe(0)
+    expect(state.winReason).toBeNull()
+  })
+
+  it('creates a state that survives a JSON round trip', () => {
+    const state = create(4, 5, { dmzJackpot: true, turnLimit: 20, netWorthTarget: 4000 })
+    expect(JSON.parse(JSON.stringify(state))).toEqual(state)
   })
 
   it('starts every player on Boot with 1 500 and no key', () => {

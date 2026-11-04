@@ -3,7 +3,7 @@ import { BANK_BACKDOORS, BANK_ROOTKITS } from './board/squares'
 import { applyAction, legalActions } from './index'
 import { randomInt } from './rng'
 import { createGame } from './setup'
-import type { Action, GameEvent, GameState } from './types'
+import type { Action, GameEvent, GameSettings, GameState } from './types'
 
 const MAX_TURNS = 1000
 const MAX_ACTIONS = 30_000
@@ -19,8 +19,8 @@ function bankFlow(events: GameEvent[]): number {
   return flow
 }
 
-function totalCash(state: GameState): number {
-  return state.players.reduce((sum, p) => sum + p.cash, 0)
+function cashInPlay(state: GameState): number {
+  return state.players.reduce((sum, p) => sum + p.cash, state.dmzPot)
 }
 
 function checkBuildings(state: GameState): void {
@@ -44,7 +44,7 @@ function pick(script: { rngState: number }, actions: Action[]): Action {
   return actions[randomInt(script, actions.length)] as Action
 }
 
-function playFullGame(seed: number): { state: GameState; actions: number } {
+function playFullGame(seed: number, settings?: Partial<GameSettings>): { state: GameState; actions: number } {
   const created = createGame({
     players: [
       { id: 'p1', name: 'Alice', color: 'red' },
@@ -53,6 +53,7 @@ function playFullGame(seed: number): { state: GameState; actions: number } {
       { id: 'p4', name: 'David', color: 'yellow' },
     ],
     seed,
+    settings,
   })
   if (!created.ok) throw new Error(created.error.code)
   let state = created.state
@@ -64,7 +65,7 @@ function playFullGame(seed: number): { state: GameState; actions: number } {
     const action = pick(script, candidates)
     const result = applyAction(state, action)
     if (!result.ok) throw new Error(`${action.type}: ${result.error.code}`)
-    expect(totalCash(result.state) - totalCash(state)).toBe(bankFlow(result.events))
+    expect(cashInPlay(result.state) - cashInPlay(state)).toBe(bankFlow(result.events))
     for (const p of result.state.players) expect(p.cash).toBeGreaterThanOrEqual(0)
     checkBuildings(result.state)
     state = result.state
@@ -85,6 +86,19 @@ describe('full simulated game', () => {
 
   it('reaches the same final state on two runs', () => {
     expect(playFullGame(42).state).toEqual(playFullGame(42).state)
+  }, SLOW_TEST_TIMEOUT_MS)
+
+  it('keeps money and buildings consistent with every game option', () => {
+    const { state, actions } = playFullGame(2026, {
+      dmzJackpot: true,
+      doubleBootBonus: true,
+      freeBuilding: true,
+      noRentInQuarantine: true,
+      turnLimit: 20,
+      netWorthTarget: 6000,
+    })
+    expect(actions).toBeGreaterThan(100)
+    if (state.phase.kind === 'gameOver') expect(state.winner).not.toBeNull()
   }, SLOW_TEST_TIMEOUT_MS)
 
   it('finishes some games with a winner', () => {

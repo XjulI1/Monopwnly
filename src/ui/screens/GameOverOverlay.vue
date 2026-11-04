@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { netWorth } from '../../engine'
 import { formatPwn } from '../../game/format'
+import { winReasonText } from '../../game/gameOptions'
 import { bankruptcyLine, ranking } from '../../game/history/summary'
 import { useInjectedGameSession } from '../../game/useGameSession'
 import StatisticsTab from './StatisticsTab.vue'
@@ -21,12 +23,26 @@ const { displayedState, statistics } = useInjectedGameSession()
 const tab = ref<Tab>('result')
 
 const winner = computed(() => displayedState.value.players.find((p) => p.id === displayedState.value.winner) ?? null)
+const reason = computed(() => {
+  const state = displayedState.value
+  return state.winReason === null ? null : winReasonText(state.winReason, state.settings)
+})
+
+function worthOf(id: string): string {
+  return formatPwn(netWorth(displayedState.value, id))
+}
+
+function lineOf(id: string): string {
+  const state = displayedState.value
+  const byNetWorth = state.winReason === 'turnLimit' || state.winReason === 'netWorthTarget'
+  if (id === winner.value?.id) return byNetWorth ? `Vainqueur · ${worthOf(id)}` : 'Vainqueur'
+  return bankruptcyLine(state, statistics.value.players[id]?.bankruptcy ?? null) ?? worthOf(id)
+}
+
 const standings = computed(() =>
   ranking(displayedState.value, statistics.value).flatMap((id) => {
     const player = displayedState.value.players.find((p) => p.id === id)
-    if (!player) return []
-    const line = id === winner.value?.id ? 'Vainqueur' : bankruptcyLine(displayedState.value, statistics.value.players[id]?.bankruptcy ?? null)
-    return [{ player, line: line ?? 'En jeu' }]
+    return player ? [{ player, line: lineOf(id) }] : []
   }),
 )
 </script>
@@ -55,6 +71,13 @@ const standings = computed(() =>
         >
           {{ winner.name }} remporte la partie
         </h2>
+        <p
+          v-if="reason"
+          class="font-semibold uppercase tracking-wider text-neon"
+          data-test="win-reason"
+        >
+          {{ reason }}
+        </p>
         <p class="text-muted">
           Argent final : <span class="tabular-nums text-ink">{{ formatPwn(winner.cash) }}</span>
         </p>

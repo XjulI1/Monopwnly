@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { applyAction, cardIdByTitle, legalActions, type GameEvent, type GameState } from '../engine'
+import { applyAction, cardIdByTitle, legalActions, type GameEvent, type GameSettings, type GameState } from '../engine'
 import { A, B, act, makeState, player, roll } from '../engine/testUtils'
 import { applySteps, presentationSteps, type PresentationStep } from './presentation'
 
@@ -22,6 +22,8 @@ function essentials(state: GameState) {
     })),
     ownership: state.ownership,
     winner: state.winner,
+    winReason: state.winReason,
+    dmzPot: state.dmzPot,
   }
 }
 
@@ -117,6 +119,26 @@ describe('presentation steps', () => {
     expect(stop.steps.map((s) => s.presented)).toEqual([1, 2, 4])
   })
 
+  it('shows the payment into the DMZ pot, then its collection', () => {
+    const start = makeState({ settings: { dmzJackpot: true }, overrides: [{ position: 0 }] })
+    const taxed = stepsOfRoll(start, [2, 3])
+    expect(kinds(taxed.steps)).toEqual(['dice', 'move', 'pot'])
+    expect(taxed.steps[2]).toMatchObject({ kind: 'pot', playerId: A, amount: 200, collected: false })
+    expect(essentials(applySteps(start, taxed.steps))).toEqual(essentials(taxed.state))
+    const parked = makeState({ settings: { dmzJackpot: true }, overrides: [{ position: 17 }] })
+    parked.dmzPot = 300
+    const collected = stepsOfRoll(parked, [1, 2])
+    expect(collected.steps.at(-1)).toMatchObject({ kind: 'pot', playerId: A, amount: 300, collected: true })
+    expect(essentials(applySteps(parked, collected.steps))).toEqual(essentials(collected.state))
+  })
+
+  it('shows the double bonus of Boot as a second salary', () => {
+    const start = makeState({ settings: { doubleBootBonus: true }, overrides: [{ position: 35 }] })
+    const { state, steps } = stepsOfRoll(start, [2, 3])
+    expect(kinds(steps)).toEqual(['dice', 'move', 'salary', 'salary'])
+    expect(essentials(applySteps(start, steps))).toEqual(essentials(state))
+  })
+
   it('counts the events added to the previous step', () => {
     const start = makeState({ overrides: [{ position: 4 }], ownership: { intranet: { owner: B, level: 1 } } })
     expect(stepsOfRoll(start, [4, 6]).steps.map((s) => s.presented)).toEqual([1, 2, 3])
@@ -132,8 +154,8 @@ describe('projection', () => {
 
   const SQUARE_ACTIONS = ['buildBackdoor', 'sellBackdoor', 'mortgage', 'unmortgage']
 
-  function playRandomGame(seed: number, players: number, cash: number, maxActions: number) {
-    let state = makeState({ players, overrides: Array.from({ length: players }, () => ({ cash })) })
+  function playRandomGame(seed: number, players: number, cash: number, maxActions: number, settings: Partial<GameSettings> = {}) {
+    let state = makeState({ players, settings, overrides: Array.from({ length: players }, () => ({ cash })) })
     state.rngState = seed
     let random = seed
     const checked: { before: GameState; events: GameEvent[]; after: GameState }[] = []
@@ -156,6 +178,22 @@ describe('projection', () => {
   it('gives the same cash, positions and owners as the engine after every action of random games', () => {
     for (const seed of [7, 42, 1234]) {
       for (const { before, events, after } of playRandomGame(seed, 4, 500, 1500)) {
+        expect(essentials(applySteps(before, presentationSteps(before, events)))).toEqual(essentials(after))
+      }
+    }
+  })
+
+  it('gives the same cash, pot and owners as the engine with every game option', () => {
+    const settings: Partial<GameSettings> = {
+      dmzJackpot: true,
+      doubleBootBonus: true,
+      freeBuilding: true,
+      noRentInQuarantine: true,
+      turnLimit: 20,
+      netWorthTarget: 6000,
+    }
+    for (const seed of [7, 42]) {
+      for (const { before, events, after } of playRandomGame(seed, 4, 1500, 3000, settings)) {
         expect(essentials(applySteps(before, presentationSteps(before, events)))).toEqual(essentials(after))
       }
     }

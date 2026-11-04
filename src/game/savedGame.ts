@@ -4,19 +4,33 @@ import {
   CARDS,
   MAX_PLAYERS,
   MIN_PLAYERS,
+  NET_WORTH_TARGETS,
   purchasableById,
+  TURN_LIMITS,
+  type GameSettings,
   type GameState,
   type PaymentReason,
   type PhaseKind,
+  type WinReason,
 } from '../engine'
 import type { JournalEntry, JournalEntryKind } from './history/journal'
 import type { GameStatistics, PlayerStatistics } from './history/statistics'
 import type { GameConfig } from './setupForm'
 
 /** Version of the format of the saved game understood by this application. */
-export const SAVE_FORMAT_VERSION = 2
+export const SAVE_FORMAT_VERSION = 3
 
 const FORMAT_BEFORE_TRADES = 1
+const FORMAT_BEFORE_OPTIONS = 2
+
+const OPTIONS_OFF: Omit<GameSettings, 'auctions'> = {
+  dmzJackpot: false,
+  doubleBootBonus: false,
+  freeBuilding: false,
+  noRentInQuarantine: false,
+  turnLimit: null,
+  netWorthTarget: null,
+}
 
 /** Whether the saved game is still being played or is showing its end screen. */
 export type SavedGameStatus = 'inProgress' | 'finished'
@@ -51,6 +65,7 @@ const PAYMENT_REASONS: readonly PaymentReason[] = [
   'bankruptcy',
 ]
 const ENTRY_KINDS: readonly JournalEntryKind[] = ['turn', 'action', 'auction']
+const WIN_REASONS: readonly WinReason[] = ['lastStanding', 'turnLimit', 'netWorthTarget']
 const STATUSES: readonly SavedGameStatus[] = ['inProgress', 'finished']
 const CARD_IDS = new Set(CARDS.map((card) => card.id))
 const COUNTERS: readonly Exclude<keyof PlayerStatistics, 'bankruptcy'>[] = [
@@ -110,6 +125,16 @@ function isPlayer(value: unknown): boolean {
     (quarantine === null || (isFields(quarantine) && isInt(quarantine.failedAttempts, 0))) &&
     isListOf(value.keys, (key) => CARD_IDS.has(key as string)) &&
     typeof value.bankrupt === 'boolean'
+  )
+}
+
+function isSettings(value: unknown): value is GameSettings {
+  if (!isFields(value)) return false
+  const flags = [value.auctions, value.dmzJackpot, value.doubleBootBonus, value.freeBuilding, value.noRentInQuarantine]
+  return (
+    flags.every((flag) => typeof flag === 'boolean') &&
+    (value.turnLimit === null || isOneOf(value.turnLimit, TURN_LIMITS)) &&
+    (value.netWorthTarget === null || isOneOf(value.netWorthTarget, NET_WORTH_TARGETS))
   )
 }
 
@@ -218,8 +243,7 @@ function isEngineState(value: unknown): value is GameState {
   const isPlayerId = (id: unknown) => ids.has(id)
   const { settings, bankStock, decks, lastRoll } = value
   return (
-    isFields(settings) &&
-    typeof settings.auctions === 'boolean' &&
+    isSettings(settings) &&
     isOwnership(value.ownership, isPlayerId) &&
     isFields(bankStock) &&
     isInt(bankStock.backdoors, 0) &&
@@ -228,13 +252,15 @@ function isEngineState(value: unknown): value is GameState {
     isListOf(decks.exploit, (id) => CARD_IDS.has(id as string)) &&
     isListOf(decks.patch, (id) => CARD_IDS.has(id as string)) &&
     isInt(value.currentPlayerIndex, 0, players.length - 1) &&
+    isInt(value.firstPlayerIndex, 0, players.length - 1) &&
     isInt(value.doublesInARow, 0) &&
     isInt(value.turnNumber, 1) &&
     (lastRoll === null || (isListOf(lastRoll, isDie) && lastRoll.length === 2)) &&
     isPhase(value.phase, isPlayerId) &&
     isInt(value.rngState) &&
-    (value.winner === null || isPlayerId(value.winner)) &&
-    isTradeLimits(value.tradeLimits, isPlayerId)
+    (value.winner === null ? value.winReason === null : isPlayerId(value.winner) && isOneOf(value.winReason, WIN_REASONS)) &&
+    isTradeLimits(value.tradeLimits, isPlayerId) &&
+    isInt(value.dmzPot, 0)
   )
 }
 
@@ -283,20 +309,46 @@ function isStatistics(value: unknown): value is GameStatistics {
 }
 
 function isCreation(value: unknown): value is GameConfig {
-  if (!isFields(value) || !isFields(value.settings) || typeof value.settings.auctions !== 'boolean') return false
+  if (!isFields(value) || !isSettings(value.settings)) return false
   return isListOf(
     value.players,
     (p) => isFields(p) && isString(p.id) && isString(p.name) && isString(p.color) && (p.controller === undefined || isController(p.controller)),
   )
 }
 
-/** Brings a saved game of an older format to the current one: a save from before the trades gets empty trade limits. */
-export function migrateSavedGame(value: unknown): unknown {
-  if (!isFields(value) || value.formatVersion !== FORMAT_BEFORE_TRADES || !isFields(value.engineState)) return value
+function addTradeLimits(save: Fields, engineState: Fields): Fields {
+  return { ...save, formatVersion: FORMAT_BEFORE_OPTIONS, engineState: { ...engineState, tradeLimits: { thisTurn: {}, refusedAsks: {} } } }
+}
+
+function addGameOptions(save: Fields, engineState: Fields): Fields {
+  const creation = isFields(save.creation) ? { ...save.creation, settings: { ...OPTIONS_OFF, ...(isFields(save.creation.settings) ? save.creation.settings : {}) } } : save.creation
   return {
-    ...value,
+    ...save,
     formatVersion: SAVE_FORMAT_VERSION,
-    engineState: { ...value.engineState, tradeLimits: { thisTurn: {}, refusedAsks: {} } },
+    creation,
+    engineState: {
+      ...engineState,
+      settings: { ...OPTIONS_OFF, ...(isFields(engineState.settings) ? engineState.settings : {}) },
+      firstPlayerIndex: 0,
+      winReason: engineState.winner === null || engineState.winner === undefined ? null : 'lastStanding',
+      dmzPot: 0,
+    },
+  }
+}
+
+const MIGRATIONS: Record<number, (save: Fields, engineState: Fields) => Fields> = {
+  [FORMAT_BEFORE_TRADES]: addTradeLimits,
+  [FORMAT_BEFORE_OPTIONS]: addGameOptions,
+}
+
+/** Brings a saved game of an older format to the current one, one format after the other: a save from before the trades gets empty trade limits, a save from before the game options gets them all off, an empty pot, its rounds counted as before and the last solvent player as reason of a victory. */
+export function migrateSavedGame(value: unknown): unknown {
+  let save = value
+  for (;;) {
+    if (!isFields(save) || !isFields(save.engineState) || typeof save.formatVersion !== 'number') return save
+    const migrate = MIGRATIONS[save.formatVersion]
+    if (!migrate) return save
+    save = migrate(save, save.engineState)
   }
 }
 

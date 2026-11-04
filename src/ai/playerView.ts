@@ -22,11 +22,14 @@ export function playerView(state: GameState): PlayerView {
     bankStock: { backdoors: state.bankStock.backdoors, rootkits: state.bankStock.rootkits },
     deckSizes: { exploit: state.decks.exploit.length, patch: state.decks.patch.length },
     currentPlayerIndex: state.currentPlayerIndex,
+    firstPlayerIndex: state.firstPlayerIndex,
     doublesInARow: state.doublesInARow,
     turnNumber: state.turnNumber,
     lastRoll: state.lastRoll ? [state.lastRoll[0], state.lastRoll[1]] : null,
     phase: structuredClone(state.phase),
     winner: state.winner,
+    winReason: state.winReason,
     tradeLimits: structuredClone(state.tradeLimits),
+    dmzPot: state.dmzPot,
   }
 }

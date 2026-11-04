@@ -223,6 +223,9 @@ export function useGameSession(initial: GameState, options: GameSessionOptions =
         showBadge(step.from, -step.amount, durations)
         showBadge(step.to, step.amount, durations)
         return wait(EMPHASIZED_PAYMENTS.has(step.reason) ? durations.payment : 0)
+      case 'pot':
+        showBadge(step.playerId, step.collected ? step.amount : -step.amount, durations)
+        return wait(durations.payment)
       case 'card':
         return new Promise((resolve) => {
           const done = () => {

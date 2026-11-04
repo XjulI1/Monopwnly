@@ -13,6 +13,7 @@ import {
   type TradeSide,
 } from '../../engine'
 import { formatPwn } from '../format'
+import { winReasonText } from '../gameOptions'
 import { countOf, deckName, listOf, ofName, squareName, squareNameAt } from './format'
 import { trackPositions } from './positions'
 
@@ -40,6 +41,11 @@ type Roll = { draft: Draft; playerId: PlayerId; dice: [number, number]; double: 
 type DrawnCard = { draft: Draft; playerId: PlayerId; card: Card; effect: string; moved: boolean }
 type Paid = Extract<GameEvent, { type: 'paid' }>
 type Transferred = Extract<GameEvent, { type: 'assetsTransferred' }>
+type PotPayment = Extract<GameEvent, { type: 'potIncreased' }>
+
+function lowerFirst(text: string): string {
+  return text.charAt(0).toLowerCase() + text.slice(1)
+}
 
 const EXITS: Record<QuarantineExit, string> = {
   fine: 'amende',
@@ -184,11 +190,25 @@ export function recordInJournal(journal: readonly JournalEntry[], before: GameSt
     add('action', actorOf(event.from), `${name(event.from)} paie ${amount} à ${name(event.to)}`, index)
   }
 
+  function onPotPayment(event: PotPayment, index: number) {
+    const text = `${name(event.playerId)} alimente la cagnotte de ${formatPwn(event.amount)}`
+    if (event.reason !== 'card' || card?.playerId !== event.playerId) {
+      add('action', event.playerId, text, index)
+      return
+    }
+    if (card.card.effect.kind === 'payPerBuilding') setEffect(card, `paie ${formatPwn(event.amount)}`, index)
+    extend(card.draft, index, { actor: event.playerId, text })
+  }
+
   function onPayment(event: Paid, index: number) {
     const amount = formatPwn(event.amount)
     const payer = name(event.from)
     switch (event.reason) {
       case 'salary': {
+        if (events[index - 1]?.type === 'bootBonus') {
+          if (mover) extend(mover, index)
+          return
+        }
         const text = `${name(event.to)} passe par Boot et reçoit ${amount}`
         if (mover) extend(mover, index, { actor: actorOf(event.to), text })
         else add('action', actorOf(event.to), text, index)
@@ -356,7 +376,22 @@ export function recordInJournal(journal: readonly JournalEntry[], before: GameSt
         onBankruptcy(event, index)
         return
       case 'gameWon':
-        add('action', event.playerId, `${name(event.playerId)} remporte la partie`, index)
+        add('action', event.playerId, `${name(event.playerId)} remporte la partie : ${lowerFirst(winReasonText(event.reason, before.settings))}`, index)
+        return
+      case 'potIncreased':
+        onPotPayment(event, index)
+        return
+      case 'potCollected':
+        add('action', event.playerId, `${name(event.playerId)} remporte la cagnotte de la DMZ : ${formatPwn(event.amount)}`, index)
+        return
+      case 'bootBonus': {
+        const text = `${name(event.playerId)} reçoit le bonus double de Boot`
+        if (mover) extend(mover, index, { actor: event.playerId, text })
+        else add('action', event.playerId, text, index)
+        return
+      }
+      case 'rentWaived':
+        add('action', event.ownerId, `${name(event.ownerId)} ne perçoit pas de loyer (en quarantaine)`, index)
         return
       case 'tradeProposed':
         add('action', event.offer.from, `${name(event.offer.from)} propose à ${name(event.offer.to)} : ${offerText(event.offer)}`, index)

@@ -1,5 +1,6 @@
 import { mortgageableSquares, purchasableById, QUARANTINE_FINE, type Action, type SquareId } from '../../engine'
 import { HARD_TARGET_BACKDOORS, LOW_BANK_STOCK, LOW_STOCK_RESERVE_FACTOR, LOW_YIELD_RATIO, QUARANTINE_DANGER_FACTOR } from '../constants'
+import { auctionCeiling, rentlessQuarantineExit } from '../options'
 import { crossOffer, debtSaleOffer, purchaseOffer } from '../trade/proposeOffers'
 import { familyOutlook, squareValue, yieldRatio } from '../valuation'
 import {
@@ -77,7 +78,7 @@ function waitsForAuction(ctx: DecisionContext, squareId: SquareId): boolean {
 /** Hard level: more prudent reserve, blocking and yield in the value, three backdoors per system first, tactical refusals, cross trades. */
 export const hard: Strategy = {
   preRoll: (ctx) => {
-    const managed = tradeProposal(ctx) ?? manage(ctx)
+    const managed = rentlessQuarantineExit(ctx) ?? tradeProposal(ctx) ?? manage(ctx)
     if (managed) return managed
     if (!ctx.me.quarantine) return { type: 'rollDice', playerId: ctx.me.id }
     return leaveQuarantineEarly(ctx, dangerAfterQuarantine(ctx) > QUARANTINE_DANGER_FACTOR * QUARANTINE_FINE)
@@ -89,7 +90,10 @@ export const hard: Strategy = {
     const outlook = familyOutlook(ctx.view, squareId, ctx.me.id)
     return buyOrDecline(ctx, (keepsReserve(ctx, price) && !outlook.contested) || outlook.completes || outlook.blocks)
   },
-  auction: (ctx) => bidUpTo(ctx, squareValue(ctx.view, offeredSquare(ctx), ctx.me.id, 'hard')),
+  auction: (ctx) => {
+    const squareId = offeredSquare(ctx)
+    return bidUpTo(ctx, auctionCeiling(ctx, squareId, squareValue(ctx.view, squareId, ctx.me.id, 'hard')))
+  },
   debt: (ctx) => proposal(ctx, debtSaleOffer(ctx)) ?? settleDebt(ctx, byExpectedRent),
   postRoll: (ctx) => tradeProposal(ctx) ?? manage(ctx) ?? rollOrEnd(ctx),
   tradeOffer: answerOffer,

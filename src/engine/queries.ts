@@ -52,6 +52,23 @@ export function netWorth(state: PublicGameState, playerId: PlayerId): number {
   return total
 }
 
+/** A player still in the game, with what ranks them: net worth, then cash. */
+export type Standing = { playerId: PlayerId; netWorth: number; cash: number }
+
+function playOrder(state: PublicGameState, index: number): number {
+  const seats = state.players.length
+  return (index - state.firstPlayerIndex + seats) % seats
+}
+
+/** Players still in the game from the first to the last: by net worth, then cash, then play order from the first player of the game. */
+export function standings(state: PublicGameState): Standing[] {
+  return state.players
+    .map((p, index) => ({ standing: { playerId: p.id, netWorth: netWorth(state, p.id), cash: p.cash }, order: playOrder(state, index), bankrupt: p.bankrupt }))
+    .filter((entry) => !entry.bankrupt)
+    .sort((a, b) => b.standing.netWorth - a.standing.netWorth || b.standing.cash - a.standing.cash || a.order - b.order)
+    .map((entry) => entry.standing)
+}
+
 /** Rent an opponent would pay by stopping on the square (services use the given dice total, 7 by default). */
 export function rentIfLanded(state: PublicGameState, squareId: SquareId, diceTotal = 7): number {
   return rentFor(state, squareId, diceTotal)

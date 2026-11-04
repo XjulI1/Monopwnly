@@ -4,7 +4,7 @@ import {
   affordableBuild,
   answerOffer,
   bidUpTo,
-  buildCandidates,
+  evenBuildCandidates,
   buyOrDecline,
   inBoardOrder,
   keepsReserve,
@@ -18,7 +18,7 @@ import {
 
 function manage(ctx: DecisionContext): Action | null {
   if (!ctx.managementAllowed) return null
-  return affordableBuild(ctx, inBoardOrder(ctx, buildCandidates(ctx)))
+  return affordableBuild(ctx, inBoardOrder(ctx, evenBuildCandidates(ctx)))
 }
 
 /** Easy level: fixed reserve, price as the only value, board order everywhere, always tries a double in quarantine. */

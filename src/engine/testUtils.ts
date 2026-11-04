@@ -1,3 +1,4 @@
+import { cardIdByTitle } from './board/cards'
 import { applyAction } from './index'
 import { rollTwoDice } from './rng'
 import { createGame } from './setup'
@@ -18,6 +19,7 @@ export type StateOptions = {
   players?: number
   settings?: Partial<GameSettings>
   current?: number
+  firstPlayer?: number
   overrides?: Partial<Player>[]
   ownership?: Record<SquareId, Partial<Ownership> & { owner: string }>
   phase?: Phase
@@ -44,6 +46,7 @@ export function makeState(options: StateOptions = {}): GameState {
   if (!result.ok) throw new Error(result.error.code)
   const state = result.state
   state.currentPlayerIndex = options.current ?? 0
+  state.firstPlayerIndex = options.firstPlayer ?? 0
   options.overrides?.forEach((override, i) => {
     const player = state.players[i]
     if (player) Object.assign(player, override)
@@ -104,6 +107,13 @@ export function rejectCode(state: GameState, action: Action): RuleErrorCode {
 export function roll(state: GameState, dice: [number, number], playerId?: string) {
   const id = playerId ?? (state.players[state.currentPlayerIndex]?.id as string)
   return act(forceDice(structuredClone(state), [dice]), { type: 'rollDice', playerId: id })
+}
+
+/** Puts the card with the given title on top of its deck. */
+export function withCardOnTop(state: GameState, deck: DeckKind, title: string): GameState {
+  const id = cardIdByTitle(deck, title)
+  state.decks[deck] = [id, ...state.decks[deck].filter((c) => c !== id)]
+  return state
 }
 
 /** Returns the player with the given identifier. */

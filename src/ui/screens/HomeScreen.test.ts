@@ -58,6 +58,7 @@ describe('HomeScreen', () => {
     const won = inRound(30)
     won.phase = { kind: 'gameOver' }
     won.winner = A
+    won.winReason = 'lastStanding'
     const game = savedGameFor(won, 'finished')
     store(game)
     const wrapper = home()

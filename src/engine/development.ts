@@ -39,7 +39,7 @@ export function buildProblem(state: PublicGameState, playerId: PlayerId, squareI
     return error('MORTGAGED', 'Un système de la famille est en veille.')
   }
   if (own.level === 5) return error('MAX_LEVEL', 'Ce système porte déjà un rootkit.')
-  if (own.level > Math.min(...familyLevels(state, square))) {
+  if (!state.settings.freeBuilding && own.level > Math.min(...familyLevels(state, square))) {
     return error('UNEVEN_BUILDING', 'Construisez d’abord sur les autres systèmes de la famille.')
   }
   const stockEmpty = own.level === 4 ? state.bankStock.rootkits < 1 : state.bankStock.backdoors < 1
@@ -57,7 +57,7 @@ export function sellProblem(state: PublicGameState, playerId: PlayerId, squareId
   const { square, own } = found
   if (square.kind !== 'system') return error('NOT_BUILDABLE', 'Il n’y a pas de construction sur cette case.')
   if (own.level === 0) return error('NO_BUILDING', 'Ce système n’a pas de construction.')
-  if (own.level < Math.max(...familyLevels(state, square))) {
+  if (!state.settings.freeBuilding && own.level < Math.max(...familyLevels(state, square))) {
     return error('UNEVEN_BUILDING', 'Revendez d’abord sur les systèmes les plus construits de la famille.')
   }
   if (own.level === 5 && state.bankStock.backdoors < 4) {

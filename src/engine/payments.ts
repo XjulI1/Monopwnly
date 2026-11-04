@@ -1,8 +1,9 @@
 import { cardById } from './board/cards'
 import { purchasableById } from './board/squares'
 import { currentPlayer, emit, fail, getPlayer, transfer, type Ctx } from './context'
+import { payToPot } from './dmzPot'
 import { moveForward, resolveLanding } from './movement'
-import { advanceToNextPlayer, checkVictory, enterPostRoll } from './turn'
+import { checkLastStanding, enterPostRoll, finishTurn } from './turn'
 import type { Payment, PlayerId, PublicGameState, ResumePoint } from './types'
 
 /** Makes the debtor pay in order; switches to the debt phase on the first payment not covered. */
@@ -17,7 +18,7 @@ export function charge(ctx: Ctx, debtorId: PlayerId, payments: Payment[], resume
       emit(ctx, { type: 'debtStarted', debtor: debtorId, payments: remaining })
       return
     }
-    transfer(ctx, debtorId, payment.to, payment.amount, payment.reason)
+    if (!payToPot(ctx, debtorId, payment)) transfer(ctx, debtorId, payment.to, payment.amount, payment.reason)
   }
   applyResume(ctx, resume)
 }
@@ -120,7 +121,7 @@ export function declareBankruptcy(ctx: Ctx): void {
   emit(ctx, { type: 'assetsTransferred', from: debtor.id, to: creditor, squareIds, keys })
   emit(ctx, { type: 'bankrupt', playerId: debtor.id, creditor })
 
-  if (checkVictory(ctx)) return
-  if (wasCurrent) advanceToNextPlayer(ctx)
+  if (checkLastStanding(ctx)) return
+  if (wasCurrent) finishTurn(ctx)
   else applyResume(ctx, phase.resume)
 }

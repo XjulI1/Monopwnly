@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { phaseName } from '../../game/format'
+import { formatPwn, phaseName } from '../../game/format'
+import { activeHouseRules } from '../../game/gameOptions'
 import { spotlightPlayer } from '../../game/spotlight'
 import { useInjectedGameSession } from '../../game/useGameSession'
 
@@ -11,6 +12,11 @@ const emit = defineEmits<{
 const { displayedState } = useInjectedGameSession()
 
 const current = computed(() => spotlightPlayer(displayedState.value))
+const ruleBadges = computed(() => activeHouseRules(displayedState.value.settings))
+const turnCounter = computed(() => {
+  const { turnNumber, settings } = displayedState.value
+  return settings.turnLimit === null ? `Tour ${turnNumber}` : `Tour ${turnNumber} / ${settings.turnLimit}`
+})
 const lastRoll = computed(() => {
   const roll = displayedState.value.lastRoll
   return roll ? `${roll[0]} + ${roll[1]} = ${roll[0] + roll[1]}` : null
@@ -35,7 +41,13 @@ const lastRoll = computed(() => {
         </span>
       </p>
       <p class="mt-0.5 text-xs text-muted">
-        Tour {{ displayedState.turnNumber }}
+        <span data-test="turn-counter">{{ turnCounter }}</span>
+        <template v-if="displayedState.settings.dmzJackpot">
+          · Cagnotte : <span
+            class="tabular-nums text-ink"
+            data-test="pot"
+          >{{ formatPwn(displayedState.dmzPot) }}</span>
+        </template>
         <template v-if="lastRoll">
           · Dernier lancer : <span
             class="tabular-nums text-ink"
@@ -43,6 +55,21 @@ const lastRoll = computed(() => {
           >{{ lastRoll }}</span>
         </template>
       </p>
+      <ul
+        v-if="ruleBadges.length > 0"
+        class="mt-1 flex flex-wrap gap-1"
+        aria-label="Options de règles"
+      >
+        <li
+          v-for="badge in ruleBadges"
+          :key="badge.rule"
+          class="cursor-help rounded-full border border-neon/50 px-2 text-[11px] font-semibold text-neon"
+          :title="badge.help"
+          data-test="rule-badge"
+        >
+          {{ badge.badge }}
+        </li>
+      </ul>
     </div>
     <button
       type="button"

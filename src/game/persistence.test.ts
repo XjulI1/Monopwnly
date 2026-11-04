@@ -36,11 +36,27 @@ function savedGame(): SavedGame {
     status: 'inProgress',
     creation: {
       players: state.players.map((p) => ({ id: p.id, name: p.name, color: p.color, controller: p.controller })),
-      settings: { auctions: true },
+      settings: { ...state.settings },
     },
     engineState: state,
     journal: recordInJournal(startJournal(start), start, events).journal,
     statistics: recordStatistics(startStatistics(start), start, events, state),
+  }
+}
+
+const OPTION_SETTINGS = ['dmzJackpot', 'doubleBootBonus', 'freeBuilding', 'noRentInQuarantine', 'turnLimit', 'netWorthTarget']
+
+function withoutKeys(fields: object, keys: string[]): Record<string, unknown> {
+  return Object.fromEntries(Object.entries(fields).filter(([key]) => !keys.includes(key)))
+}
+
+function beforeOptions(game: SavedGame): Record<string, unknown> {
+  const engineState = withoutKeys(game.engineState, ['dmzPot', 'winReason', 'firstPlayerIndex'])
+  return {
+    ...game,
+    formatVersion: 2,
+    creation: { ...game.creation, settings: withoutKeys(game.creation.settings, OPTION_SETTINGS) },
+    engineState: { ...engineState, settings: withoutKeys(game.engineState.settings, OPTION_SETTINGS) },
   }
 }
 
@@ -90,15 +106,54 @@ describe('loadSavedGame', () => {
     expect(loadSavedGame(accessTo(storage))).toEqual({ kind: 'found', game })
   })
 
-  it('reads a save of the format before the trades with empty trade limits', () => {
+  it('reads a save of the format before the trades with empty trade limits and no game option', () => {
     const game = savedGame()
-    const withoutLimits: Partial<SavedGame['engineState']> = { ...game.engineState }
-    delete withoutLimits.tradeLimits
-    const storage = memoryStorage(stored({ ...game, formatVersion: 1, engineState: withoutLimits }))
-    expect(loadSavedGame(accessTo(storage))).toEqual({
-      kind: 'found',
-      game: { ...game, formatVersion: 2, engineState: { ...withoutLimits, tradeLimits: { thisTurn: {}, refusedAsks: {} } } },
-    })
+    const old = beforeOptions(game)
+    const storage = memoryStorage(stored({ ...old, formatVersion: 1, engineState: withoutKeys(old.engineState as object, ['tradeLimits']) }))
+    expect(loadSavedGame(accessTo(storage))).toEqual({ kind: 'found', game })
+  })
+
+  it('reads a save of the format before the game options with every option off and an empty pot', () => {
+    const game = savedGame()
+    const result = loadSavedGame(accessTo(memoryStorage(stored(beforeOptions(game)))))
+    expect(result).toEqual({ kind: 'found', game })
+    if (result.kind !== 'found') return
+    expect(result.game.engineState).toMatchObject({ dmzPot: 0, firstPlayerIndex: 0, winReason: null })
+    expect(result.game.creation.settings).toEqual(game.engineState.settings)
+  })
+
+  it('goes on with a migrated game exactly as before', () => {
+    const game = savedGame()
+    const result = loadSavedGame(accessTo(memoryStorage(stored(beforeOptions(game)))))
+    if (result.kind !== 'found') throw new Error('not found')
+    const next = (state: SavedGame['engineState']) => act(forceDice(structuredClone(state), [[3, 4]]), { type: 'rollDice', playerId: B })
+    const ended = { ...game.engineState, phase: { kind: 'postRoll', mayRollAgain: false } } as SavedGame['engineState']
+    const migratedEnded = { ...result.game.engineState, phase: { kind: 'postRoll', mayRollAgain: false } } as SavedGame['engineState']
+    const original = act(ended, { type: 'endTurn', playerId: A })
+    const migrated = act(migratedEnded, { type: 'endTurn', playerId: A })
+    expect(migrated).toEqual(original)
+    expect(next(migrated.state)).toEqual(next(original.state))
+  })
+
+  it('gives the last solvent player as reason of a victory saved before the game options', () => {
+    const game = savedGame()
+    game.status = 'finished'
+    game.engineState.phase = { kind: 'gameOver' }
+    game.engineState.winner = B
+    game.engineState.winReason = 'lastStanding'
+    const result = loadSavedGame(accessTo(memoryStorage(stored(beforeOptions(game)))))
+    expect(result).toEqual({ kind: 'found', game })
+  })
+
+  it('rejects incoherent game options', () => {
+    const game = savedGame()
+    const invalid = [
+      { ...game, engineState: { ...game.engineState, settings: { ...game.engineState.settings, turnLimit: 25 } } },
+      { ...game, engineState: { ...game.engineState, dmzPot: -10 } },
+      { ...game, engineState: { ...game.engineState, winReason: 'turnLimit' } },
+      { ...game, creation: { ...game.creation, settings: { ...game.creation.settings, netWorthTarget: 7500 } } },
+    ]
+    for (const save of invalid) expect(unreadable(save).result).toEqual({ kind: 'unreadable' })
   })
 
   it('rejects an incoherent trade offer or trade limits', () => {
@@ -122,7 +177,7 @@ describe('loadSavedGame', () => {
   })
 
   it('rejects a save of an unknown format version', () => {
-    const { result, storage } = unreadable({ ...savedGame(), formatVersion: 3 })
+    const { result, storage } = unreadable({ ...savedGame(), formatVersion: SAVE_FORMAT_VERSION + 1 })
     expect(result).toEqual({ kind: 'unreadable' })
     expect(storage.items.has(SAVED_GAME_KEY)).toBe(false)
   })
@@ -204,7 +259,7 @@ describe('createSaver', () => {
     const storage = memoryStorage()
     const game = savedGame()
     const save = createSaver(game.creation, accessTo(storage))
-    save({ ...game, engineState: { ...game.engineState, phase: { kind: 'gameOver' }, winner: B } })
+    save({ ...game, engineState: { ...game.engineState, phase: { kind: 'gameOver' }, winner: B, winReason: 'lastStanding' } })
     const found = loadSavedGame(accessTo(storage))
     expect(found.kind === 'found' && found.game.status).toBe('finished')
   })

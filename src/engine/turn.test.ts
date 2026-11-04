@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { applyAction } from './index'
 import { createGame } from './setup'
-import { A, B, C, act, forceDice, makeState, rejectCode, roll } from './testUtils'
+import { A, B, C, D, act, forceDice, makeState, rejectCode, roll } from './testUtils'
 import type { Action, GameState } from './types'
 
 describe('action validation', () => {
@@ -104,6 +104,60 @@ describe('turn flow', () => {
     const start = makeState({ players: 3, overrides: [{}, { bankrupt: true }], phase: { kind: 'postRoll', mayRollAgain: false } })
     const { state } = act(start, { type: 'endTurn', playerId: A })
     expect(state.players[state.currentPlayerIndex]?.id).toBe(C)
+  })
+
+  it('records the player drawn to start as the first player of the game', () => {
+    for (const seed of [1, 2, 3, 2024]) {
+      const created = createGame({
+        players: [
+          { id: A, name: 'Alice', color: 'red' },
+          { id: B, name: 'Bob', color: 'blue' },
+          { id: C, name: 'Chloé', color: 'green' },
+        ],
+        seed,
+      })
+      if (!created.ok) throw new Error(created.error.code)
+      expect(created.state.firstPlayerIndex).toBe(created.state.currentPlayerIndex)
+    }
+  })
+
+  it('starts a new round when the turn comes back to the first player of the game', () => {
+    const start = makeState({ players: 4, current: 1, firstPlayer: 2, phase: { kind: 'postRoll', mayRollAgain: false } })
+    const { state } = act(start, { type: 'endTurn', playerId: B })
+    expect(state.currentPlayerIndex).toBe(2)
+    expect(state.turnNumber).toBe(2)
+  })
+
+  it('keeps the round at the end of the list when another player started the game', () => {
+    const start = makeState({ players: 4, current: 3, firstPlayer: 2, phase: { kind: 'postRoll', mayRollAgain: false } })
+    const { state } = act(start, { type: 'endTurn', playerId: D })
+    expect(state.currentPlayerIndex).toBe(0)
+    expect(state.turnNumber).toBe(1)
+  })
+
+  it('starts a new round when the turn passes the seat of a bankrupt first player', () => {
+    const start = makeState({
+      players: 3,
+      current: 2,
+      overrides: [{ bankrupt: true }],
+      phase: { kind: 'postRoll', mayRollAgain: false },
+    })
+    const { state } = act(start, { type: 'endTurn', playerId: C })
+    expect(state.currentPlayerIndex).toBe(1)
+    expect(state.turnNumber).toBe(2)
+  })
+
+  it('gives every player the same number of turns in each round', () => {
+    let state = makeState({ players: 4, current: 2, firstPlayer: 2 })
+    const turns = [`${C}@1`]
+    for (let i = 0; i < 8; i++) {
+      state.phase = { kind: 'postRoll', mayRollAgain: false }
+      const current = state.players[state.currentPlayerIndex]?.id as string
+      const { state: next, events } = act(state, { type: 'endTurn', playerId: current })
+      for (const e of events) if (e.type === 'turnStarted') turns.push(`${e.playerId}@${e.turnNumber}`)
+      state = next
+    }
+    expect(turns).toEqual([`${C}@1`, `${D}@1`, `${A}@1`, `${B}@1`, `${C}@2`, `${D}@2`, `${A}@2`, `${B}@2`, `${C}@3`])
   })
 
   it('increments the turn number after the last player in order', () => {

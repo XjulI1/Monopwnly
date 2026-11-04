@@ -1,7 +1,9 @@
 import { mount, type VueWrapper } from '@vue/test-utils'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import { createGame, type GameState } from '../../engine'
-import { AI_NAMES, type GameConfig } from '../../game/setupForm'
+import { createGame, DEFAULT_SETTINGS, type GameState } from '../../engine'
+import { formatPwn } from '../../game/format'
+import { HOUSE_RULES, NET_WORTH_TARGET_HELP, TURN_LIMIT_HELP } from '../../game/gameOptions'
+import { AI_NAMES, startGame, type GameConfig } from '../../game/setupForm'
 import CreateGameScreen from './CreateGameScreen.vue'
 
 vi.mock(import('../../engine'), async (importOriginal) => {
@@ -151,6 +153,45 @@ describe('CreateGameScreen', () => {
     expect(wrapper.text()).toContain('reste à la banque')
     await startButton(wrapper).trigger('click')
     expect(startedWith(wrapper)?.state.settings.auctions).toBe(false)
+  })
+
+  it('offers the rule options, all off by default, each with its help sentence', async () => {
+    const wrapper = mount(CreateGameScreen)
+    expect(wrapper.text()).toContain('Options de règles')
+    for (const { rule, name, help } of HOUSE_RULES) {
+      expect((wrapper.get(`[data-test="rule-${rule}"]`).element as HTMLInputElement).checked).toBe(false)
+      expect(wrapper.text()).toContain(name)
+      expect(wrapper.text()).toContain(help)
+    }
+    expect(wrapper.text()).toContain(TURN_LIMIT_HELP)
+    expect(wrapper.text()).toContain(NET_WORTH_TARGET_HELP)
+    expect(wrapper.findAll('[data-test="turn-limit"] option').map((o) => o.text())).toEqual(['Aucune', '20 tours', '30 tours', '40 tours', '60 tours'])
+    expect(wrapper.findAll('[data-test="net-worth-target"] option').map((o) => o.text())).toEqual([
+      'Aucun',
+      ...[3000, 4000, 5000, 6000].map(formatPwn),
+    ])
+    await startButton(wrapper).trigger('click')
+    expect(startedWith(wrapper)?.state.settings).toEqual(DEFAULT_SETTINGS)
+  })
+
+  it('creates the game with the chosen rule options', async () => {
+    const wrapper = mount(CreateGameScreen)
+    await wrapper.get('[data-test="rule-freeBuilding"]').setValue(true)
+    await wrapper.get('[data-test="turn-limit"]').setValue('30')
+    await wrapper.get('[data-test="net-worth-target"]').setValue('5000')
+    await startButton(wrapper).trigger('click')
+    const started = startedWith(wrapper)
+    expect(started?.state.settings).toMatchObject({ freeBuilding: true, turnLimit: 30, netWorthTarget: 5000, dmzJackpot: false })
+    expect(started?.config.settings).toEqual(started?.state.settings)
+  })
+
+  it('keeps the rule options when replaying with the same parameters', async () => {
+    const wrapper = mount(CreateGameScreen)
+    await wrapper.get('[data-test="rule-dmzJackpot"]').setValue(true)
+    await startButton(wrapper).trigger('click')
+    const config = startedWith(wrapper)?.config as GameConfig
+    const replayed = startGame(config)
+    expect(replayed.ok && replayed.state.settings.dmzJackpot).toBe(true)
   })
 
   it('shows the engine message and keeps the form when the engine refuses', async () => {

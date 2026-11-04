@@ -14,6 +14,7 @@ import {
 import {
   EASY_RESERVE,
   FAMILY_BLOCK_BONUS,
+  FREE_BUILDING_HARD_PRUDENCE,
   FAMILY_COMPLETION_BONUS,
   FAMILY_PROGRESS_BONUS,
   STARTED_BY_OPPONENT_DISCOUNT,
@@ -110,6 +111,7 @@ function familyPremium(price: number, outlook: FamilyOutlook): number {
 }
 
 function yieldAdjustment(view: PlayerView, squareId: SquareId, playerId: PlayerId, price: number, outlook: FamilyOutlook): number {
+  if (view.settings.freeBuilding) return 0
   const level = outlook.completes || outlook.approaches ? REACHABLE_LEVEL : 0
   const expected = expectedRent(view, squareId, playerId, level) * horizon(view)
   const adjustment = (expected - price) * YIELD_WEIGHT
@@ -153,5 +155,6 @@ export function rentRisk(view: PlayerView, playerId: PlayerId, from = playerOf(v
 /** Cash the AI keeps for the rents of the next roll; spending stays above it except where its level allows otherwise. */
 export function reserve(view: PlayerView, playerId: PlayerId, level: AiLevel): number {
   if (level === 'easy') return EASY_RESERVE
-  return Math.round(MIN_RESERVE + PRUDENCE[level] * rentRisk(view, playerId))
+  const prudence = level === 'hard' && view.settings.freeBuilding ? FREE_BUILDING_HARD_PRUDENCE : PRUDENCE[level]
+  return Math.round(MIN_RESERVE + prudence * rentRisk(view, playerId))
 }

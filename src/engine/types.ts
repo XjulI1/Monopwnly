@@ -61,9 +61,24 @@ export type Card = {
   effect: CardEffect
 }
 
+/** Number of rounds after which the richest player wins, among the proposed values. */
+export type TurnLimit = 20 | 30 | 40 | 60
+
+/** Net worth that ends the game at the end of a turn, among the proposed values. */
+export type NetWorthTarget = 3000 | 4000 | 5000 | 6000
+
 export type GameSettings = {
   auctions: boolean
+  dmzJackpot: boolean
+  doubleBootBonus: boolean
+  freeBuilding: boolean
+  noRentInQuarantine: boolean
+  turnLimit: TurnLimit | null
+  netWorthTarget: NetWorthTarget | null
 }
+
+/** Why the game ended: last solvent player, turn limit reached or net worth target reached. */
+export type WinReason = 'lastStanding' | 'turnLimit' | 'netWorthTarget'
 
 export type AiLevel = 'easy' | 'normal' | 'hard'
 
@@ -156,13 +171,16 @@ export type GameState = {
   bankStock: { backdoors: number; rootkits: number }
   decks: Record<DeckKind, CardId[]>
   currentPlayerIndex: number
+  firstPlayerIndex: number
   doublesInARow: number
   turnNumber: number
   lastRoll: [number, number] | null
   phase: Phase
   rngState: number
   winner: PlayerId | null
+  winReason: WinReason | null
   tradeLimits: TradeLimits
+  dmzPot: number
 }
 
 /** What every player can see of a game: everything but the order of the decks and the random generator. */
@@ -188,6 +206,9 @@ export type Action =
   | { type: 'rejectTrade'; playerId: PlayerId }
 
 export type ActionType = Action['type']
+
+/** Payments to the bank that feed the DMZ pot when the option is on. */
+export type PotReason = Extract<PaymentReason, 'tax' | 'card'>
 
 export type QuarantineReason = 'detected' | 'card' | 'tripleDouble'
 export type QuarantineExit = 'fine' | 'key' | 'double' | 'forcedFine'
@@ -217,7 +238,11 @@ export type GameEvent =
   | { type: 'debtStarted'; debtor: PlayerId; payments: Payment[] }
   | { type: 'bankrupt'; playerId: PlayerId; creditor: PlayerId | 'bank' }
   | { type: 'assetsTransferred'; from: PlayerId; to: PlayerId | 'bank'; squareIds: SquareId[]; keys: CardId[] }
-  | { type: 'gameWon'; playerId: PlayerId }
+  | { type: 'gameWon'; playerId: PlayerId; reason: WinReason }
+  | { type: 'potIncreased'; playerId: PlayerId; amount: number; reason: PotReason }
+  | { type: 'potCollected'; playerId: PlayerId; amount: number }
+  | { type: 'bootBonus'; playerId: PlayerId }
+  | { type: 'rentWaived'; playerId: PlayerId; ownerId: PlayerId; squareId: SquareId }
   | { type: 'tradeProposed'; offer: TradeOffer }
   | { type: 'tradeAccepted'; offer: TradeOffer }
   | { type: 'tradeRejected'; offer: TradeOffer }
@@ -226,6 +251,7 @@ export type RuleErrorCode =
   | 'INVALID_PLAYER_COUNT'
   | 'DUPLICATE_PLAYER'
   | 'INVALID_AI_LEVEL'
+  | 'INVALID_SETTINGS'
   | 'NOT_YOUR_TURN'
   | 'WRONG_PHASE'
   | 'GAME_OVER'

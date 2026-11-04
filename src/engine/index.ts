@@ -122,8 +122,10 @@ export {
   ownedSquares,
   rentIfLanded,
   sellableSquares,
+  standings,
   unmortgageableSquares,
 } from './queries'
+export type { Standing } from './queries'
 export { ownsWholeFamily } from './rent'
 export {
   MAX_TRADE_PROPOSALS,
@@ -136,6 +138,6 @@ export {
 } from './trading'
 export { randomInt } from './rng'
 export type { RngHolder } from './rng'
-export { AI_LEVELS, createGame, DEFAULT_SETTINGS, MAX_PLAYERS, MIN_PLAYERS } from './setup'
+export { AI_LEVELS, createGame, DEFAULT_SETTINGS, MAX_PLAYERS, MIN_PLAYERS, NET_WORTH_TARGETS, TURN_LIMITS } from './setup'
 export type { CreateGameInput } from './setup'
 export type * from './types'

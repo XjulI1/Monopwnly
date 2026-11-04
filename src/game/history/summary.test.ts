@@ -21,6 +21,17 @@ describe('ranking', () => {
     const { state, stats } = ended(C, { [A]: { turn: 18, rank: 1 }, [B]: { turn: 30, rank: 2 } })
     expect(ranking(state, stats)).toEqual([C, B, A])
   })
+
+  it('puts the players still in the game after the winner, by net worth, before the bankrupt ones', () => {
+    const state = makeState({ players: 4, overrides: [{ cash: 4000 }, { cash: 0, bankrupt: true }, { cash: 7000 }, { cash: 5000 }] })
+    state.phase = { kind: 'gameOver' }
+    state.winner = C
+    state.winReason = 'turnLimit'
+    const stats = startStatistics(state)
+    const bob = stats.players[B]
+    if (bob) bob.bankruptcy = { turn: 12, rank: 1, creditor: 'bank' }
+    expect(ranking(state, stats)).toEqual([C, 'p4', A, B])
+  })
 })
 
 describe('bankruptcyLine', () => {

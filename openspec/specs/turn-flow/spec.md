@@ -13,7 +13,10 @@ l'arrivée, la partie SHALL passer en `postRoll`, en s'arrêtant au besoin sur `
 `auction` ou `debt`. Après un double, `postRoll` SHALL autoriser un nouveau lancer
 (`mayRollAgain`) et interdire la fin du tour. Depuis `preRoll`, `postRoll` ou `debt`, une
 proposition d'échange SHALL faire passer la partie en `tradeOffer`, qui revient à la phase d'origine
-une fois l'offre acceptée ou refusée (voir `trading`).
+une fois l'offre acceptée ou refusée (voir `trading`). Un tour de table SHALL commencer au premier
+joueur de la partie, tiré au sort à la création et enregistré dans l'état : `turnNumber` SHALL
+augmenter de 1 chaque fois que le tour revient à ce joueur, ou passe sa place quand il a fait
+faillite, de sorte que chaque joueur joue le même nombre de tours dans un tour de table.
 
 #### Scenario: Tour simple
 
@@ -38,8 +41,18 @@ une fois l'offre acceptée ou refusée (voir `trading`).
 
 #### Scenario: Compteur de tours
 
-- **WHEN** le dernier joueur de l'ordre de jeu termine son tour
-- **THEN** `turnNumber` augmente de 1
+- **WHEN** à 4 joueurs le troisième de la liste a été tiré au sort pour commencer et que le deuxième de la liste termine son tour
+- **THEN** `turnNumber` augmente de 1 et c'est au troisième de la liste de jouer
+
+#### Scenario: Pas de nouveau tour au bout de la liste
+
+- **WHEN** à 4 joueurs le troisième de la liste a été tiré au sort pour commencer et que le quatrième de la liste termine son tour
+- **THEN** `turnNumber` ne change pas et c'est au premier de la liste de jouer
+
+#### Scenario: Premier joueur en faillite
+
+- **WHEN** à 3 joueurs le premier de la liste a commencé la partie puis fait faillite, et que le troisième termine son tour
+- **THEN** `turnNumber` augmente de 1 et c'est au deuxième de jouer
 
 ### Requirement: Validation des actions
 

@@ -35,7 +35,8 @@ graine et les mêmes actions.
 Les paiements suivants SHALL alimenter la cagnotte au lieu de la banque avec `dmzJackpot` : les
 taxes (Rançongiciel, Amende RGPD) et les paiements à la banque imposés par les cartes (Phishing
 raté, Facture du fournisseur cloud, Assurance cyber, Licence expirée, Formation obligatoire, Mise à
-jour forcée, Audit de sécurité).
+jour forcée, Audit de sécurité). Un paiement versé à la cagnotte SHALL produire un événement de
+cagnotte alimentée à la place du paiement à la banque.
 Le joueur qui s'arrête sur la DMZ SHALL recevoir toute la cagnotte, qui revient à 0. Les autres
 paiements à la banque (achats, enchères, constructions, réactivations, amende de quarantaine) et les
 faillites envers la banque SHALL NOT alimenter la cagnotte. Sans l'option, la cagnotte reste à 0.
@@ -55,6 +56,11 @@ faillites envers la banque SHALL NOT alimenter la cagnotte. Sans l'option, la ca
 - **WHEN** l'option est active, la cagnotte vaut 300 Ᵽ et Carol s'arrête sur la DMZ
 - **THEN** Carol reçoit 300 Ᵽ, la cagnotte vaut 0 et un événement de cagnotte remportée est émis
 
+#### Scenario: Paiement entre joueurs hors cagnotte
+
+- **WHEN** l'option est active et Bob pioche « Conférence de sécurité »
+- **THEN** Bob paie 50 Ᵽ à chaque autre joueur et la cagnotte ne change pas
+
 #### Scenario: Achat hors cagnotte
 
 - **WHEN** l'option est active et Alice achète le Blog pour 180 Ᵽ
@@ -68,8 +74,8 @@ faillites envers la banque SHALL NOT alimenter la cagnotte. Sans l'option, la ca
 ### Requirement: Bonus double sur Boot
 
 Avec `doubleBootBonus`, un joueur dont le déplacement s'arrête sur Boot SHALL recevoir 400 Ᵽ au
-total au lieu de 200 Ᵽ, y compris quand il y arrive par une carte. Le salaire de 200 Ᵽ en passant
-par Boot sans s'y arrêter SHALL rester inchangé.
+total au lieu de 200 Ᵽ, y compris quand il y arrive par une carte, et un événement de bonus SHALL
+être émis. Le salaire de 200 Ᵽ en passant par Boot sans s'y arrêter SHALL rester inchangé.
 
 #### Scenario: Arrêt sur Boot
 
@@ -122,12 +128,24 @@ installer un rootkit.
 
 Avec `noRentInQuarantine`, un joueur en quarantaine SHALL NOT percevoir de loyer : le joueur qui
 s'arrête sur l'un de ses systèmes, nœuds ou services ne paie rien et un événement de loyer non perçu
-est émis. Les taxes et les effets des cartes ne sont pas concernés.
+est émis. Cela SHALL valoir aussi pour les loyers imposés par une carte (« Tunnel chiffré »,
+« Ping ») ; pour « Ping », les dés SHALL NOT être lancés. Les taxes et les paiements des cartes
+entre joueurs (« Conférence de sécurité ») ne sont pas concernés.
 
 #### Scenario: Loyer non perçu
 
 - **WHEN** l'option est active, Alice est en quarantaine et Bob s'arrête sur le Forum d'Alice
 - **THEN** Bob ne paie rien et un événement de loyer non perçu est émis
+
+#### Scenario: Loyer double d'une carte
+
+- **WHEN** l'option est active, Alice est en quarantaine et possède le Nœud Tor, et Bob, sur la case Exploit 15, pioche « Tunnel chiffré »
+- **THEN** Bob avance sur le Nœud Tor, ne paie rien et un événement de loyer non perçu est émis
+
+#### Scenario: Ping sans lancer de dés
+
+- **WHEN** l'option est active, Alice est en quarantaine et possède le Datacenter, et Bob, sur la case Exploit 2, pioche « Ping »
+- **THEN** Bob avance sur le Datacenter, aucun dé n'est lancé, Bob ne paie rien et un événement de loyer non perçu est émis
 
 #### Scenario: Loyer perçu par défaut
 

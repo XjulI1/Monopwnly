@@ -3,7 +3,9 @@
 ## Purpose
 Faire payer les sommes dues, laisser au débiteur le moyen de réunir l'argent, et gérer la faillite
 envers un joueur ou envers la banque jusqu'à la victoire du dernier joueur solvable.
+
 ## Requirements
+
 ### Requirement: Paiement automatique
 
 Tout paiement (loyer, taxe, carte, amende) SHALL être fait immédiatement si l'argent liquide du
@@ -95,11 +97,12 @@ en `preRoll` si le failli était le joueur courant, ou reprendre au point prévu
 
 ### Requirement: Victoire
 
-Quand il ne reste qu'un joueur non en faillite, il SHALL être déclaré vainqueur : `winner` est
-renseigné, la partie passe en `gameOver` et un événement de victoire est émis.
+Quand il ne reste qu'un joueur non en faillite, il SHALL être déclaré vainqueur aussitôt, quels que
+soient les réglages de fin de partie : `winner` est renseigné, `winReason` vaut `lastStanding`, la
+partie passe en `gameOver` et un événement de victoire portant ce motif est émis. Les fins par
+limite de tours et par objectif de patrimoine sont décrites par `game-end-conditions`.
 
 #### Scenario: Dernier joueur solvable
 
 - **WHEN** à 2 joueurs l'un déclare faillite
-- **THEN** l'autre est vainqueur et la partie est en `gameOver`
-
+- **THEN** l'autre est vainqueur avec le motif `lastStanding` et la partie est en `gameOver`

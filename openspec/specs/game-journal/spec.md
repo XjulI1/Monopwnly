@@ -19,12 +19,16 @@ les suivantes :
 | Lancer et déplacement | « <joueur> lance <d1> et <d2> et avance sur <case> » |
 | Double | « … (double) » ajouté à l'entrée du lancer |
 | Passage par Boot | « <joueur> passe par Boot et reçoit <montant> » |
+| Bonus double de Boot | « <joueur> reçoit le bonus double de Boot » |
 | Achat | « <joueur> achète <case> pour <montant> » |
 | Refus d'achat | « <joueur> n'achète pas <case> » |
 | Enchère remportée | « <joueur> remporte <case> aux enchères pour <montant> » |
 | Enchère sans preneur | « Personne ne prend <case> aux enchères » |
 | Loyer | « <joueur> paie <montant> de loyer à <joueur> pour <case> » |
+| Loyer non perçu | « <joueur> ne perçoit pas de loyer (en quarantaine) » (le joueur est le propriétaire) |
 | Taxe | « <joueur> paie <montant> : <case> » |
+| Cagnotte alimentée | « <joueur> alimente la cagnotte de <montant> » |
+| Cagnotte remportée | « <joueur> remporte la cagnotte de la DMZ : <montant> » |
 | Carte | « <joueur> pioche <Exploit ou Patch> : <titre> — <effet> » |
 | Clé de déchiffrement conservée | « <joueur> garde une Clé de déchiffrement » |
 | Entrée en quarantaine | « <joueur> est placé en quarantaine » |
@@ -38,7 +42,7 @@ les suivantes :
 | Dette | « <joueur> doit réunir <montant> » (total des paiements restants) |
 | Paiement après une dette | « <joueur> paie <montant> à <joueur ou la banque> » |
 | Faillite | « <joueur> fait faillite au profit de <joueur ou la banque> » |
-| Victoire | « <joueur> remporte la partie » |
+| Victoire | « <joueur> remporte la partie : <motif> », le motif étant « dernier hacker solvable », « limite de <n> tours atteinte » ou « objectif de <montant> atteint » |
 
 #### Scenario: Lancer et déplacement
 
@@ -59,6 +63,16 @@ les suivantes :
 
 - **WHEN** Bob fait faillite au profit d'Alice
 - **THEN** l'entrée est « Bob fait faillite au profit d'Alice »
+
+#### Scenario: Loyer non perçu au journal
+
+- **WHEN** Bob s'arrête sur le Forum d'Alice alors qu'Alice est en quarantaine et que l'option « pas de loyer en quarantaine » est active
+- **THEN** le journal contient « Alice ne perçoit pas de loyer (en quarantaine) »
+
+#### Scenario: Victoire par la limite de tours
+
+- **WHEN** Carol gagne à la limite de 30 tours
+- **THEN** le journal contient « Carol remporte la partie : limite de 30 tours atteinte »
 
 ### Requirement: Entrées condensées
 

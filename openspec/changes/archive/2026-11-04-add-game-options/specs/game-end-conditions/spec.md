@@ -29,7 +29,7 @@ patrimoine nul.
 ### Requirement: Réglages de fin de partie
 
 La création d'une partie SHALL accepter `turnLimit` parmi 20, 30, 40, 60 ou aucune, et
-`netWorthTarget` parmi 5 000, 7 500, 10 000, 15 000 Ᵽ ou aucun, les deux à « aucun » par défaut et
+`netWorthTarget` parmi 3 000, 4 000, 5 000, 6 000 Ᵽ ou aucun, les deux à « aucun » par défaut et
 cumulables. Une valeur hors de ces listes SHALL être rejetée avec le code `INVALID_SETTINGS`. La
 faillite de tous les adversaires SHALL toujours mettre fin à la partie, quels que soient ces
 réglages.
@@ -47,40 +47,47 @@ réglages.
 #### Scenario: Faillite toujours décisive
 
 - **WHEN** une partie limitée à 40 tours compte 2 joueurs et que Bob fait faillite au tour 12
-- **THEN** Alice gagne aussitôt avec le motif « dernier joueur solvable »
+- **THEN** Alice gagne aussitôt avec le motif `lastStanding`
 
 ### Requirement: Limite de tours
 
-Avec `turnLimit`, un tour de table complet SHALL compter pour un tour. À la fin du tour du dernier
-joueur du tour de table numéro `turnLimit`, la partie SHALL se terminer et le joueur non failli au
-plus gros patrimoine SHALL gagner, avec le motif « limite de tours ».
+Avec `turnLimit`, un tour de table complet, qui commence au premier joueur de la partie (voir
+`turn-flow`), SHALL compter pour un tour : chaque joueur non failli joue donc `turnLimit` tours. À la
+fin du tour du dernier joueur du tour de table numéro `turnLimit`, la partie SHALL se terminer et le premier joueur du
+classement SHALL gagner, avec le motif `turnLimit`. La fin du tour du dernier joueur comprend sa
+faillite pendant ce tour : la partie SHALL alors se terminer sans entamer le tour de table suivant.
 
 #### Scenario: Dernier tour atteint
 
 - **WHEN** la limite est de 20 tours et que le dernier joueur du tour de table 20 termine son tour
-- **THEN** la partie se termine et le plus gros patrimoine gagne avec le motif « limite de tours »
+- **THEN** la partie se termine et le plus gros patrimoine gagne avec le motif `turnLimit`
 
 #### Scenario: Avant la limite
 
 - **WHEN** la limite est de 20 tours et que le premier joueur du tour de table 20 termine son tour
 - **THEN** la partie continue avec le joueur suivant
 
+#### Scenario: Faillite du dernier joueur du dernier tour
+
+- **WHEN** la limite est de 20 tours, que trois joueurs sont en jeu et que le dernier joueur du tour de table 20 fait faillite pendant son tour au profit d'un autre joueur
+- **THEN** la partie se termine avec le motif `turnLimit`, sans tour de table 21, et le plus gros patrimoine des deux joueurs restants gagne
+
 ### Requirement: Objectif de patrimoine
 
 La partie SHALL se terminer avec `netWorthTarget` quand, à la fin du tour de chaque joueur, au moins
-un joueur non failli a un patrimoine supérieur ou égal à l'objectif, et le plus gros patrimoine
-parmi eux SHALL gagner, avec le motif « objectif de patrimoine ». L'objectif SHALL NOT être vérifié
-au milieu d'un tour.
+un joueur non failli a un patrimoine supérieur ou égal à l'objectif, et le premier d'entre eux dans
+le classement SHALL gagner, avec le motif `netWorthTarget`. L'objectif SHALL NOT être vérifié au
+milieu d'un tour.
 
 #### Scenario: Objectif atteint par le joueur courant
 
 - **WHEN** l'objectif est de 5 000 Ᵽ et qu'Alice termine son tour avec un patrimoine de 5 120 Ᵽ
-- **THEN** Alice gagne avec le motif « objectif de patrimoine »
+- **THEN** Alice gagne avec le motif `netWorthTarget`
 
 #### Scenario: Objectif atteint par un autre joueur
 
 - **WHEN** l'objectif est de 5 000 Ᵽ et que Bob termine son tour après avoir payé un loyer qui porte le patrimoine d'Alice à 5 050 Ᵽ
-- **THEN** Alice gagne avec le motif « objectif de patrimoine »
+- **THEN** Alice gagne avec le motif `netWorthTarget`
 
 #### Scenario: Pas de vérification en cours de tour
 
@@ -90,14 +97,16 @@ au milieu d'un tour.
 #### Scenario: Les deux fins le même tour
 
 - **WHEN** la limite de 20 tours est atteinte et que Bob a dépassé l'objectif à la fin du même tour
-- **THEN** la partie se termine avec le motif « objectif de patrimoine », le gagnant étant le plus gros patrimoine parmi ceux qui ont atteint l'objectif
+- **THEN** la partie se termine avec le motif `netWorthTarget`, le gagnant étant le plus gros patrimoine parmi ceux qui ont atteint l'objectif
 
-### Requirement: Départage et classement
+### Requirement: Départage, classement et motif
 
 En cas d'égalité de patrimoine entre prétendants, le plus d'argent liquide SHALL l'emporter, puis
-l'ordre de jeu à partir du premier joueur de la partie. La fin de partie SHALL produire un événement
-portant le motif de victoire et le classement de tous les joueurs avec leur patrimoine, les faillis
-classés après les autres dans l'ordre inverse de leur faillite.
+l'ordre de jeu à partir du premier joueur de la partie. Le moteur SHALL exposer une requête de
+classement des joueurs non faillis dans cet ordre (patrimoine, argent liquide, ordre de jeu), qui
+désigne le vainqueur d'une fin par limite de tours ou par objectif. L'événement de victoire SHALL
+porter le motif (`lastStanding`, `turnLimit` ou `netWorthTarget`), aussi enregistré dans l'état avec
+le vainqueur.
 
 #### Scenario: Égalité départagée par l'argent
 
@@ -111,5 +120,10 @@ classés après les autres dans l'ordre inverse de leur faillite.
 
 #### Scenario: Classement
 
-- **WHEN** la partie se termine par la limite de tours avec Carol à 7 000 Ᵽ, Alice à 4 000 Ᵽ et Bob failli
-- **THEN** l'événement de fin classe Carol, Alice, puis Bob
+- **WHEN** Carol a 7 000 Ᵽ de patrimoine, Alice 4 000 Ᵽ et Bob a fait faillite
+- **THEN** la requête de classement renvoie Carol puis Alice, sans Bob
+
+#### Scenario: Motif enregistré
+
+- **WHEN** la partie se termine par la limite de tours
+- **THEN** l'événement de victoire et l'état portent le motif `turnLimit` et le vainqueur

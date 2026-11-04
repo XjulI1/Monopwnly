@@ -40,10 +40,13 @@ sauvegarde de la partie pour pouvoir la reprendre.
 ### Requirement: Écran de fin de partie
 
 Quand le moteur déclare un vainqueur, l'application SHALL afficher par-dessus le plateau final et le
-HUD un écran de fin de partie nommant le vainqueur dans sa couleur avec son argent final, avec un
-onglet « Résultat » classant les joueurs, le vainqueur puis les autres de la faillite la plus
-récente à la plus ancienne avec son tour et son créancier, un onglet « Statistiques », et les choix
-« Rejouer avec les mêmes paramètres » et « Retour à l'accueil ».
+HUD un écran de fin de partie nommant le vainqueur dans sa couleur avec son argent final et le motif
+de sa victoire (« Dernier hacker solvable », « Limite de <n> tours atteinte » ou « Objectif de
+<montant> atteint »), avec un onglet « Résultat » classant les joueurs : le vainqueur, puis les
+autres joueurs non faillis dans l'ordre du classement de `game-end-conditions` (patrimoine, argent
+liquide, ordre de jeu) avec leur patrimoine, puis les faillis de la faillite la plus récente à la
+plus ancienne avec son tour et son créancier ; un onglet « Statistiques » ; et les choix « Rejouer
+avec les mêmes paramètres » et « Retour à l'accueil ».
 
 #### Scenario: Victoire
 
@@ -54,6 +57,16 @@ récente à la plus ancienne avec son tour et son créancier, un onglet « Stati
 
 - **WHEN** Carol gagne, que Bob a fait faillite au tour 30 au profit de la banque et Alice au tour 18 au profit de Carol
 - **THEN** l'onglet « Résultat » liste Carol « Vainqueur », Bob « Faillite au tour 30 au profit de la banque », puis Alice « Faillite au tour 18 au profit de Carol »
+
+#### Scenario: Victoire par la limite de tours
+
+- **WHEN** la partie se termine à la limite de 30 tours
+- **THEN** l'écran de fin affiche « Limite de 30 tours atteinte » et le patrimoine de chaque joueur non failli
+
+#### Scenario: Classement avec des joueurs non faillis
+
+- **WHEN** la partie se termine par la limite de tours avec Carol à 7 000 Ᵽ de patrimoine, Alice à 4 000 Ᵽ et Bob failli au tour 12 au profit de la banque
+- **THEN** l'onglet « Résultat » liste Carol « Vainqueur », Alice avec « 4 000 Ᵽ », puis Bob « Faillite au tour 12 au profit de la banque »
 
 #### Scenario: Rejouer
 

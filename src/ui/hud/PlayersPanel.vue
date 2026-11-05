@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { FAMILY_COLORS } from '../../board/boardTheme'
-import { BOARD, netWorth, type Player, type Square } from '../../engine'
+import { BOARD, netWorth, type Player, type PlayerId, type Square } from '../../engine'
 import { formatPwn, formatPwnDelta } from '../../game/format'
 import { spotlightPlayer } from '../../game/spotlight'
 import { useInjectedGameSession } from '../../game/useGameSession'
@@ -10,6 +10,18 @@ const NODE_COLOR = '#c9d4e5'
 const SERVICE_COLOR = '#7d8aa3'
 
 const { displayedState, badges, send, view } = useInjectedGameSession()
+const shownProperties = ref<ReadonlySet<PlayerId>>(new Set())
+
+function toggleProperties(playerId: PlayerId) {
+  const next = new Set(shownProperties.value)
+  if (next.has(playerId)) next.delete(playerId)
+  else next.add(playerId)
+  shownProperties.value = next
+}
+
+function propertyCountText(count: number): string {
+  return count > 1 ? `${count} biens` : `${count} bien`
+}
 
 type Chip = { index: number; name: string; color: string; mortgaged: boolean; level: number; title: string }
 
@@ -58,14 +70,19 @@ function targetProgress(player: Player): TargetProgress | null {
 const rows = computed(() => {
   const state = displayedState.value
   const currentId = spotlightPlayer(state)?.id
-  return state.players.map((player) => ({
-    player,
-    current: player.id === currentId,
-    expected: player.id === view.value.actor && player.id !== currentId,
-    chips: chipsOf(player),
-    badges: badges.value.filter((b) => b.playerId === player.id),
-    progress: targetProgress(player),
-  }))
+  return state.players.map((player) => {
+    const chips = chipsOf(player)
+    return {
+      player,
+      current: player.id === currentId,
+      expected: player.id === view.value.actor && player.id !== currentId,
+      chips,
+      propertiesShown: chips.length > 0 && shownProperties.value.has(player.id),
+      propertyCount: propertyCountText(chips.length),
+      badges: badges.value.filter((b) => b.playerId === player.id),
+      progress: targetProgress(player),
+    }
+  })
 })
 </script>
 
@@ -125,7 +142,7 @@ const rows = computed(() => {
         />
       </div>
       <div
-        v-if="row.player.quarantine || row.player.keys.length > 0 || row.expected"
+        v-if="row.player.quarantine || row.player.keys.length > 0 || row.expected || row.chips.length > 0"
         class="mt-1 flex items-center gap-2 pl-5"
       >
         <span
@@ -161,9 +178,35 @@ const rows = computed(() => {
           v-if="row.expected"
           class="shrink-0 text-[11px] text-neon"
         >doit jouer</span>
+        <button
+          v-if="row.chips.length > 0"
+          type="button"
+          class="-my-1 ml-auto flex min-h-8 shrink-0 items-center gap-1 rounded-md px-2 text-xs text-muted hover:bg-ink/10 hover:text-ink"
+          :aria-expanded="row.propertiesShown"
+          :aria-controls="`properties-${row.player.id}`"
+          data-test="properties-toggle"
+          data-keep-presenting
+          @click="toggleProperties(row.player.id)"
+        >
+          {{ row.propertyCount }}
+          <svg
+            viewBox="0 0 24 24"
+            class="h-4 w-4 transition-transform"
+            :class="row.propertiesShown ? '' : '-rotate-90'"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="2.2"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            aria-hidden="true"
+          >
+            <path d="M6 9l6 6 6-6" />
+          </svg>
+        </button>
       </div>
       <div
-        v-if="row.chips.length > 0"
+        v-if="row.propertiesShown"
+        :id="`properties-${row.player.id}`"
         class="mt-1.5 flex flex-wrap gap-0.5"
       >
         <button

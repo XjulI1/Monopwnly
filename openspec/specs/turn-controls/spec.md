@@ -25,10 +25,22 @@ d'achat », « Enchère », « Règlement de dette », « Après le lancer » et
 ### Requirement: Panneau des joueurs
 
 Le HUD SHALL afficher pour chaque joueur, dans l'ordre de jeu : son nom et sa couleur, son argent au
-format des PwnCoins, ses systèmes, nœuds et services regroupés par famille avec la couleur de la
-famille (en veille signalés atténués), son nombre de Clés de déchiffrement et un marqueur s'il est en
-quarantaine. Le joueur courant SHALL être mis en évidence. Un joueur en faillite SHALL apparaître
-barré. Toucher un système de ce panneau SHALL ouvrir sa fiche.
+format des PwnCoins, le nombre de ses biens (systèmes, nœuds et services), son nombre de Clés de
+déchiffrement et un marqueur s'il est en quarantaine. La liste de ses biens, regroupés par famille
+avec la couleur de la famille (en veille signalés atténués), SHALL être masquée par défaut ; toucher
+le nombre de biens d'un joueur SHALL afficher ou masquer sa liste, sans changer celle des autres
+joueurs. Le joueur courant SHALL être mis en évidence. Un joueur en faillite SHALL apparaître barré.
+Toucher un système d'une liste affichée SHALL ouvrir sa fiche.
+
+#### Scenario: Biens masqués par défaut
+
+- **WHEN** Alice possède trois systèmes et que personne n'a touché son nombre de biens
+- **THEN** le panneau affiche « 3 biens » pour Alice sans afficher ses systèmes
+
+#### Scenario: Afficher et masquer les biens d'un joueur
+
+- **WHEN** le joueur touche « 3 biens » d'Alice
+- **THEN** les systèmes d'Alice s'affichent tandis que ceux de Bob restent masqués, et toucher à nouveau « 3 biens » les masque
 
 #### Scenario: Format de l'argent
 

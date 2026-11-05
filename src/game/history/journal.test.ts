@@ -344,6 +344,23 @@ describe('bankruptcy and victory', () => {
       '1 Clé de déchiffrement retourne sous son paquet',
     ])
   })
+
+  it('tells a player giving up during their turn, unfolded like a bankruptcy', () => {
+    const start = game({
+      players: 3,
+      overrides: [{ cash: 300, keys: [cardIdByTitle('patch', 'Clé de déchiffrement')] }],
+      ownership: { minitel: { owner: A, level: 1 }, 'modem-56k': { owner: A, level: 1 } },
+    })
+    const [ruin, heading] = entriesOf(start, { type: 'declareBankruptcy', playerId: A })
+    expect(ruin).toMatchObject({ actor: A, text: 'Alice abandonne et se déclare en faillite' })
+    expect(ruin?.details.map((d) => d.text)).toEqual([
+      `Alice revend ses constructions pour ${pwn(50)}`,
+      `Alice cède ${pwn(350)} à la banque`,
+      'Minitel et Modem 56k retournent à la banque',
+      '1 Clé de déchiffrement retourne sous son paquet',
+    ])
+    expect(heading?.text).toBe('Tour 1 — Bob')
+  })
 })
 
 describe('authors and rounds', () => {

@@ -29,7 +29,8 @@ import {
 import { diceTotalOdds, landingOdds } from './landingOdds'
 import type { PlayerView } from './playerView'
 
-const AVERAGE_DICE_TOTAL = 7
+/** Average total of two dice. */
+export const AVERAGE_DICE_TOTAL = 7
 const DICE_TOTALS = [2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12] as const
 
 /** How a square relates to the families of the player and of the opponents. */

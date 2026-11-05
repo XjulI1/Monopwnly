@@ -3,15 +3,15 @@ import { A, B, C, makeState, player } from '../../engine/testUtils'
 import { startStatistics, type GameStatistics } from './statistics'
 import { bankruptcyLine, ranking, topSquares, wealthSeries } from './summary'
 
-function ended(winner: string, bankruptcies: Record<string, { turn: number; rank: number; creditor?: string }>) {
+function ended(winner: string, bankruptcies: Record<string, { turn: number; rank: number; creditor?: string; voluntary?: boolean }>) {
   const state = makeState({ players: 3 })
   state.phase = { kind: 'gameOver' }
   state.winner = winner
   for (const p of state.players) p.bankrupt = p.id in bankruptcies
   const stats = startStatistics(state)
-  for (const [id, { turn, rank, creditor }] of Object.entries(bankruptcies)) {
+  for (const [id, { turn, rank, creditor, voluntary }] of Object.entries(bankruptcies)) {
     const counters = stats.players[id]
-    if (counters) counters.bankruptcy = { turn, rank, creditor: creditor ?? winner }
+    if (counters) counters.bankruptcy = { turn, rank, creditor: creditor ?? winner, voluntary: voluntary ?? false }
   }
   return { state, stats }
 }
@@ -29,7 +29,7 @@ describe('ranking', () => {
     state.winReason = 'turnLimit'
     const stats = startStatistics(state)
     const bob = stats.players[B]
-    if (bob) bob.bankruptcy = { turn: 12, rank: 1, creditor: 'bank' }
+    if (bob) bob.bankruptcy = { turn: 12, rank: 1, creditor: 'bank', voluntary: false }
     expect(ranking(state, stats)).toEqual([C, 'p4', A, B])
   })
 })
@@ -41,6 +41,16 @@ describe('bankruptcyLine', () => {
     expect(bankruptcyLine(state, stats.players[B]?.bankruptcy ?? null)).toBe('Faillite au tour 23 au profit d’Alice')
     expect(bankruptcyLine(state, stats.players[C]?.bankruptcy ?? null)).toBe('Faillite au tour 9 au profit de la banque')
     expect(bankruptcyLine(state, null)).toBeNull()
+  })
+
+  it('dates a player giving up without naming the bank', () => {
+    const { state, stats } = ended(A, { [B]: { turn: 15, rank: 1, creditor: 'bank', voluntary: true } })
+    expect(bankruptcyLine(state, stats.players[B]?.bankruptcy ?? null)).toBe('Abandon au tour 15')
+  })
+
+  it('ranks a player who gave up among the bankrupt ones, from the last to the first', () => {
+    const { state, stats } = ended(C, { [A]: { turn: 18, rank: 1 }, [B]: { turn: 30, rank: 2, creditor: 'bank', voluntary: true } })
+    expect(ranking(state, stats)).toEqual([C, B, A])
   })
 })
 

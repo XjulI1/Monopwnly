@@ -5,6 +5,7 @@ import { hard } from './levels/hard'
 import { normal } from './levels/normal'
 import { contextOf, type Strategy } from './levels/strategy'
 import { playerView, type PlayerView } from './playerView'
+import { gameLost } from './resignation'
 
 const STRATEGIES: Record<AiLevel, Strategy> = { easy, normal, hard }
 
@@ -15,7 +16,7 @@ export function isManagement(action: Action): boolean {
   return MANAGEMENT_ACTIONS.has(action.type)
 }
 
-/** Chooses the action of an AI from the public view of the game; `managementLeft` is how many management actions it may still take in this phase. */
+/** Chooses the action of an AI from the public view of the game, giving up at the start of its turn when its game is lost; `managementLeft` is how many management actions it may still take in this phase. */
 export function chooseAction(view: PlayerView, playerId: PlayerId, level: AiLevel, managementLeft = MANAGEMENT_LIMIT): Action {
   if (expectedActor(view) !== playerId) throw new Error(`${playerId} is not the player expected to act`)
   const me = view.players.find((p) => p.id === playerId)
@@ -24,7 +25,7 @@ export function chooseAction(view: PlayerView, playerId: PlayerId, level: AiLeve
   const strategy = STRATEGIES[level]
   switch (view.phase.kind) {
     case 'preRoll':
-      return strategy.preRoll(ctx)
+      return gameLost(view, playerId) ? { type: 'declareBankruptcy', playerId } : strategy.preRoll(ctx)
     case 'buyDecision':
       return strategy.buyDecision(ctx)
     case 'auction':

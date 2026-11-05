@@ -133,6 +133,24 @@ describe('loadSavedGame', () => {
     expect(loadSavedGame(accessTo(memoryStorage(stored({ ...formatBeforeOptions, engineState: olderPhase }))))).toEqual({ kind: 'found', game })
   })
 
+  it('reads a save of the format before giving up, with its bankruptcies marked as not voluntary', () => {
+    const game = savedGame()
+    const bob = game.statistics.players[B]
+    if (!bob) throw new Error('no statistics for Bob')
+    bob.bankruptcy = { turn: 12, creditor: 'bank', rank: 1, voluntary: false }
+    const statistics = { ...game.statistics, players: { ...game.statistics.players, [B]: { ...bob, bankruptcy: withoutKeys(bob.bankruptcy, ['voluntary']) } } }
+    expect(loadSavedGame(accessTo(memoryStorage(stored({ ...game, formatVersion: 4, statistics }))))).toEqual({ kind: 'found', game })
+    expect(loadSavedGame(accessTo(memoryStorage(stored({ ...beforeOptions(game), statistics }))))).toEqual({ kind: 'found', game })
+  })
+
+  it('rejects a bankruptcy that does not tell whether it was voluntary', () => {
+    const game = savedGame()
+    const bob = game.statistics.players[B]
+    if (!bob) throw new Error('no statistics for Bob')
+    const players = { ...game.statistics.players, [B]: { ...bob, bankruptcy: { turn: 12, creditor: 'bank', rank: 1 } } }
+    expect(unreadable({ ...game, statistics: { ...game.statistics, players } }).result).toEqual({ kind: 'unreadable' })
+  })
+
   it('reads a save of the format before the trades with empty trade limits and no game option', () => {
     const game = savedGame()
     const old = beforeOptions(game)

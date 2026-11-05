@@ -19,7 +19,7 @@ type StepContent =
   | { kind: 'pot'; playerId: PlayerId; amount: number; collected: boolean }
   | { kind: 'quarantine'; playerId: PlayerId; from: number; reason: QuarantineReason }
   | { kind: 'update' }
-  | { kind: 'bankrupt'; playerId: PlayerId; creditor: PlayerId | 'bank' }
+  | { kind: 'bankrupt'; playerId: PlayerId; creditor: PlayerId | 'bank'; voluntary: boolean }
   | { kind: 'victory'; playerId: PlayerId }
   | { kind: 'trade'; offer: TradeOffer }
   | { kind: 'silent' }
@@ -212,7 +212,7 @@ function contentOf(event: GameEvent, positions: Map<PlayerId, number>): StepCont
     case 'potCollected':
       return { kind: 'pot', playerId: event.playerId, amount: event.amount, collected: true }
     case 'bankrupt':
-      return { kind: 'bankrupt', playerId: event.playerId, creditor: event.creditor }
+      return { kind: 'bankrupt', playerId: event.playerId, creditor: event.creditor, voluntary: event.voluntary }
     case 'gameWon':
       return { kind: 'victory', playerId: event.playerId }
     case 'tradeAccepted':
@@ -269,4 +269,9 @@ export function presentationSteps(before: GameState, events: readonly GameEvent[
     } else steps.push({ kind: 'silent', events: [event], presented: i + 1 })
   }
   return steps
+}
+
+/** Announcement shown over the board when a player gives up or goes bankrupt. */
+export function bankruptcyNotice(name: string, voluntary: boolean): string {
+  return voluntary ? `${name} abandonne` : `${name} fait faillite`
 }

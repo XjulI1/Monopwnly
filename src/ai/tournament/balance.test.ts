@@ -26,6 +26,7 @@ function printReport(report: TournamentReport): void {
     `Victoires par place : ${report.winRateByPlace.map((rate, i) => `${i + 1}e ${percent(rate)}`).join(', ')}`,
     `Échanges : ${report.trades.proposed} proposés, ${report.trades.accepted} acceptés, ${report.trades.acceptedPerGame.toFixed(2)} acceptés par partie`,
     `Contre-propositions : ${report.trades.countered} faites, ${report.trades.counterAccepted} acceptées`,
+    `Abandons : ${report.resignations}`,
     'Rendement (loyers encaissés / coût investi) :',
     ...Object.entries(report.yieldByGroup).map(
       ([group, y]) => `  ${groupName(group).padEnd(18)} ${y.ratio.toFixed(2)}  (loyers ${y.rent} Ᵽ, investi ${y.invested} Ᵽ)`,

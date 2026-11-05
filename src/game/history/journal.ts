@@ -270,7 +270,8 @@ export function recordInJournal(journal: readonly JournalEntry[], before: GameSt
   function onBankruptcy(event: Extract<GameEvent, { type: 'bankrupt' }>, index: number) {
     const who = name(event.playerId)
     const sold = liquidation > 0 ? [{ actor: event.playerId, text: `${who} revend ses constructions pour ${formatPwn(liquidation)}` }] : []
-    add('action', event.playerId, `${who} fait faillite au profit ${ofName(name(event.creditor))}`, index, [...sold, ...ruin])
+    const text = event.voluntary ? `${who} abandonne et se déclare en faillite` : `${who} fait faillite au profit ${ofName(name(event.creditor))}`
+    add('action', event.playerId, text, index, [...sold, ...ruin])
     liquidation = 0
     ruin = []
   }

@@ -152,6 +152,7 @@ export type InteractionView = {
   buy: { squareId: SquareId; price: number; cash: number } | null
   auction: AuctionView | null
   debt: (DebtSummary & { confirming: boolean }) | null
+  confirmingResignation: boolean
   trade: TradeComposerView | null
   offer: TradeOffer | null
   original: TradeOffer | null
@@ -244,8 +245,13 @@ function manageButton(state: GameState, actor: PlayerId): ButtonView {
   })
 }
 
-function turnButtons(state: GameState, actor: PlayerId, managing: boolean): ButtonView[] {
-  if (managing) return [makeButton('doneManaging', 'Terminer')]
+function turnButtons(state: GameState, actor: PlayerId, interaction: Interaction): ButtonView[] {
+  if (interaction.managing) return [makeButton('doneManaging', 'Terminer')]
+  if (interaction.confirmingBankruptcy) return [makeButton('confirmBankruptcy', 'Confirmer l’abandon'), makeButton('cancelBankruptcy', 'Annuler')]
+  return [...playButtons(state, actor), makeButton('declareBankruptcy', 'Abandonner')]
+}
+
+function playButtons(state: GameState, actor: PlayerId): ButtonView[] {
   const phase = state.phase
   const check = (action: Action) => checkAction(state, action)
   if (phase.kind === 'postRoll') {
@@ -273,7 +279,7 @@ function mainButtons(state: GameState, interaction: Interaction, actor: PlayerId
   switch (phase.kind) {
     case 'preRoll':
     case 'postRoll':
-      return turnButtons(state, actor, interaction.managing)
+      return turnButtons(state, actor, interaction)
     case 'buyDecision': {
       const price = purchasableById(phase.squareId)?.price ?? 0
       return [
@@ -457,6 +463,7 @@ function withoutCommands(view: InteractionView, thinking: PlayerId): Interaction
     thinking,
     managing: false,
     buttons: [],
+    confirmingResignation: false,
     highlights: view.offer ? view.highlights : {},
     sheet: view.sheet ? { squareId: view.sheet.squareId, buttons: [] } : null,
     trade: null,
@@ -488,6 +495,7 @@ function humanView(state: GameState, interaction: Interaction, actor: PlayerId |
     buy: buyView(state, actor),
     auction: auctionView(state),
     debt: summary ? { ...summary, confirming: interaction.confirmingBankruptcy } : null,
+    confirmingResignation: interaction.confirmingBankruptcy && isManagementPhase(state),
     trade: composerView(state, interaction, actor),
     offer: state.phase.kind === 'tradeOffer' ? state.phase.offer : null,
     original: state.phase.kind === 'tradeOffer' ? state.phase.original : null,

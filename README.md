@@ -20,6 +20,11 @@ partie plus tôt.
   [`docs/plateau.md`](docs/plateau.md).
 - **Règles du genre** : achat ou enchère, loyers, familles complètes, constructions uniformes,
   mise en veille (hypothèque), dettes et faillite.
+- **Abandon** : pendant son tour, un joueur peut abandonner une partie qu'il sait perdue en se
+  déclarant en faillite (bouton « Abandonner », avec confirmation). Ses systèmes retournent à la
+  banque, libres et sans enchère. Les IA abandonnent d'elles-mêmes une partie perdue, quand elles
+  sont loin derrière le joueur le plus riche et que les loyers à payer les ruineraient en quelques
+  tours.
 - **2 à 6 joueurs**, humains sur le même appareil ou IA.
 - **Adversaires IA** en trois niveaux : facile, normal et difficile. Ils achètent, enchérissent,
   construisent et négocient des échanges.
@@ -53,8 +58,8 @@ partie plus tôt.
   dévoiler le résultat des dés.
 - **Statistiques de fin** : courbes du patrimoine et de l'argent liquide de chaque joueur au fil
   des tours, tableau récapitulatif (loyers perçus et payés, taxes, achats, enchères,
-  constructions, quarantaines, doubles, faillites) et classement des cinq cases les plus
-  rentables.
+  constructions, quarantaines, doubles, faillites et abandons) et classement des cinq cases les
+  plus rentables.
 
 ### Échanges
 

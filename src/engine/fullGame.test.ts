@@ -34,6 +34,10 @@ function checkBuildings(state: GameState): void {
   expect(rootkits).toBe(BANK_ROOTKITS)
 }
 
+function givesUp(state: GameState, action: Action): boolean {
+  return action.type === 'declareBankruptcy' && state.phase.kind !== 'debt'
+}
+
 function pick(script: { rngState: number }, actions: Action[]): Action {
   const buy = actions.find((a) => a.type === 'buyProperty')
   if (buy) return buy
@@ -60,7 +64,7 @@ function playFullGame(seed: number, settings?: Partial<GameSettings>): { state: 
   const script = { rngState: seed * 31 + 7 }
   let actions = 0
   while (state.phase.kind !== 'gameOver' && state.turnNumber <= MAX_TURNS && actions < MAX_ACTIONS) {
-    const candidates = legalActions(state)
+    const candidates = legalActions(state).filter((action) => !givesUp(state, action))
     expect(candidates.length).toBeGreaterThan(0)
     const action = pick(script, candidates)
     const result = applyAction(state, action)

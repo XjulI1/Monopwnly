@@ -35,6 +35,7 @@ export type TournamentReport = {
   winsByReason: Record<WinReason, number>
   yieldByGroup: Record<SquareGroup, GroupYield>
   trades: TradeCounts & { acceptedPerGame: number }
+  resignations: number
 }
 
 /** Trades proposed and accepted, counter-offers made and accepted. */
@@ -54,6 +55,11 @@ export function countTrades(counts: TradeCounts, events: readonly GameEvent[]): 
     }),
     counts,
   )
+}
+
+/** The number of players who gave up, once the events are added. */
+export function countResignations(count: number, events: readonly GameEvent[]): number {
+  return events.reduce((total, event) => total + (event.type === 'bankrupt' && event.voluntary ? 1 : 0), count)
 }
 
 /** A tournament: game `i` seats the lineup `i % lineups.length` in play order and uses the seed `seeds[i]`. */
@@ -134,6 +140,7 @@ export function runTournament(options: TournamentOptions): TournamentReport {
   const yields = emptyYields()
   let interrupted = 0
   let trades = NO_TRADES
+  let resignations = 0
   for (let index = 0; index < options.games; index++) {
     const lineup = options.lineups[index % options.lineups.length] ?? []
     const seed = options.seeds[index]
@@ -143,6 +150,7 @@ export function runTournament(options: TournamentOptions): TournamentReport {
       onAction: (_action, events, after) => {
         record(yields, events, after)
         trades = countTrades(trades, events)
+        resignations = countResignations(resignations, events)
       },
     })
     if (stop !== 'gameOver') {
@@ -180,5 +188,6 @@ export function runTournament(options: TournamentOptions): TournamentReport {
       }),
     ) as Record<SquareGroup, GroupYield>,
     trades: { ...trades, acceptedPerGame: options.games === 0 ? 0 : trades.accepted / options.games },
+    resignations,
   }
 }

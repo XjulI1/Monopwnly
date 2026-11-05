@@ -22,7 +22,7 @@ const ALLOWED_PHASES: Record<ActionType, readonly PhaseKind[]> = {
   mortgage: ['preRoll', 'postRoll', 'debt'],
   unmortgage: ['preRoll', 'postRoll'],
   payDebt: ['debt'],
-  declareBankruptcy: ['debt'],
+  declareBankruptcy: ['preRoll', 'postRoll', 'debt'],
   endTurn: ['postRoll'],
   proposeTrade: ['preRoll', 'postRoll', 'debt'],
   acceptTrade: ['tradeOffer'],

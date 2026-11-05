@@ -26,16 +26,18 @@ const side = { squares: [], cash: 0, keys: [] }
 const offer: TradeOffer = { from: A, to: B, give: { ...side, cash: 50 }, receive: { ...side, squares: ['minitel'] } }
 
 describe('keys of the turn', () => {
-  it('binds Enter to the roll, G to the management and E to the trade before the roll', () => {
+  it('binds Enter to the roll, G to the management, E to the trade and F to giving up before the roll', () => {
     const state = makeState({ ownership: owned })
     expect(shortcutsOf(state)).toEqual([
       ['rollDice', 'Enter'],
       ['manage', 'G'],
       ['trade', 'E'],
+      ['declareBankruptcy', 'F'],
     ])
     expect(commandOf('Enter', state)).toEqual(pressed('rollDice'))
     expect(commandOf('g', state)).toEqual(pressed('manage'))
     expect(commandOf('E', state)).toEqual(pressed('trade'))
+    expect(commandOf('f', state)).toEqual(pressed('declareBankruptcy'))
   })
 
   it('binds Enter to the end of the turn after the roll, and to the new roll after a double', () => {
@@ -51,6 +53,7 @@ describe('keys of the turn', () => {
       ['rollDice', 'Enter'],
       ['manage', 'G'],
       ['trade', 'E'],
+      ['declareBankruptcy', 'F'],
     ])
   })
 

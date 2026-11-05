@@ -4,6 +4,7 @@ import GameBoard from '../../board/GameBoard.vue'
 import type { GameState } from '../../engine'
 import { workerDecider } from '../../game/aiDecider'
 import { createSaver } from '../../game/persistence'
+import { bankruptcyNotice } from '../../game/presentation'
 import type { GameConfig } from '../../game/setupForm'
 import { shortcutCommand } from '../../game/shortcuts'
 import { GAME_SESSION, useGameSession, type GameHistory } from '../../game/useGameSession'
@@ -38,10 +39,11 @@ const { displayedState, view, isPresenting, currentStep, dice, send, skip, dismi
 const board = ref<InstanceType<typeof GameBoard> | null>(null)
 
 const cardId = computed(() => (currentStep.value?.kind === 'card' ? currentStep.value.cardId : null))
-const bankruptName = computed(() => {
+const bankruptcyText = computed(() => {
   const step = currentStep.value
   if (step?.kind !== 'bankrupt') return null
-  return displayedState.value.players.find((p) => p.id === step.playerId)?.name ?? null
+  const name = displayedState.value.players.find((p) => p.id === step.playerId)?.name
+  return name ? bankruptcyNotice(name, step.voluntary) : null
 })
 const gameOver = computed(() => displayedState.value.phase.kind === 'gameOver' && !isPresenting.value)
 
@@ -105,7 +107,7 @@ function skipOnTap(event: PointerEvent) {
       </div>
 
       <div
-        v-if="cardId || bankruptName"
+        v-if="cardId || bankruptcyText"
         class="absolute inset-0 flex items-center justify-center p-6"
       >
         <CardReveal
@@ -118,7 +120,7 @@ function skipOnTap(event: PointerEvent) {
           class="panel-card border-loss px-6 py-4 text-2xl font-bold text-loss shadow-lg"
           role="status"
         >
-          {{ bankruptName }} fait faillite
+          {{ bankruptcyText }}
         </p>
       </div>
 

@@ -16,7 +16,7 @@ function wonByB(): GameState {
   return act(start, { type: 'declareBankruptcy', playerId: A }).state
 }
 
-function wonByCarol(): { state: GameState; statistics: GameStatistics } {
+function wonByCarol(bobGaveUp = false): { state: GameState; statistics: GameStatistics } {
   const state = makeState({ players: 3, overrides: [{ name: 'Alice', bankrupt: true }, { name: 'Bob', bankrupt: true }, { name: 'Carol' }] })
   state.phase = { kind: 'gameOver' }
   state.winner = C
@@ -30,14 +30,14 @@ function wonByCarol(): { state: GameState; statistics: GameStatistics } {
   }))
   const alice = statistics.players[A]
   const bob = statistics.players[B]
-  if (alice) alice.bankruptcy = { turn: 18, creditor: C, rank: 1 }
-  if (bob) bob.bankruptcy = { turn: 30, creditor: 'bank', rank: 2 }
+  if (alice) alice.bankruptcy = { turn: 18, creditor: C, rank: 1, voluntary: false }
+  if (bob) bob.bankruptcy = { turn: 30, creditor: 'bank', rank: 2, voluntary: bobGaveUp }
   statistics.squareRents = { blog: 265, neobank: 1365, 'tor-node': 400, cloud: 120, minitel: 12, 'ai-kernel': 900 }
   return { state, statistics }
 }
 
-function mountEnd() {
-  const { state, statistics } = wonByCarol()
+function mountEnd(bobGaveUp = false) {
+  const { state, statistics } = wonByCarol(bobGaveUp)
   const session = useGameSession(state, { speed: 'instant', history: { journal: startJournal(state), statistics } })
   return mountOnSession(GameOverOverlay, session)
 }
@@ -72,7 +72,7 @@ describe('GameOverOverlay', () => {
     state.turnNumber = 30
     const statistics = startStatistics(state)
     const bob = statistics.players[B]
-    if (bob) bob.bankruptcy = { turn: 12, creditor: 'bank', rank: 1 }
+    if (bob) bob.bankruptcy = { turn: 12, creditor: 'bank', rank: 1, voluntary: false }
     const session = useGameSession(state, { speed: 'instant', history: { journal: startJournal(state), statistics } })
     const wrapper = mountOnSession(GameOverOverlay, session)
     expect(wrapper.get('[data-test="win-reason"]').text()).toBe('Limite de 30 tours atteinte')
@@ -100,6 +100,15 @@ describe('GameOverOverlay', () => {
     expect(wrapper.findAll('[data-test="standings"] li').map((li) => li.text())).toEqual([
       '1CarolVainqueur',
       '2BobFaillite au tour 30 au profit de la banque',
+      '3AliceFaillite au tour 18 au profit de Carol',
+    ])
+  })
+
+  it('tells the round of a player who gave up, among the bankrupt ones', () => {
+    const wrapper = mountEnd(true)
+    expect(wrapper.findAll('[data-test="standings"] li').map((li) => li.text())).toEqual([
+      '1CarolVainqueur',
+      '2BobAbandon au tour 30',
       '3AliceFaillite au tour 18 au profit de Carol',
     ])
   })

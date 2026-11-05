@@ -92,12 +92,9 @@ function liquidateBuildings(ctx: Ctx, playerId: PlayerId): void {
   }
 }
 
-export function declareBankruptcy(ctx: Ctx): void {
-  const phase = debtPhase(ctx)
+function goBankrupt(ctx: Ctx, debtorId: PlayerId, creditor: PlayerId | 'bank', voluntary: boolean): void {
   const state = ctx.state
-  const debtor = getPlayer(state, phase.debtor)
-  const creditor = phase.payments[0]?.to ?? 'bank'
-  const wasCurrent = currentPlayer(state).id === debtor.id
+  const debtor = getPlayer(state, debtorId)
 
   liquidateBuildings(ctx, debtor.id)
   transfer(ctx, debtor.id, creditor, debtor.cash, 'bankruptcy')
@@ -119,8 +116,19 @@ export function declareBankruptcy(ctx: Ctx): void {
   debtor.bankrupt = true
   debtor.quarantine = null
   emit(ctx, { type: 'assetsTransferred', from: debtor.id, to: creditor, squareIds, keys })
-  emit(ctx, { type: 'bankrupt', playerId: debtor.id, creditor })
+  emit(ctx, { type: 'bankrupt', playerId: debtor.id, creditor, voluntary })
+}
 
+/** Declares the bankruptcy of the debtor during a debt, or of the current player giving up during their turn, to the benefit of the bank. */
+export function declareBankruptcy(ctx: Ctx): void {
+  const phase = ctx.state.phase
+  if (phase.kind !== 'debt') {
+    goBankrupt(ctx, currentPlayer(ctx.state).id, 'bank', true)
+    finishTurn(ctx)
+    return
+  }
+  const wasCurrent = currentPlayer(ctx.state).id === phase.debtor
+  goBankrupt(ctx, phase.debtor, phase.payments[0]?.to ?? 'bank', false)
   if (checkLastStanding(ctx)) return
   if (wasCurrent) finishTurn(ctx)
   else applyResume(ctx, phase.resume)

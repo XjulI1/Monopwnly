@@ -98,3 +98,9 @@ export const END_GAME_ROUNDS = 3
 
 /** Share of the net worth target from which normal and hard AIs treat an opponent as close to winning. */
 export const TARGET_THREAT_SHARE = 0.8
+
+/** Largest share of the net worth of the richest opponent at which an AI may consider its game lost. */
+export const RESIGN_NET_WORTH_SHARE = 0.15
+
+/** Rounds of expected loss under which the cash an AI can raise makes it consider its game lost. */
+export const RESIGN_RUIN_ROUNDS = 5

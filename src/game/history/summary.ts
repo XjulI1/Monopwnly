@@ -22,9 +22,10 @@ export function ranking(state: GameState, stats: GameStatistics): PlayerId[] {
   return [...(state.winner ? [state.winner] : []), ...standing, ...ruined]
 }
 
-/** When and to whom a player went bankrupt, e.g. `Faillite au tour 23 au profit d’Alice`. */
+/** When and to whom a player went bankrupt, e.g. `Faillite au tour 23 au profit d’Alice`, or when they gave up, e.g. `Abandon au tour 15`. */
 export function bankruptcyLine(state: GameState, bankruptcy: Bankruptcy | null): string | null {
   if (!bankruptcy) return null
+  if (bankruptcy.voluntary) return `Abandon au tour ${bankruptcy.turn}`
   const { creditor } = bankruptcy
   const name = creditor === 'bank' ? 'la banque' : (state.players.find((p) => p.id === creditor)?.name ?? creditor)
   return `Faillite au tour ${bankruptcy.turn} au profit ${ofName(name)}`

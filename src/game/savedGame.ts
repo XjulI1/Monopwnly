@@ -18,11 +18,12 @@ import type { GameStatistics, PlayerStatistics } from './history/statistics'
 import type { GameConfig } from './setupForm'
 
 /** Version of the format of the saved game understood by this application. */
-export const SAVE_FORMAT_VERSION = 4
+export const SAVE_FORMAT_VERSION = 5
 
 const FORMAT_BEFORE_TRADES = 1
 const FORMAT_BEFORE_OPTIONS = 2
 const FORMAT_BEFORE_COUNTERS = 3
+const FORMAT_BEFORE_RESIGNATION = 4
 
 const OPTIONS_OFF: Omit<GameSettings, 'auctions'> = {
   dmzJackpot: false,
@@ -295,7 +296,11 @@ function isCounters(value: unknown): boolean {
   const bankruptcy = value.bankruptcy
   return (
     bankruptcy === null ||
-    (isFields(bankruptcy) && isInt(bankruptcy.turn, 1) && isString(bankruptcy.creditor) && isInt(bankruptcy.rank, 1))
+    (isFields(bankruptcy) &&
+      isInt(bankruptcy.turn, 1) &&
+      isString(bankruptcy.creditor) &&
+      isInt(bankruptcy.rank, 1) &&
+      typeof bankruptcy.voluntary === 'boolean')
   )
 }
 
@@ -340,16 +345,29 @@ function addGameOptions(save: Fields, engineState: Fields): Fields {
 
 function addCounterOffers(save: Fields, engineState: Fields): Fields {
   const phase = isFields(engineState.phase) && engineState.phase.kind === 'tradeOffer' ? { ...engineState.phase, original: null } : engineState.phase
-  return { ...save, formatVersion: SAVE_FORMAT_VERSION, engineState: { ...engineState, phase } }
+  return { ...save, formatVersion: FORMAT_BEFORE_RESIGNATION, engineState: { ...engineState, phase } }
+}
+
+function involuntary(counters: unknown): unknown {
+  if (!isFields(counters) || !isFields(counters.bankruptcy)) return counters
+  return { ...counters, bankruptcy: { ...counters.bankruptcy, voluntary: false } }
+}
+
+function markBankruptciesInvoluntary(save: Fields): Fields {
+  const statistics = save.statistics
+  if (!isFields(statistics) || !isFields(statistics.players)) return { ...save, formatVersion: SAVE_FORMAT_VERSION }
+  const players = Object.fromEntries(Object.entries(statistics.players).map(([id, counters]) => [id, involuntary(counters)]))
+  return { ...save, formatVersion: SAVE_FORMAT_VERSION, statistics: { ...statistics, players } }
 }
 
 const MIGRATIONS: Record<number, (save: Fields, engineState: Fields) => Fields> = {
   [FORMAT_BEFORE_TRADES]: addTradeLimits,
   [FORMAT_BEFORE_OPTIONS]: addGameOptions,
   [FORMAT_BEFORE_COUNTERS]: addCounterOffers,
+  [FORMAT_BEFORE_RESIGNATION]: markBankruptciesInvoluntary,
 }
 
-/** Brings a saved game of an older format to the current one, one format after the other: a save from before the trades gets empty trade limits, a save from before the game options gets them all off, an empty pot, its rounds counted as before and the last solvent player as reason of a victory, and an offer saved before the counter-offers becomes an offer that can be countered. */
+/** Brings a saved game of an older format to the current one, one format after the other: a save from before the trades gets empty trade limits, a save from before the game options gets them all off, an empty pot, its rounds counted as before and the last solvent player as reason of a victory, an offer saved before the counter-offers becomes an offer that can be countered, and a bankruptcy saved before giving up was possible is marked as not voluntary. */
 export function migrateSavedGame(value: unknown): unknown {
   let save = value
   for (;;) {

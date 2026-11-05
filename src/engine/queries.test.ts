@@ -53,18 +53,19 @@ describe('legal actions', () => {
     expect(types).toContain('mortgage')
     expect(types).not.toContain('payQuarantineFine')
     expect(types).not.toContain('endTurn')
+    expect(types).toContain('declareBankruptcy')
   })
 
   it('offers quarantine exits to a quarantined player', () => {
     const state = makeState({ overrides: [{ position: 10, quarantine: { failedAttempts: 0 } }] })
-    expect(legalActions(state).map((a) => a.type)).toEqual(['rollDice', 'payQuarantineFine'])
+    expect(legalActions(state).map((a) => a.type)).toEqual(['rollDice', 'payQuarantineFine', 'declareBankruptcy'])
   })
 
   it('offers ending the turn only without a double to play', () => {
     const types = (mayRollAgain: boolean) =>
       legalActions(makeState({ phase: { kind: 'postRoll', mayRollAgain } })).map((a) => a.type)
-    expect(types(false)).toEqual(['endTurn'])
-    expect(types(true)).toEqual(['rollDice'])
+    expect(types(false)).toEqual(['endTurn', 'declareBankruptcy'])
+    expect(types(true)).toEqual(['rollDice', 'declareBankruptcy'])
   })
 
   it('offers a minimum bid and passing during an auction', () => {

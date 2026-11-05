@@ -1,8 +1,8 @@
 import { netWorth, squareAt, type GameEvent, type GameState, type PlayerId, type SquareId } from '../../engine'
 import { trackPositions } from './positions'
 
-/** When a player went bankrupt, to whom, and how many players had gone bankrupt before plus one. */
-export type Bankruptcy = { turn: number; creditor: PlayerId | 'bank'; rank: number }
+/** When a player went bankrupt, to whom, how many players had gone bankrupt before plus one, and whether they gave up during their turn. */
+export type Bankruptcy = { turn: number; creditor: PlayerId | 'bank'; rank: number; voluntary: boolean }
 
 /** What a player did during the game. */
 export type PlayerStatistics = {
@@ -141,7 +141,7 @@ export function recordStatistics(stats: GameStatistics, before: GameState, event
       case 'bankrupt': {
         const counters = players[event.playerId]
         bankruptcies += 1
-        if (counters) counters.bankruptcy = { turn, creditor: event.creditor, rank: bankruptcies }
+        if (counters) counters.bankruptcy = { turn, creditor: event.creditor, rank: bankruptcies, voluntary: event.voluntary }
         return
       }
       default:

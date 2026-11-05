@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { createGame, type AiLevel, type GameState, type PlayerSetup } from '../engine'
+import { AI_LEVELS, createGame, type AiLevel, type GameState, type PlayerSetup } from '../engine'
 import { A, B, makeState } from '../engine/testUtils'
 import { chooseAction, playUntilHumanOrEnd } from './index'
+import { playWhile } from './levels/testUtils'
 import { playerView } from './playerView'
 
 const RICH_FAMILIES = {
@@ -84,5 +85,39 @@ describe('playUntilHumanOrEnd', () => {
     const { state, stop } = playUntilHumanOrEnd(aiGame(['easy', 'normal', 'hard'], 11), { maxRounds: 300 })
     expect(stop).not.toBe('human')
     if (stop === 'gameOver') expect(state.winner).not.toBeNull()
+  })
+})
+
+describe('giving up a lost game', () => {
+  const lost = (phase?: GameState['phase']) =>
+    makeState({
+      overrides: [{ cash: 20 }, { cash: 500 }],
+      ownership: {
+        minitel: { owner: A },
+        'cash-machine': { owner: B, level: 5 },
+        neobank: { owner: B, level: 5 },
+        'online-exchange': { owner: B, level: 5 },
+      },
+      phase,
+    })
+
+  it.each(AI_LEVELS)('declares bankruptcy at the start of its turn at the %s level', (level) => {
+    expect(chooseAction(playerView(lost()), A, level)).toEqual({ type: 'declareBankruptcy', playerId: A })
+  })
+
+  it('takes the same decision twice on the same view', () => {
+    const view = playerView(lost())
+    expect(chooseAction(view, A, 'normal')).toEqual(chooseAction(view, A, 'normal'))
+  })
+
+  it('ends its turn instead of giving up after the roll', () => {
+    expect(chooseAction(playerView(lost({ kind: 'postRoll', mayRollAgain: false })), A, 'normal')).toEqual({ type: 'endTurn', playerId: A })
+  })
+
+  it('mortgages and pays a debt it can cover instead of giving up', () => {
+    const start = lost({ kind: 'debt', debtor: A, payments: [{ to: B, amount: 40, reason: 'rent' }], resume: { kind: 'postRoll' } })
+    const { actions, next } = playWhile(start, A, 'normal', (action) => action.type !== 'payDebt' && action.type !== 'declareBankruptcy')
+    expect(actions).toEqual([{ type: 'mortgage', playerId: A, squareId: 'minitel' }])
+    expect(next).toEqual({ type: 'payDebt', playerId: A })
   })
 })

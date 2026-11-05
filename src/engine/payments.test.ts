@@ -106,7 +106,7 @@ describe('bankruptcy', () => {
     expect(player(state, B).keys).toEqual([cardIdByTitle('patch', 'Clé de déchiffrement')])
     expect(state.bankStock.backdoors).toBe(32)
     expect(player(state, A)).toMatchObject({ bankrupt: true, cash: 0, keys: [] })
-    expect(events).toContainEqual({ type: 'bankrupt', playerId: A, creditor: B })
+    expect(events).toContainEqual({ type: 'bankrupt', playerId: A, creditor: B, voluntary: false })
   })
 
   it('returns everything to the bank', () => {
@@ -172,5 +172,79 @@ describe('bankruptcy', () => {
     expect(state.phase.kind).toBe('postRoll')
     expect(state.players[state.currentPlayerIndex]?.id).toBe(A)
     expect(player(state, A).cash).toBe(1500 + 5 + 20)
+  })
+})
+
+describe('voluntary bankruptcy', () => {
+  const key = cardIdByTitle('patch', 'Clé de déchiffrement')
+
+  it('returns everything to the bank when the current player gives up before rolling', () => {
+    const start = makeState({
+      players: 3,
+      overrides: [{ cash: 300, keys: [key] }],
+      ownership: { minitel: { owner: A, level: 2 }, 'modem-56k': { owner: A, level: 2 } },
+      bankStock: { backdoors: 28, rootkits: 12 },
+      decks: { patch: [] },
+    })
+    const { state, events } = act(start, { type: 'declareBankruptcy', playerId: A })
+    expect(state.ownership.minitel).toBeUndefined()
+    expect(state.ownership['modem-56k']).toBeUndefined()
+    expect(state.bankStock.backdoors).toBe(32)
+    expect(state.decks.patch).toEqual([key])
+    expect(events).toContainEqual({ type: 'paid', from: A, to: 'bank', amount: 400, reason: 'bankruptcy' })
+    expect(player(state, A)).toMatchObject({ bankrupt: true, cash: 0, keys: [] })
+    expect(state.players[state.currentPlayerIndex]?.id).toBe(B)
+    expect(state.phase).toEqual({ kind: 'preRoll' })
+  })
+
+  it('passes to the next player when giving up with a double still to roll', () => {
+    const start = makeState({ players: 3, doublesInARow: 1, phase: { kind: 'postRoll', mayRollAgain: true } })
+    const { state } = act(start, { type: 'declareBankruptcy', playerId: A })
+    expect(player(state, A).bankrupt).toBe(true)
+    expect(state.players[state.currentPlayerIndex]?.id).toBe(B)
+    expect(state.phase).toEqual({ kind: 'preRoll' })
+    expect(state.doublesInARow).toBe(0)
+  })
+
+  it('leaves the quarantine when giving up from it', () => {
+    const start = makeState({ players: 3, overrides: [{ position: 10, quarantine: { failedAttempts: 1 } }] })
+    const { state } = act(start, { type: 'declareBankruptcy', playerId: A })
+    expect(player(state, A)).toMatchObject({ bankrupt: true, quarantine: null })
+    expect(state.players[state.currentPlayerIndex]?.id).toBe(B)
+  })
+
+  it('makes the opponent win at once in a duel', () => {
+    const start = makeState({ current: 1 })
+    const { state, events } = act(start, { type: 'declareBankruptcy', playerId: B })
+    expect(state.winner).toBe(A)
+    expect(state.winReason).toBe('lastStanding')
+    expect(state.phase).toEqual({ kind: 'gameOver' })
+    expect(events).toContainEqual({ type: 'gameWon', playerId: A, reason: 'lastStanding' })
+  })
+
+  it('ends a limited game when the last player of the last round gives up', () => {
+    const start = makeState({ players: 3, current: 2, settings: { turnLimit: 20 }, overrides: [{ cash: 1500 }, { cash: 2000 }] })
+    start.turnNumber = 20
+    const { state, events } = act(start, { type: 'declareBankruptcy', playerId: C })
+    expect(state.phase).toEqual({ kind: 'gameOver' })
+    expect(state.winReason).toBe('turnLimit')
+    expect(state.winner).toBe(B)
+    expect(events.some((e) => e.type === 'turnStarted')).toBe(false)
+  })
+
+  it('marks the bankruptcy as voluntary, owed to the bank', () => {
+    const { events } = act(makeState({ players: 3 }), { type: 'declareBankruptcy', playerId: A })
+    expect(events).toContainEqual({ type: 'bankrupt', playerId: A, creditor: 'bank', voluntary: true })
+  })
+
+  it('refuses to give up during a purchase decision or an auction', () => {
+    const decision = makeState({ phase: { kind: 'buyDecision', squareId: 'blog' } })
+    expect(rejectCode(decision, { type: 'declareBankruptcy', playerId: A })).toBe('WRONG_PHASE')
+    const auction = makeState({ phase: { kind: 'auction', squareId: 'blog', highBid: 40, highBidder: B, bidders: [A, B], nextBidder: A } })
+    expect(rejectCode(auction, { type: 'declareBankruptcy', playerId: A })).toBe('WRONG_PHASE')
+  })
+
+  it('refuses a player giving up during the turn of another', () => {
+    expect(rejectCode(makeState({ players: 3 }), { type: 'declareBankruptcy', playerId: B })).toBe('NOT_YOUR_TURN')
   })
 })

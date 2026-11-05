@@ -237,7 +237,7 @@ export type GameEvent =
   | { type: 'mortgaged'; playerId: PlayerId; squareId: SquareId }
   | { type: 'unmortgaged'; playerId: PlayerId; squareId: SquareId }
   | { type: 'debtStarted'; debtor: PlayerId; payments: Payment[] }
-  | { type: 'bankrupt'; playerId: PlayerId; creditor: PlayerId | 'bank' }
+  | { type: 'bankrupt'; playerId: PlayerId; creditor: PlayerId | 'bank'; voluntary: boolean }
   | { type: 'assetsTransferred'; from: PlayerId; to: PlayerId | 'bank'; squareIds: SquareId[]; keys: CardId[] }
   | { type: 'gameWon'; playerId: PlayerId; reason: WinReason }
   | { type: 'potIncreased'; playerId: PlayerId; amount: number; reason: PotReason }

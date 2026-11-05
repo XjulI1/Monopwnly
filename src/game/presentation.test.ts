@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { applyAction, cardIdByTitle, legalActions, type GameEvent, type GameSettings, type GameState } from '../engine'
 import { A, B, act, makeState, player, roll } from '../engine/testUtils'
-import { applySteps, presentationSteps, type PresentationStep } from './presentation'
+import { applySteps, bankruptcyNotice, presentationSteps, type PresentationStep } from './presentation'
 
 function stepsOfRoll(start: GameState, dice: [number, number]) {
   const { state, events } = roll(start, dice)
@@ -147,6 +147,31 @@ describe('presentation steps', () => {
   })
 })
 
+describe('bankruptcies', () => {
+  it('announces a player giving up during their turn as a voluntary bankruptcy', () => {
+    const start = makeState({ players: 3, ownership: { minitel: { owner: A } } })
+    const { state, events } = act(start, { type: 'declareBankruptcy', playerId: A })
+    const steps = presentationSteps(start, events)
+    expect(steps).toContainEqual(expect.objectContaining({ kind: 'bankrupt', playerId: A, creditor: 'bank', voluntary: true }))
+    expect(essentials(applySteps(start, steps))).toEqual(essentials(state))
+  })
+
+  it('announces a bankruptcy during a debt as not voluntary', () => {
+    const start = makeState({
+      players: 3,
+      overrides: [{ cash: 10 }],
+      phase: { kind: 'debt', debtor: A, payments: [{ to: B, amount: 200, reason: 'rent' }], resume: { kind: 'postRoll' } },
+    })
+    const steps = presentationSteps(start, act(start, { type: 'declareBankruptcy', playerId: A }).events)
+    expect(steps).toContainEqual(expect.objectContaining({ kind: 'bankrupt', playerId: A, creditor: B, voluntary: false }))
+  })
+
+  it('words the announcement over the board', () => {
+    expect(bankruptcyNotice('Ada', true)).toBe('Ada abandonne')
+    expect(bankruptcyNotice('Bob', false)).toBe('Bob fait faillite')
+  })
+})
+
 describe('projection', () => {
   function nextRandom(seed: number): number {
     return (Math.imul(seed, 1103515245) + 12345) & 0x7fffffff
@@ -160,7 +185,7 @@ describe('projection', () => {
     let random = seed
     const checked: { before: GameState; events: GameEvent[]; after: GameState }[] = []
     for (let i = 0; i < maxActions && state.phase.kind !== 'gameOver'; i++) {
-      const actions = legalActions(state)
+      const actions = legalActions(state).filter((a) => a.type !== 'declareBankruptcy' || state.phase.kind === 'debt')
       const flow = actions.filter((a) => !SQUARE_ACTIONS.includes(a.type))
       random = nextRandom(random)
       const pool = flow.length > 0 && random % 10 < 8 ? flow : actions

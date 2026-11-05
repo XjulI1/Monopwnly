@@ -42,6 +42,7 @@ describe('before and after the roll', () => {
       ['rollDice', 'Lancer les dés', true],
       ['manage', 'Gérer mes systèmes', true],
       ['trade', 'Échanger', true],
+      ['declareBankruptcy', 'Abandonner', true],
     ])
     expect(viewOf(state, IDLE).panel).toBe('turn')
     expect(sequence(state, [press('rollDice')]).actions).toEqual([{ type: 'rollDice', playerId: A }])
@@ -53,6 +54,7 @@ describe('before and after the roll', () => {
       ['rollDice', 'Relancer'],
       ['manage', 'Gérer mes systèmes'],
       ['trade', 'Échanger'],
+      ['declareBankruptcy', 'Abandonner'],
     ])
   })
 
@@ -62,6 +64,7 @@ describe('before and after the roll', () => {
       ['endTurn', 'Fin du tour'],
       ['manage', 'Gérer mes systèmes'],
       ['trade', 'Échanger'],
+      ['declareBankruptcy', 'Abandonner'],
     ])
     expect(sequence(state, [press('endTurn')]).actions).toEqual([{ type: 'endTurn', playerId: A }])
   })
@@ -70,6 +73,45 @@ describe('before and after the roll', () => {
     const manage = button(makeState(), 'manage')
     expect(manage?.enabled).toBe(false)
     expect(manage?.reason).toBe('Aucune action possible sur vos systèmes pour l’instant.')
+  })
+})
+
+describe('giving up', () => {
+  const ending = makeState({ players: 3, phase: { kind: 'postRoll', mayRollAgain: false } })
+
+  it('offers to give up last, with the F key, before and after the roll', () => {
+    for (const state of [makeState({ players: 3 }), ending]) {
+      expect(buttonsOf(state).at(-1)).toMatchObject({ id: 'declareBankruptcy', label: 'Abandonner', enabled: true, shortcut: 'F' })
+    }
+  })
+
+  it('does not offer to give up in management mode', () => {
+    const state = makeState({ ownership: retroAndBlog })
+    const { interaction } = sequence(state, [press('manage')])
+    expect(buttonsOf(state, interaction).map((b) => b.id)).not.toContain('declareBankruptcy')
+  })
+
+  it('asks for a confirmation before giving up', () => {
+    const asked = sequence(ending, [press('declareBankruptcy')])
+    expect(asked.actions).toEqual([])
+    expect(viewOf(ending, asked.interaction).confirmingResignation).toBe(true)
+    expect(viewOf(ending, asked.interaction).debt).toBeNull()
+    expect(buttonsOf(ending, asked.interaction).map((b) => [b.id, b.label])).toEqual([
+      ['confirmBankruptcy', 'Confirmer l’abandon'],
+      ['cancelBankruptcy', 'Annuler'],
+    ])
+    expect(sequence(ending, [press('confirmBankruptcy')], asked.interaction).actions).toEqual([{ type: 'declareBankruptcy', playerId: A }])
+  })
+
+  it('goes back to the turn when giving up is cancelled', () => {
+    const { interaction, actions } = sequence(ending, [press('declareBankruptcy'), press('cancelBankruptcy')])
+    expect(actions).toEqual([])
+    expect(viewOf(ending, interaction).confirmingResignation).toBe(false)
+    expect(buttonsOf(ending, interaction).map((b) => b.id)).toEqual(['endTurn', 'manage', 'trade', 'declareBankruptcy'])
+  })
+
+  it('is not confirming when no bankruptcy was asked', () => {
+    expect(viewOf(ending, IDLE).confirmingResignation).toBe(false)
   })
 })
 
@@ -84,6 +126,7 @@ describe('quarantine', () => {
       ['rollDice', 'Tenter un double'],
       ['manage', 'Gérer mes systèmes'],
       ['trade', 'Échanger'],
+      ['declareBankruptcy', 'Abandonner'],
     ])
   })
 

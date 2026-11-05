@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { GameEvent, TradeOffer } from '../../engine'
-import { countTrades, NO_TRADES, runTournament, type TournamentOptions } from './runTournament'
+import { countResignations, countTrades, NO_TRADES, runTournament, type TournamentOptions } from './runTournament'
 
 const SHORT: TournamentOptions = {
   games: 20,
@@ -23,6 +23,7 @@ describe('runTournament', () => {
     expect(report.trades.accepted).toBeLessThanOrEqual(report.trades.proposed)
     expect(report.trades.acceptedPerGame).toBe(report.trades.accepted / report.games)
     expect(report.trades.counterAccepted).toBeLessThanOrEqual(report.trades.countered)
+    expect(report.resignations).toBeGreaterThanOrEqual(0)
   })
 
   it('counts every finished game once among the places', () => {
@@ -40,6 +41,18 @@ describe('runTournament', () => {
 
   it('gives the same report for the same seeds', () => {
     expect(runTournament(SHORT)).toEqual(report)
+  })
+})
+
+describe('countResignations', () => {
+  it('counts the players who gave up, not the other bankruptcies', () => {
+    const events: GameEvent[] = [
+      { type: 'bankrupt', playerId: 'p1', creditor: 'bank', voluntary: true },
+      { type: 'bankrupt', playerId: 'p2', creditor: 'p3', voluntary: false },
+      { type: 'bankrupt', playerId: 'p4', creditor: 'bank', voluntary: false },
+    ]
+    expect(countResignations(0, events)).toBe(1)
+    expect(countResignations(2, [])).toBe(2)
   })
 })
 

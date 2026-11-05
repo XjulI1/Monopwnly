@@ -149,6 +149,33 @@ le prix atteint la valeur de veille de la case : elle n'obtiendrait pas plus en 
 Une offre d'achat qui a reçu une contre-proposition compte comme un refus pour la montée de son prix
 au tour suivant.
 
+## Abandon d'une partie perdue
+
+Au début de son tour, avant toute proposition, gestion ou lancer, une IA de n'importe quel niveau
+abandonne en se déclarant en faillite quand sa partie est perdue (`gameLost`, dans
+`src/ai/resignation.ts`). Ses biens retournent alors à la banque, comme pour un humain qui
+abandonne. Deux conditions doivent être réunies :
+
+- **Distancée** : son patrimoine vaut au plus `RESIGN_NET_WORTH_SHARE` (15 %) de celui de
+  l'adversaire non failli le plus riche.
+- **Ruinée à court terme** : sa perte espérée par tour de table est positive, et son patrimoine
+  disponible (argent, revente des constructions, mise en veille des cases actives) n'en couvre pas
+  `RESIGN_RUIN_ROUNDS` (5) tours.
+
+La perte espérée par tour de table (`expectedLossPerRound`) part du loyer qu'elle s'attend à payer
+sur un lancer : pour chaque case active d'un adversaire, sa fréquence d'arrivée multipliée par son
+loyer. On en retire le loyer espéré de ses propres cases actives, payé par tous ses adversaires, et
+la part du salaire de Boot gagnée en moyenne par lancer (200 Ᵽ × 7 / 40 = 35 Ᵽ). Les fréquences
+moyennes sont préférées au risque du prochain lancer, qui dépend de la position et ferait osciller
+la décision d'un tour à l'autre. Les options de partie sont ignorées.
+
+La décision n'est prise qu'au début du tour : jamais après le lancer, ni pendant une enchère, une
+offre ou un règlement de dette, où l'IA garde sa règle habituelle. Le même critère vaut pour les
+trois niveaux, car l'abandon sert le rythme de la partie, pas la force de l'IA. Exemple : avec
+20 Ᵽ et le seul Minitel, face à un adversaire qui a un rootkit sur chaque système de la famille
+Finance, l'IA perd environ 93 Ᵽ par tour de table pour 50 Ᵽ réunissables, et abandonne. Distancée
+mais face à des cases sans construction, elle continue : le salaire couvre les loyers.
+
 ## Dans l'application
 
 Les décisions sont calculées dans un Web Worker (`src/ai/worker.ts`) pour ne jamais figer les
@@ -167,7 +194,8 @@ annule la décision en cours et tous les délais.
 `runTournament` joue des parties entre IA sans interface, échanges compris, avec une limite de
 sécurité de 300 tours de table (une partie qui l'atteint est comptée comme interrompue). Il mesure
 la durée des parties, les victoires par place et par niveau, le rendement de chaque famille, le
-nombre d'échanges proposés et acceptés, et le nombre de contre-propositions faites et acceptées.
+nombre d'échanges proposés et acceptés, le nombre de contre-propositions faites et acceptées, et le
+nombre d'abandons.
 
 - **Force des niveaux** (`src/ai/tournament/strength.test.ts`, dans `pnpm test`) : 180 parties
   facile, normal et difficile, les six ordres de jeu à parts égales. Les victoires doivent être
@@ -179,21 +207,23 @@ nombre d'échanges proposés et acceptés, et le nombre de contre-propositions f
   réajustement des loyers :
   voir [docs/plateau.md](plateau.md#équilibrage).
 
-Derniers résultats (4 novembre 2026, avec les contre-propositions) :
+Derniers résultats (5 novembre 2026, avec l'abandon) :
 
-| Tournoi | Parties terminées | Facile | Normal | Difficile | Échanges acceptés par partie | Contre-propositions faites (acceptées) |
-|---|---|---|---|---|---|---|
-| Force, 180 parties | 180 | 12,8 % | 37,8 % | 49,4 % | 3,5 | 219 (20) |
-| Force, 600 parties | 599 | 12,9 % | 33,7 % | 53,4 % | 3,5 | 810 (65) |
+| Tournoi | Parties terminées | Facile | Normal | Difficile | Échanges acceptés par partie | Contre-propositions faites (acceptées) | Abandons |
+|---|---|---|---|---|---|---|---|
+| Force, 180 parties | 180 | 12,2 % | 37,8 % | 50,0 % | 3,5 | 217 (20) | 56 |
+| Force, 600 parties | 599 | 13,0 % | 34,1 % | 52,9 % | 3,5 | 798 (64) | 166 |
 
 | Équilibrage, 400 parties | Mesure |
 |---|---|
-| Parties interrompues | 0,5 % |
-| Durée médiane (90e centile) | 41 tours de table (66) |
-| Victoires de la 1re à la 4e place | 26,6 %, 24,9 %, 25,9 %, 22,6 % |
-| Écart de rendement entre familles | 2,96 |
-| Échanges acceptés par partie | 4,7 |
-| Contre-propositions faites (acceptées) | 1 961 (1 026) |
+| Parties interrompues | 0,3 % |
+| Durée médiane (90e centile) | 39 tours de table (69) |
+| Victoires de la 1re à la 4e place | 26,1 %, 26,1 %, 24,6 %, 23,3 % |
+| Écart de rendement entre familles | 2,93 |
+| Échanges acceptés par partie | 4,4 |
+| Contre-propositions faites (acceptées) | 1 862 (981) |
+| Abandons | 389 |
+| Parties à 6 000 Ᵽ terminées par l'objectif | 94 % |
 
 Avant les échanges, environ une partie sur cinq à trois niveaux atteignait la limite de 300 tours :
 l'IA facile bloquait des familles que personne ne pouvait plus compléter. Les échanges ont fait
@@ -205,3 +235,9 @@ Les contre-propositions laissent la force des niveaux presque inchangée : entre
 une sur dix environ est acceptée. Entre IA normales, une sur deux l'est, et le nombre d'échanges
 conclus par partie double (de 2,0 à 4,7). L'écart de rendement entre familles monte en conséquence
 de 2,5 à 2,96, juste sous la limite de 3 (voir [docs/plateau.md](plateau.md#équilibrage)).
+
+L'abandon laisse la force des niveaux inchangée : à trois niveaux, on compte un abandon pour trois
+parties environ, et un par partie entre quatre IA normales. Le seuil de patrimoine a été fixé à
+15 % après un premier essai à 20 %. À 20 %, les abandons faisaient finir trop de parties par le
+dernier joueur solvable avant l'objectif de 6 000 Ᵽ : 89 % seulement se terminaient par l'objectif,
+sous le seuil de 90 % du tournoi d'équilibrage, contre 96,5 % sans abandon.

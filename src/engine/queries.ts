@@ -107,11 +107,13 @@ export function flowCandidates(state: PublicGameState): Action[] {
         { type: 'rollDice', playerId },
         { type: 'payQuarantineFine', playerId },
         { type: 'useDecryptionKey', playerId },
+        { type: 'declareBankruptcy', playerId },
       ]
     case 'postRoll':
       return [
         { type: 'rollDice', playerId },
         { type: 'endTurn', playerId },
+        { type: 'declareBankruptcy', playerId },
       ]
     case 'buyDecision':
       return [

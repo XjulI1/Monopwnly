@@ -13,7 +13,7 @@
         "level": "easy"
       },
       "cash": 0,
-      "position": 38,
+      "position": 24,
       "quarantine": null,
       "keys": [],
       "bankrupt": true
@@ -26,8 +26,8 @@
         "kind": "ai",
         "level": "normal"
       },
-      "cash": 2064,
-      "position": 37,
+      "cash": 679,
+      "position": 0,
       "quarantine": null,
       "keys": [
         "exploit-15"
@@ -43,7 +43,7 @@
         "level": "hard"
       },
       "cash": 0,
-      "position": 24,
+      "position": 26,
       "quarantine": null,
       "keys": [],
       "bankrupt": true
@@ -68,7 +68,7 @@
     "cash-machine": {
       "owner": "p2",
       "mortgaged": false,
-      "level": 0
+      "level": 3
     },
     "online-shop": {
       "owner": "p2",
@@ -135,24 +135,34 @@
       "mortgaged": true,
       "level": 0
     },
+    "datacenter": {
+      "owner": "p2",
+      "mortgaged": false,
+      "level": 0
+    },
+    "neobank": {
+      "owner": "p2",
+      "mortgaged": false,
+      "level": 3
+    },
+    "blog": {
+      "owner": "p2",
+      "mortgaged": false,
+      "level": 0
+    },
     "state-mainframe": {
       "owner": "p2",
       "mortgaged": false,
       "level": 0
     },
-    "smart-fridge": {
+    "online-exchange": {
       "owner": "p2",
       "mortgaged": false,
-      "level": 0
-    },
-    "proxy-node": {
-      "owner": "p2",
-      "mortgaged": false,
-      "level": 0
+      "level": 3
     }
   },
   "bankStock": {
-    "backdoors": 32,
+    "backdoors": 23,
     "rootkits": 9
   },
   "decks": {
@@ -174,6 +184,7 @@
       "exploit-07"
     ],
     "patch": [
+      "patch-11",
       "patch-07",
       "patch-14",
       "patch-10",
@@ -188,21 +199,20 @@
       "patch-16",
       "patch-01",
       "patch-13",
-      "patch-15",
-      "patch-11"
+      "patch-15"
     ]
   },
   "currentPlayerIndex": 2,
-  "doublesInARow": 1,
-  "turnNumber": 44,
+  "doublesInARow": 0,
+  "turnNumber": 46,
   "lastRoll": [
     4,
-    4
+    5
   ],
   "phase": {
     "kind": "gameOver"
   },
-  "rngState": -1365494030,
+  "rngState": 402130586,
   "winner": "p2",
   "tradeLimits": {
     "thisTurn": {},
@@ -212,9 +222,9 @@
           "holder": "p3",
           "count": 3
         },
-        "ai-kernel": {
+        "forum": {
           "holder": "p3",
-          "count": 3
+          "count": 2
         }
       }
     }
@@ -1185,77 +1195,26 @@
 {"type":"mortgaged","playerId":"p3","squareId":"ai-kernel"}
 {"type":"paid","from":"p3","to":"p2","amount":1300,"reason":"rent"}
 {"type":"turnStarted","playerId":"p1","turnNumber":39}
-{"type":"diceRolled","playerId":"p1","dice":[2,3],"purpose":"move"}
-{"type":"moved","playerId":"p1","path":[25,26,27,28,29],"backward":false}
-{"type":"turnStarted","playerId":"p2","turnNumber":40}
-{"type":"diceRolled","playerId":"p2","dice":[5,5],"purpose":"move"}
-{"type":"moved","playerId":"p2","path":[17,18,19,20,21,22,23,24,25,26],"backward":false}
-{"type":"diceRolled","playerId":"p2","dice":[6,5],"purpose":"move"}
-{"type":"moved","playerId":"p2","path":[27,28,29,30,31,32,33,34,35,36,37],"backward":false}
-{"type":"propertyDeclined","playerId":"p2","squareId":"state-mainframe"}
-{"type":"auctionStarted","squareId":"state-mainframe","bidders":["p2","p3","p1"]}
-{"type":"bidPlaced","playerId":"p2","amount":10}
-{"type":"bidPassed","playerId":"p3"}
-{"type":"bidPassed","playerId":"p1"}
-{"type":"paid","from":"p2","to":"bank","amount":10,"reason":"auction"}
-{"type":"auctionWon","playerId":"p2","squareId":"state-mainframe","amount":10}
-{"type":"tradeProposed","offer":{"from":"p2","to":"p3","give":{"squares":[],"cash":400,"keys":[]},"receive":{"squares":["ai-kernel"],"cash":0,"keys":[]}}}
-{"type":"tradeRejected","offer":{"from":"p2","to":"p3","give":{"squares":[],"cash":400,"keys":[]},"receive":{"squares":["ai-kernel"],"cash":0,"keys":[]}}}
-{"type":"turnStarted","playerId":"p3","turnNumber":40}
-{"type":"diceRolled","playerId":"p3","dice":[5,6],"purpose":"move"}
-{"type":"moved","playerId":"p3","path":[22,23,24,25,26,27,28,29,30,31,32],"backward":false}
-{"type":"paid","from":"p3","to":"bank","amount":50,"reason":"build"}
-{"type":"backdoorBuilt","playerId":"p3","squareId":"minitel","level":1}
-{"type":"paid","from":"p3","to":"bank","amount":50,"reason":"build"}
-{"type":"backdoorBuilt","playerId":"p3","squareId":"modem-56k","level":1}
-{"type":"turnStarted","playerId":"p1","turnNumber":40}
-{"type":"diceRolled","playerId":"p1","dice":[4,5],"purpose":"move"}
-{"type":"moved","playerId":"p1","path":[30,31,32,33,34,35,36,37,38],"backward":false}
-{"type":"debtStarted","debtor":"p1","payments":[{"to":"bank","amount":100,"reason":"tax"}]}
 {"type":"paid","from":"p1","to":"bank","amount":21,"reason":"bankruptcy"}
 {"type":"assetsTransferred","from":"p1","to":"bank","squareIds":["network-printer","work-mail","blog","neobank","datacenter","proxy-node","mesh-node","smart-fridge","online-exchange","wifi-bulb"],"keys":["patch-15"]}
-{"type":"bankrupt","playerId":"p1","creditor":"bank"}
-{"type":"turnStarted","playerId":"p2","turnNumber":41}
-{"type":"tradeProposed","offer":{"from":"p2","to":"p3","give":{"squares":[],"cash":600,"keys":[]},"receive":{"squares":["ai-kernel"],"cash":0,"keys":[]}}}
-{"type":"tradeCountered","offer":{"from":"p3","to":"p2","give":{"squares":["ai-kernel"],"cash":0,"keys":[]},"receive":{"squares":[],"cash":900,"keys":[]}},"original":{"from":"p2","to":"p3","give":{"squares":[],"cash":600,"keys":[]},"receive":{"squares":["ai-kernel"],"cash":0,"keys":[]}}}
-{"type":"tradeRejected","offer":{"from":"p3","to":"p2","give":{"squares":["ai-kernel"],"cash":0,"keys":[]},"receive":{"squares":[],"cash":900,"keys":[]}},"original":{"from":"p2","to":"p3","give":{"squares":[],"cash":600,"keys":[]},"receive":{"squares":["ai-kernel"],"cash":0,"keys":[]}}}
-{"type":"diceRolled","playerId":"p2","dice":[5,2],"purpose":"move"}
-{"type":"moved","playerId":"p2","path":[38,39,0,1,2,3,4],"backward":false}
-{"type":"passedBoot","playerId":"p2"}
-{"type":"paid","from":"bank","to":"p2","amount":200,"reason":"salary"}
-{"type":"turnStarted","playerId":"p3","turnNumber":41}
-{"type":"diceRolled","playerId":"p3","dice":[3,4],"purpose":"move"}
-{"type":"moved","playerId":"p3","path":[33,34,35,36,37,38,39],"backward":false}
-{"type":"turnStarted","playerId":"p2","turnNumber":42}
-{"type":"tradeProposed","offer":{"from":"p2","to":"p3","give":{"squares":[],"cash":800,"keys":[]},"receive":{"squares":["ai-kernel"],"cash":0,"keys":[]}}}
-{"type":"tradeCountered","offer":{"from":"p3","to":"p2","give":{"squares":["ai-kernel"],"cash":0,"keys":[]},"receive":{"squares":[],"cash":960,"keys":[]}},"original":{"from":"p2","to":"p3","give":{"squares":[],"cash":800,"keys":[]},"receive":{"squares":["ai-kernel"],"cash":0,"keys":[]}}}
-{"type":"tradeRejected","offer":{"from":"p3","to":"p2","give":{"squares":["ai-kernel"],"cash":0,"keys":[]},"receive":{"squares":[],"cash":960,"keys":[]}},"original":{"from":"p2","to":"p3","give":{"squares":[],"cash":800,"keys":[]},"receive":{"squares":["ai-kernel"],"cash":0,"keys":[]}}}
-{"type":"diceRolled","playerId":"p2","dice":[2,2],"purpose":"move"}
-{"type":"moved","playerId":"p2","path":[5,6,7,8],"backward":false}
-{"type":"cardDrawn","playerId":"p2","deck":"patch","cardId":"patch-11"}
-{"type":"paid","from":"p2","to":"bank","amount":50,"reason":"card"}
-{"type":"diceRolled","playerId":"p2","dice":[3,4],"purpose":"move"}
-{"type":"moved","playerId":"p2","path":[9,10,11,12,13,14,15],"backward":false}
-{"type":"cardDrawn","playerId":"p2","deck":"exploit","cardId":"exploit-07"}
-{"type":"moved","playerId":"p2","path":[16,17,18],"backward":false}
-{"type":"turnStarted","playerId":"p3","turnNumber":42}
-{"type":"diceRolled","playerId":"p3","dice":[5,3],"purpose":"move"}
-{"type":"moved","playerId":"p3","path":[0,1,2,3,4,5,6,7],"backward":false}
+{"type":"bankrupt","playerId":"p1","creditor":"bank","voluntary":true}
+{"type":"turnStarted","playerId":"p2","turnNumber":40}
+{"type":"diceRolled","playerId":"p2","dice":[2,3],"purpose":"move"}
+{"type":"moved","playerId":"p2","path":[17,18,19,20,21],"backward":false}
+{"type":"turnStarted","playerId":"p3","turnNumber":40}
+{"type":"diceRolled","playerId":"p3","dice":[5,5],"purpose":"move"}
+{"type":"moved","playerId":"p3","path":[22,23,24,25,26,27,28,29,30,31],"backward":false}
+{"type":"paid","from":"p3","to":"p2","amount":40,"reason":"rent"}
+{"type":"paid","from":"p3","to":"bank","amount":50,"reason":"build"}
+{"type":"backdoorBuilt","playerId":"p3","squareId":"minitel","level":1}
+{"type":"diceRolled","playerId":"p3","dice":[6,5],"purpose":"move"}
+{"type":"moved","playerId":"p3","path":[32,33,34,35,36,37,38,39,0,1,2],"backward":false}
 {"type":"passedBoot","playerId":"p3"}
 {"type":"paid","from":"bank","to":"p3","amount":200,"reason":"salary"}
-{"type":"propertyDeclined","playerId":"p3","squareId":"smart-fridge"}
-{"type":"auctionStarted","squareId":"smart-fridge","bidders":["p3","p2"]}
-{"type":"bidPlaced","playerId":"p3","amount":10}
-{"type":"bidPlaced","playerId":"p2","amount":20}
-{"type":"bidPlaced","playerId":"p3","amount":30}
-{"type":"bidPlaced","playerId":"p2","amount":40}
-{"type":"bidPlaced","playerId":"p3","amount":50}
-{"type":"bidPlaced","playerId":"p2","amount":60}
-{"type":"bidPlaced","playerId":"p3","amount":70}
-{"type":"bidPlaced","playerId":"p2","amount":80}
-{"type":"bidPassed","playerId":"p3"}
-{"type":"paid","from":"p2","to":"bank","amount":80,"reason":"auction"}
-{"type":"auctionWon","playerId":"p2","squareId":"smart-fridge","amount":80}
+{"type":"cardDrawn","playerId":"p3","deck":"exploit","cardId":"exploit-07"}
+{"type":"moved","playerId":"p3","path":[3,4],"backward":false}
+{"type":"paid","from":"p3","to":"bank","amount":50,"reason":"build"}
+{"type":"backdoorBuilt","playerId":"p3","squareId":"modem-56k","level":1}
 {"type":"paid","from":"p3","to":"bank","amount":50,"reason":"build"}
 {"type":"backdoorBuilt","playerId":"p3","squareId":"minitel","level":2}
 {"type":"paid","from":"p3","to":"bank","amount":50,"reason":"build"}
@@ -1264,26 +1223,143 @@
 {"type":"backdoorBuilt","playerId":"p3","squareId":"minitel","level":3}
 {"type":"paid","from":"p3","to":"bank","amount":50,"reason":"build"}
 {"type":"backdoorBuilt","playerId":"p3","squareId":"modem-56k","level":3}
-{"type":"turnStarted","playerId":"p2","turnNumber":43}
+{"type":"turnStarted","playerId":"p2","turnNumber":41}
+{"type":"diceRolled","playerId":"p2","dice":[5,6],"purpose":"move"}
+{"type":"moved","playerId":"p2","path":[22,23,24,25,26,27,28,29,30,31,32],"backward":false}
+{"type":"turnStarted","playerId":"p3","turnNumber":41}
+{"type":"diceRolled","playerId":"p3","dice":[4,5],"purpose":"move"}
+{"type":"moved","playerId":"p3","path":[5,6,7,8,9,10,11,12,13],"backward":false}
+{"type":"propertyDeclined","playerId":"p3","squareId":"datacenter"}
+{"type":"auctionStarted","squareId":"datacenter","bidders":["p3","p2"]}
+{"type":"bidPassed","playerId":"p3"}
+{"type":"bidPlaced","playerId":"p2","amount":10}
+{"type":"paid","from":"p2","to":"bank","amount":10,"reason":"auction"}
+{"type":"auctionWon","playerId":"p2","squareId":"datacenter","amount":10}
+{"type":"turnStarted","playerId":"p2","turnNumber":42}
 {"type":"diceRolled","playerId":"p2","dice":[5,2],"purpose":"move"}
-{"type":"moved","playerId":"p2","path":[19,20,21,22,23,24,25],"backward":false}
-{"type":"paid","from":"p2","to":"bank","amount":200,"reason":"purchase"}
-{"type":"propertyBought","playerId":"p2","squareId":"proxy-node","price":200}
+{"type":"moved","playerId":"p2","path":[33,34,35,36,37,38,39],"backward":false}
+{"type":"turnStarted","playerId":"p3","turnNumber":42}
+{"type":"diceRolled","playerId":"p3","dice":[3,4],"purpose":"move"}
+{"type":"moved","playerId":"p3","path":[14,15,16,17,18,19,20],"backward":false}
+{"type":"turnStarted","playerId":"p2","turnNumber":43}
+{"type":"diceRolled","playerId":"p2","dice":[2,2],"purpose":"move"}
+{"type":"moved","playerId":"p2","path":[0,1,2,3],"backward":false}
+{"type":"passedBoot","playerId":"p2"}
+{"type":"paid","from":"bank","to":"p2","amount":200,"reason":"salary"}
+{"type":"paid","from":"p2","to":"p3","amount":150,"reason":"rent"}
+{"type":"diceRolled","playerId":"p2","dice":[3,4],"purpose":"move"}
+{"type":"moved","playerId":"p2","path":[4,5,6,7,8,9,10],"backward":false}
 {"type":"turnStarted","playerId":"p3","turnNumber":43}
-{"type":"diceRolled","playerId":"p3","dice":[5,4],"purpose":"move"}
-{"type":"moved","playerId":"p3","path":[8,9,10,11,12,13,14,15,16],"backward":false}
+{"type":"diceRolled","playerId":"p3","dice":[5,3],"purpose":"move"}
+{"type":"moved","playerId":"p3","path":[21,22,23,24,25,26,27,28],"backward":false}
+{"type":"propertyDeclined","playerId":"p3","squareId":"neobank"}
+{"type":"auctionStarted","squareId":"neobank","bidders":["p3","p2"]}
+{"type":"bidPlaced","playerId":"p3","amount":10}
+{"type":"bidPlaced","playerId":"p2","amount":20}
+{"type":"bidPlaced","playerId":"p3","amount":30}
+{"type":"bidPlaced","playerId":"p2","amount":40}
+{"type":"bidPlaced","playerId":"p3","amount":50}
+{"type":"bidPlaced","playerId":"p2","amount":60}
+{"type":"bidPlaced","playerId":"p3","amount":70}
+{"type":"bidPlaced","playerId":"p2","amount":80}
+{"type":"bidPlaced","playerId":"p3","amount":90}
+{"type":"bidPlaced","playerId":"p2","amount":100}
+{"type":"bidPlaced","playerId":"p3","amount":110}
+{"type":"bidPlaced","playerId":"p2","amount":120}
+{"type":"bidPassed","playerId":"p3"}
+{"type":"paid","from":"p2","to":"bank","amount":120,"reason":"auction"}
+{"type":"auctionWon","playerId":"p2","squareId":"neobank","amount":120}
+{"type":"paid","from":"p3","to":"bank","amount":50,"reason":"build"}
+{"type":"backdoorBuilt","playerId":"p3","squareId":"minitel","level":4}
+{"type":"paid","from":"p3","to":"bank","amount":50,"reason":"build"}
+{"type":"backdoorBuilt","playerId":"p3","squareId":"modem-56k","level":4}
 {"type":"turnStarted","playerId":"p2","turnNumber":44}
-{"type":"diceRolled","playerId":"p2","dice":[3,3],"purpose":"move"}
-{"type":"moved","playerId":"p2","path":[26,27,28,29,30,31],"backward":false}
-{"type":"diceRolled","playerId":"p2","dice":[5,1],"purpose":"move"}
-{"type":"moved","playerId":"p2","path":[32,33,34,35,36,37],"backward":false}
+{"type":"diceRolled","playerId":"p2","dice":[5,2],"purpose":"move"}
+{"type":"moved","playerId":"p2","path":[11,12,13,14,15,16,17],"backward":false}
+{"type":"propertyDeclined","playerId":"p2","squareId":"blog"}
+{"type":"auctionStarted","squareId":"blog","bidders":["p2","p3"]}
+{"type":"bidPlaced","playerId":"p2","amount":10}
+{"type":"bidPlaced","playerId":"p3","amount":20}
+{"type":"bidPlaced","playerId":"p2","amount":30}
+{"type":"bidPassed","playerId":"p3"}
+{"type":"paid","from":"p2","to":"bank","amount":30,"reason":"auction"}
+{"type":"auctionWon","playerId":"p2","squareId":"blog","amount":30}
+{"type":"tradeProposed","offer":{"from":"p2","to":"p3","give":{"squares":[],"cash":180,"keys":[]},"receive":{"squares":["forum"],"cash":0,"keys":[]}}}
+{"type":"tradeRejected","offer":{"from":"p2","to":"p3","give":{"squares":[],"cash":180,"keys":[]},"receive":{"squares":["forum"],"cash":0,"keys":[]}}}
 {"type":"turnStarted","playerId":"p3","turnNumber":44}
+{"type":"diceRolled","playerId":"p3","dice":[5,4],"purpose":"move"}
+{"type":"moved","playerId":"p3","path":[29,30,31,32,33,34,35,36,37],"backward":false}
+{"type":"propertyDeclined","playerId":"p3","squareId":"state-mainframe"}
+{"type":"auctionStarted","squareId":"state-mainframe","bidders":["p3","p2"]}
+{"type":"bidPlaced","playerId":"p3","amount":10}
+{"type":"bidPlaced","playerId":"p2","amount":20}
+{"type":"bidPlaced","playerId":"p3","amount":30}
+{"type":"bidPlaced","playerId":"p2","amount":40}
+{"type":"bidPlaced","playerId":"p3","amount":50}
+{"type":"bidPlaced","playerId":"p2","amount":60}
+{"type":"bidPassed","playerId":"p3"}
+{"type":"paid","from":"p2","to":"bank","amount":60,"reason":"auction"}
+{"type":"auctionWon","playerId":"p2","squareId":"state-mainframe","amount":60}
+{"type":"paid","from":"p3","to":"bank","amount":50,"reason":"build"}
+{"type":"backdoorBuilt","playerId":"p3","squareId":"minitel","level":5}
+{"type":"turnStarted","playerId":"p2","turnNumber":45}
+{"type":"tradeProposed","offer":{"from":"p2","to":"p3","give":{"squares":[],"cash":270,"keys":[]},"receive":{"squares":["forum"],"cash":0,"keys":[]}}}
+{"type":"tradeRejected","offer":{"from":"p2","to":"p3","give":{"squares":[],"cash":270,"keys":[]},"receive":{"squares":["forum"],"cash":0,"keys":[]}}}
+{"type":"diceRolled","playerId":"p2","dice":[3,3],"purpose":"move"}
+{"type":"moved","playerId":"p2","path":[18,19,20,21,22,23],"backward":false}
+{"type":"diceRolled","playerId":"p2","dice":[5,1],"purpose":"move"}
+{"type":"moved","playerId":"p2","path":[24,25,26,27,28,29],"backward":false}
+{"type":"paid","from":"p2","to":"bank","amount":280,"reason":"purchase"}
+{"type":"propertyBought","playerId":"p2","squareId":"online-exchange","price":280}
+{"type":"paid","from":"p2","to":"bank","amount":150,"reason":"build"}
+{"type":"backdoorBuilt","playerId":"p2","squareId":"online-exchange","level":1}
+{"type":"paid","from":"p2","to":"bank","amount":150,"reason":"build"}
+{"type":"backdoorBuilt","playerId":"p2","squareId":"neobank","level":1}
+{"type":"paid","from":"p2","to":"bank","amount":150,"reason":"build"}
+{"type":"backdoorBuilt","playerId":"p2","squareId":"cash-machine","level":1}
+{"type":"paid","from":"p2","to":"bank","amount":150,"reason":"build"}
+{"type":"backdoorBuilt","playerId":"p2","squareId":"online-exchange","level":2}
+{"type":"paid","from":"p2","to":"bank","amount":150,"reason":"build"}
+{"type":"backdoorBuilt","playerId":"p2","squareId":"neobank","level":2}
+{"type":"paid","from":"p2","to":"bank","amount":150,"reason":"build"}
+{"type":"backdoorBuilt","playerId":"p2","squareId":"cash-machine","level":2}
+{"type":"paid","from":"p2","to":"bank","amount":150,"reason":"build"}
+{"type":"backdoorBuilt","playerId":"p2","squareId":"online-exchange","level":3}
+{"type":"paid","from":"p2","to":"bank","amount":150,"reason":"build"}
+{"type":"backdoorBuilt","playerId":"p2","squareId":"neobank","level":3}
+{"type":"paid","from":"p2","to":"bank","amount":150,"reason":"build"}
+{"type":"backdoorBuilt","playerId":"p2","squareId":"cash-machine","level":3}
+{"type":"turnStarted","playerId":"p3","turnNumber":45}
 {"type":"diceRolled","playerId":"p3","dice":[4,4],"purpose":"move"}
-{"type":"moved","playerId":"p3","path":[17,18,19,20,21,22,23,24],"backward":false}
-{"type":"debtStarted","debtor":"p3","payments":[{"to":"p2","amount":1425,"reason":"rent"}]}
+{"type":"moved","playerId":"p3","path":[38,39,0,1,2,3,4,5],"backward":false}
+{"type":"passedBoot","playerId":"p3"}
+{"type":"paid","from":"bank","to":"p3","amount":200,"reason":"salary"}
+{"type":"paid","from":"p3","to":"bank","amount":200,"reason":"tax"}
+{"type":"diceRolled","playerId":"p3","dice":[4,4],"purpose":"move"}
+{"type":"moved","playerId":"p3","path":[6,7,8,9,10,11,12,13],"backward":false}
+{"type":"debtStarted","debtor":"p3","payments":[{"to":"p2","amount":80,"reason":"rent"}]}
+{"type":"paid","from":"bank","to":"p3","amount":25,"reason":"sellBuilding"}
+{"type":"backdoorSold","playerId":"p3","squareId":"minitel","level":4}
+{"type":"paid","from":"bank","to":"p3","amount":25,"reason":"sellBuilding"}
+{"type":"backdoorSold","playerId":"p3","squareId":"modem-56k","level":3}
+{"type":"paid","from":"p3","to":"p2","amount":80,"reason":"rent"}
+{"type":"diceRolled","playerId":"p3","dice":[1,3],"purpose":"move"}
+{"type":"moved","playerId":"p3","path":[14,15,16,17],"backward":false}
+{"type":"paid","from":"p3","to":"p2","amount":14,"reason":"rent"}
+{"type":"turnStarted","playerId":"p2","turnNumber":46}
+{"type":"diceRolled","playerId":"p2","dice":[6,5],"purpose":"move"}
+{"type":"moved","playerId":"p2","path":[30,31,32,33,34,35,36,37,38,39,0],"backward":false}
+{"type":"passedBoot","playerId":"p2"}
+{"type":"paid","from":"bank","to":"p2","amount":200,"reason":"salary"}
+{"type":"tradeProposed","offer":{"from":"p2","to":"p3","give":{"squares":[],"cash":360,"keys":[]},"receive":{"squares":["forum"],"cash":0,"keys":[]}}}
+{"type":"tradeAccepted","offer":{"from":"p2","to":"p3","give":{"squares":[],"cash":360,"keys":[]},"receive":{"squares":["forum"],"cash":0,"keys":[]}}}
+{"type":"turnStarted","playerId":"p3","turnNumber":46}
+{"type":"diceRolled","playerId":"p3","dice":[4,5],"purpose":"move"}
+{"type":"moved","playerId":"p3","path":[18,19,20,21,22,23,24,25,26],"backward":false}
+{"type":"debtStarted","debtor":"p3","payments":[{"to":"p2","amount":950,"reason":"rent"}]}
+{"type":"paid","from":"bank","to":"p3","amount":100,"reason":"sellBuilding"}
 {"type":"paid","from":"bank","to":"p3","amount":75,"reason":"sellBuilding"}
-{"type":"paid","from":"bank","to":"p3","amount":75,"reason":"sellBuilding"}
-{"type":"paid","from":"p3","to":"p2","amount":242,"reason":"bankruptcy"}
-{"type":"assetsTransferred","from":"p3","to":"p2","squareIds":["forum","tor-node","minitel","vpn-node","intranet","modem-56k","satellite","ai-kernel"],"keys":[]}
+{"type":"paid","from":"p3","to":"p2","amount":543,"reason":"bankruptcy"}
+{"type":"assetsTransferred","from":"p3","to":"p2","squareIds":["tor-node","minitel","vpn-node","intranet","modem-56k","satellite","ai-kernel"],"keys":[]}
 {"type":"bankrupt","playerId":"p3","creditor":"p2"}
 {"type":"gameWon","playerId":"p2"}

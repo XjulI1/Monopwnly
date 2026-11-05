@@ -17,8 +17,8 @@ describe('keys shown next to the actions', () => {
   it('names the key of each turn action and declares it to assistive technologies', () => {
     const { wrapper } = mountWithSession(ActionPanel, makeState({ ownership: { minitel: { owner: A } } }))
     const buttons = wrapper.findAll('[data-button]')
-    expect(buttons.map((b) => b.find('span').text())).toEqual(['Lancer les dés (Entrer)', 'Gérer mes systèmes (G)', 'Échanger (E)'])
-    expect(buttons.map((b) => b.attributes('aria-keyshortcuts'))).toEqual(['Enter', 'G', 'E'])
+    expect(buttons.map((b) => b.find('span').text())).toEqual(['Lancer les dés (Entrer)', 'Gérer mes systèmes (G)', 'Échanger (E)', 'Abandonner (F)'])
+    expect(buttons.map((b) => b.attributes('aria-keyshortcuts'))).toEqual(['Enter', 'G', 'E', 'F'])
   })
 
   it('names Enter and Escape in the trade composer', async () => {

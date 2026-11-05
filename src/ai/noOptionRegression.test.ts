@@ -27,6 +27,7 @@ function comparableEvent(event: GameEvent): Fields {
   const fields = event as unknown as Fields
   if (event.type === 'gameWon') return omit(fields, ADDED_VICTORY_FIELDS)
   if ((event.type === 'tradeAccepted' || event.type === 'tradeRejected') && event.original === null) return omit(fields, ['original'])
+  if (event.type === 'bankrupt' && !event.voluntary) return omit(fields, ['voluntary'])
   return fields
 }
 

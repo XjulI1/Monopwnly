@@ -144,7 +144,7 @@ describe('bankruptcies', () => {
       23,
     )
     const { stats } = after(startStatistics(start), start, { type: 'declareBankruptcy', playerId: B })
-    expect(stats.players[B]?.bankruptcy).toEqual({ turn: 23, creditor: A, rank: 1 })
+    expect(stats.players[B]?.bankruptcy).toEqual({ turn: 23, creditor: A, rank: 1, voluntary: false })
     expect(stats.players[A]?.bankruptcy).toBeNull()
   })
 
@@ -160,15 +160,21 @@ describe('bankruptcies', () => {
     )
     const { stats, state } = after(startStatistics(start), start, { type: 'declareBankruptcy', playerId: C })
     expect(state.turnNumber).toBe(10)
-    expect(stats.players[C]?.bankruptcy).toEqual({ turn: 9, creditor: 'bank', rank: 1 })
+    expect(stats.players[C]?.bankruptcy).toEqual({ turn: 9, creditor: 'bank', rank: 1, voluntary: false })
     expect(stats.rounds.at(-1)?.players.map((p) => p.playerId)).toEqual([A, B])
+  })
+
+  it('records a player giving up as a voluntary bankruptcy towards the bank', () => {
+    const start = game({ players: 3 }, 15)
+    const { stats } = after(startStatistics(start), start, { type: 'declareBankruptcy', playerId: A })
+    expect(stats.players[A]?.bankruptcy).toEqual({ turn: 15, creditor: 'bank', rank: 1, voluntary: true })
   })
 
   it('ranks the bankruptcies in the order they happen', () => {
     const before = game({ players: 3 })
     const stats = withEvents(before, [
-      { type: 'bankrupt', playerId: C, creditor: A },
-      { type: 'bankrupt', playerId: B, creditor: A },
+      { type: 'bankrupt', playerId: C, creditor: A, voluntary: false },
+      { type: 'bankrupt', playerId: B, creditor: A, voluntary: false },
     ])
     expect(stats.players[C]?.bankruptcy?.rank).toBe(1)
     expect(stats.players[B]?.bankruptcy?.rank).toBe(2)

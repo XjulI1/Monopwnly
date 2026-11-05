@@ -2,6 +2,8 @@
 import { computed, onMounted, useTemplateRef } from 'vue'
 import { SCENE_COLORS } from '../../board/boardTheme'
 import { cardById, type CardId } from '../../engine'
+import { COMMAND_SHORTCUTS } from '../../game/shortcuts'
+import ShortcutHint from './ShortcutHint.vue'
 
 const props = defineProps<{ cardId: CardId }>()
 
@@ -25,6 +27,7 @@ onMounted(() => root.value?.focus())
     :style="{ borderColor: color, boxShadow: `0 0 0 1px ${color}, 0 0 40px ${color}55` }"
     data-keep-presenting
     data-test="card-reveal"
+    :aria-keyshortcuts="COMMAND_SHORTCUTS.continue"
     @click="emit('dismiss')"
   >
     <span
@@ -33,7 +36,7 @@ onMounted(() => root.value?.focus())
     >{{ card.deck === 'exploit' ? 'Exploit' : 'Patch' }}</span>
     <span class="text-xl font-bold leading-tight">{{ card.title }}</span>
     <span class="text-sm leading-relaxed text-ink/90">{{ card.text }}</span>
-    <span class="mt-1 text-xs text-muted">Toucher pour continuer</span>
+    <span class="mt-1 text-xs text-muted">Toucher pour continuer<ShortcutHint :shortcut="COMMAND_SHORTCUTS.continue" /></span>
   </button>
 </template>
 

@@ -51,7 +51,7 @@ describe('TradeOfferDialog', () => {
   it('accepts, counters or refuses, with no other game command meanwhile', async () => {
     const accepting = mountWithSession(TradeOfferDialog, offered(satelliteFor400))
     expect(accepting.session.view.value.buttons.map((b) => b.id)).toEqual(['acceptTrade', 'counterTrade', 'rejectTrade'])
-    expect(accepting.wrapper.findAll('[data-button]').map((b) => b.text())).toEqual(['Accepter', 'Contre-proposer', 'Refuser'])
+    expect(accepting.wrapper.findAll('[data-button]').map((b) => b.text())).toEqual(['Accepter (Entrer)', 'Contre-proposer (C)', 'Refuser (R)'])
     await accepting.wrapper.get('[data-button="acceptTrade"]').trigger('click')
     expect(accepting.session.engineState.value.ownership.satellite?.owner).toBe(B)
     const refusing = mountWithSession(TradeOfferDialog, offered(satelliteFor400))

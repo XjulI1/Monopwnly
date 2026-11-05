@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 import { formatPwn, formatPwnDelta } from '../../game/format'
 import type { ButtonId, ButtonView } from '../../game/interaction'
+import ShortcutHint from './ShortcutHint.vue'
 
 const props = withDefaults(
   defineProps<{
@@ -38,9 +39,10 @@ const amountText = computed(() => {
       :class="[`btn-${variant}`, { 'flex-col gap-0 py-1': stacked }]"
       :disabled="!button.enabled"
       :data-button="button.id"
+      :aria-keyshortcuts="button.shortcut ?? undefined"
       @click="emit('press', button.id)"
     >
-      <span>{{ button.label }}</span>
+      <span>{{ button.label }}<ShortcutHint :shortcut="button.shortcut" /></span>
       <span
         v-if="amountText"
         class="tabular-nums opacity-80"

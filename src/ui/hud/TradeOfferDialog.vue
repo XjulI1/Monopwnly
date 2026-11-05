@@ -69,7 +69,7 @@ function press(id: ButtonId) {
 <template>
   <div
     v-if="offer"
-    class="panel-card flex w-full max-w-md flex-col gap-4 p-5 shadow-neon"
+    class="panel-card flex w-full max-w-lg flex-col gap-4 p-5 shadow-neon"
     role="dialog"
     aria-modal="true"
     aria-labelledby="trade-offer-title"
@@ -136,7 +136,7 @@ function press(id: ButtonId) {
       </section>
     </div>
 
-    <div class="flex gap-2 whitespace-nowrap">
+    <div class="flex flex-wrap gap-2 whitespace-nowrap">
       <ActionButton
         v-for="button in view.buttons"
         :key="button.id"

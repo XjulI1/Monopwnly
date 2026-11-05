@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ButtonId } from '../../game/interaction'
+import { COMMAND_SHORTCUTS, shortcutName } from '../../game/shortcuts'
 import { useInjectedGameSession } from '../../game/useGameSession'
 import ActionButton from './ActionButton.vue'
 import PropertyDetails from './PropertyDetails.vue'
@@ -23,7 +24,8 @@ function press(id: ButtonId) {
         type="button"
         class="btn btn-ghost -mr-1 -mt-1 px-0"
         aria-label="Fermer la fiche"
-        title="Fermer"
+        :aria-keyshortcuts="COMMAND_SHORTCUTS.close"
+        :title="`Fermer (${shortcutName(COMMAND_SHORTCUTS.close)})`"
         @click="press('closeSheet')"
       >
         <svg

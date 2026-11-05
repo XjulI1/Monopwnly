@@ -3,9 +3,12 @@ import { computed, ref, watch } from 'vue'
 import { squareById } from '../../engine'
 import { formatPwn } from '../../game/format'
 import { bidCheck } from '../../game/interaction'
+import { COMMAND_SHORTCUTS } from '../../game/shortcuts'
 import { useInjectedGameSession } from '../../game/useGameSession'
+import { useShortcutKeys } from '../useShortcutKeys'
 import ActionButton from './ActionButton.vue'
 import AiThinking from './AiThinking.vue'
+import ShortcutHint from './ShortcutHint.vue'
 
 const { view, displayedState, engineState, isPresenting, send } = useInjectedGameSession()
 
@@ -36,6 +39,12 @@ watch(
 function placeBid() {
   if (check.value.allowed) send({ kind: 'bid', amount: draft.value })
 }
+
+useShortcutKeys((shortcut) => {
+  if (shortcut !== COMMAND_SHORTCUTS.submit || view.value.thinking || !check.value.allowed) return false
+  placeBid()
+  return true
+})
 </script>
 
 <template>
@@ -141,9 +150,10 @@ function placeBid() {
             class="btn btn-primary w-full"
             data-test="place-bid"
             :disabled="!check.allowed"
+            :aria-keyshortcuts="COMMAND_SHORTCUTS.submit"
             @click="placeBid"
           >
-            Enchérir
+            Enchérir<ShortcutHint :shortcut="COMMAND_SHORTCUTS.submit" />
           </button>
         </span>
         <ActionButton

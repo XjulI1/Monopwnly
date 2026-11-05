@@ -1,3 +1,4 @@
+import { enableAutoUnmount } from '@vue/test-utils'
 import { afterEach, describe, expect, it } from 'vitest'
 import type { Phase } from '../../engine'
 import { A, B, C, makeState } from '../../engine/testUtils'
@@ -15,9 +16,17 @@ function auction(phase: Partial<AuctionPhase> = {}) {
   })
 }
 
+enableAutoUnmount(afterEach)
+
 afterEach(() => {
   document.body.innerHTML = ''
 })
+
+function pressEnter() {
+  const event = new KeyboardEvent('keydown', { key: 'Enter', bubbles: true, cancelable: true })
+  document.body.dispatchEvent(event)
+  return event
+}
 
 describe('AuctionPanel', () => {
   it('shows the square, the absence of bid and whose turn it is', () => {
@@ -59,6 +68,24 @@ describe('AuctionPanel', () => {
     expect(session.engineState.value.phase).toMatchObject({ highBid: 50, highBidder: A, nextBidder: B })
     expect(wrapper.text()).toContain('À Joueur 2 d’enchérir')
     expect((wrapper.get('input[type="number"]').element as HTMLInputElement).value).toBe('51')
+  })
+
+  it('places the bid on Enter, and passes on P', async () => {
+    const { wrapper, session } = mountWithSession(AuctionPanel, auction())
+    expect(wrapper.get('[data-test="place-bid"]').text()).toBe('Enchérir (Entrer)')
+    expect(wrapper.get('[data-button="pass"]').text()).toBe('Passer (P)')
+    await wrapper.get('[data-shortcut="+50"]').trigger('click')
+    expect(pressEnter().defaultPrevented).toBe(true)
+    expect(session.engineState.value.phase).toMatchObject({ highBid: 50, highBidder: A, nextBidder: B })
+  })
+
+  it('leaves Enter alone while an AI must bid', () => {
+    const state = auction({ nextBidder: B })
+    const bidder = state.players.find((p) => p.id === B)
+    if (bidder) bidder.controller = { kind: 'ai', level: 'normal' }
+    const { session } = mountWithSession(AuctionPanel, state)
+    expect(pressEnter().defaultPrevented).toBe(false)
+    expect(session.engineState.value.phase).toMatchObject({ highBid: 0, nextBidder: B })
   })
 
   it('passes', async () => {

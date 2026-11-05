@@ -4,7 +4,9 @@ import { FAMILY_COLORS } from '../../board/boardTheme'
 import { purchasableById, squareById, type CardId, type PlayerId, type SquareId } from '../../engine'
 import { formatPwn } from '../../game/format'
 import { EMPTY_SIDE, type TradeColumn, type TradeDraft } from '../../game/interaction'
+import { COMMAND_SHORTCUTS, shortcutName } from '../../game/shortcuts'
 import { useInjectedGameSession } from '../../game/useGameSession'
+import ShortcutHint from './ShortcutHint.vue'
 
 type SideKey = 'give' | 'receive'
 
@@ -92,7 +94,8 @@ function changeCash(side: SideKey, column: TradeColumn, delta: number) {
         type="button"
         class="btn btn-ghost -mr-1 px-0"
         aria-label="Fermer sans proposer"
-        title="Fermer"
+        :aria-keyshortcuts="COMMAND_SHORTCUTS.close"
+        :title="`Fermer (${shortcutName(COMMAND_SHORTCUTS.close)})`"
         data-test="trade-close"
         @click="send({ kind: 'button', id: 'closeTrade' })"
       >
@@ -242,18 +245,20 @@ function changeCash(side: SideKey, column: TradeColumn, delta: number) {
         <button
           type="button"
           class="btn btn-ghost"
+          :aria-keyshortcuts="COMMAND_SHORTCUTS.close"
           @click="send({ kind: 'button', id: 'closeTrade' })"
         >
-          Annuler
+          Annuler<ShortcutHint :shortcut="COMMAND_SHORTCUTS.close" />
         </button>
         <button
           type="button"
           class="btn btn-primary"
           :disabled="!composer.check.allowed"
           data-test="trade-propose"
+          :aria-keyshortcuts="COMMAND_SHORTCUTS.submit"
           @click="send({ kind: 'button', id: 'proposeTrade' })"
         >
-          {{ counter ? 'Envoyer la contre-proposition' : 'Proposer' }}
+          {{ counter ? 'Envoyer la contre-proposition' : 'Proposer' }}<ShortcutHint :shortcut="COMMAND_SHORTCUTS.submit" />
         </button>
       </div>
     </footer>

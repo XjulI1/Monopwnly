@@ -5,6 +5,7 @@ import type { GameState } from '../../engine'
 import { workerDecider } from '../../game/aiDecider'
 import { createSaver } from '../../game/persistence'
 import type { GameConfig } from '../../game/setupForm'
+import { shortcutCommand } from '../../game/shortcuts'
 import { GAME_SESSION, useGameSession, type GameHistory } from '../../game/useGameSession'
 import ActionPanel from '../hud/ActionPanel.vue'
 import JournalPanel from '../hud/JournalPanel.vue'
@@ -17,6 +18,7 @@ import SpeedPicker from '../hud/SpeedPicker.vue'
 import StatusBar from '../hud/StatusBar.vue'
 import TradeComposer from '../hud/TradeComposer.vue'
 import TradeOfferDialog from '../hud/TradeOfferDialog.vue'
+import { useShortcutKeys } from '../useShortcutKeys'
 import GameOverOverlay from './GameOverOverlay.vue'
 
 const props = defineProps<{ initial: GameState; config: GameConfig; history?: GameHistory | null }>()
@@ -59,6 +61,15 @@ onMounted(() => {
 function onSelect(index: number | null) {
   send(index === null ? { kind: 'outside' } : { kind: 'square', index })
 }
+
+useShortcutKeys((shortcut) => {
+  const command = shortcutCommand(shortcut, view.value, isPresenting.value)
+  if (!command) return false
+  if (command.kind === 'press') send({ kind: 'button', id: command.id })
+  else if (cardId.value) dismissCard()
+  else skip()
+  return true
+})
 
 function skipOnTap(event: PointerEvent) {
   if (!isPresenting.value) return

@@ -141,7 +141,7 @@ describe('TradeComposer for a counter-offer', () => {
   it('sends the counter-offer once it differs from the offer received', async () => {
     const { wrapper, session } = await counterComposing()
     const send = wrapper.get('[data-test="trade-propose"]')
-    expect(send.text()).toBe('Envoyer la contre-proposition')
+    expect(send.text()).toBe('Envoyer la contre-proposition (Entrer)')
     expect(send.attributes('disabled')).toBeDefined()
     expect(wrapper.get('[data-test="trade-composer"]').text()).toContain('Modifiez l’offre pour faire une contre-proposition.')
     for (let i = 0; i < 5; i++) await wrapper.get('[data-test="give-cash-plus"]').trigger('click')

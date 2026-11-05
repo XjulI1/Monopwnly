@@ -20,6 +20,7 @@ import {
   type TradeSide,
 } from '../engine'
 import { formatPwn } from './format'
+import type { Shortcut } from './shortcuts'
 import {
   bidLimits,
   checkAction,
@@ -83,7 +84,7 @@ export type InteractionInput =
   | { kind: 'bid'; amount: number }
   | { kind: 'tradeDraft'; draft: TradeDraft }
 
-/** A button as the HUD shows it; a disabled button carries the engine reason. */
+/** A button as the HUD shows it; a disabled button carries the engine reason, a main action the key that triggers it. */
 export type ButtonView = {
   id: ButtonId
   label: string
@@ -91,6 +92,7 @@ export type ButtonView = {
   reason: string | null
   amount: number | null
   detail: string | null
+  shortcut: Shortcut | null
 }
 
 /** A square in a column of the trade composer. */
@@ -160,6 +162,23 @@ export type InteractionResult = { interaction: Interaction; action?: Action }
 
 const BID_STEPS = [10, 50, 100] as const
 
+const SHORTCUTS: Partial<Record<ButtonId, Shortcut>> = {
+  rollDice: 'Enter',
+  endTurn: 'Enter',
+  doneManaging: 'Enter',
+  buy: 'Enter',
+  payDebt: 'Enter',
+  acceptTrade: 'Enter',
+  manage: 'G',
+  trade: 'E',
+  payFine: 'P',
+  useKey: 'C',
+  pass: 'P',
+  declareBankruptcy: 'F',
+  counterTrade: 'C',
+  rejectTrade: 'R',
+}
+
 const MANAGEMENT_BUTTONS: Record<ManagementOption['type'], ButtonId> = {
   buildBackdoor: 'build',
   sellBackdoor: 'sell',
@@ -187,7 +206,11 @@ function makeButton(
   amount: number | null = null,
   detail: string | null = null,
 ): ButtonView {
-  return { id, label, enabled: check.allowed, reason: check.reason, amount, detail }
+  return { id, label, enabled: check.allowed, reason: check.reason, amount, detail, shortcut: SHORTCUTS[id] ?? null }
+}
+
+function withShortcut(button: ButtonView, shortcut: Shortcut): ButtonView {
+  return { ...button, shortcut }
 }
 
 function partnersOf(state: GameState, playerId: PlayerId): PlayerId[] {
@@ -255,7 +278,9 @@ function mainButtons(state: GameState, interaction: Interaction, actor: PlayerId
       const price = purchasableById(phase.squareId)?.price ?? 0
       return [
         makeButton('buy', 'Acheter', checkAction(state, { type: 'buyProperty', playerId: actor }), price),
-        makeButton('decline', state.settings.auctions ? 'Mettre aux enchères' : 'Ne pas acheter'),
+        state.settings.auctions
+          ? withShortcut(makeButton('decline', 'Mettre aux enchères'), 'M')
+          : withShortcut(makeButton('decline', 'Ne pas acheter'), 'N'),
       ]
     }
     case 'auction':

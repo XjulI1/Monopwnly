@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
-import { squareById, type GameState } from '../../engine'
-import { A, B, C, makeState } from '../../engine/testUtils'
+import { squareById, type GameState, type TradeOffer } from '../../engine'
+import { A, B, C, act, makeState } from '../../engine/testUtils'
+import { formatPwn } from '../../game/format'
 import { mountWithSession } from '../testUtils'
 import TradeComposer from './TradeComposer.vue'
 
@@ -102,6 +103,54 @@ describe('TradeComposer', () => {
     expect(session.engineState.value.phase).toMatchObject({
       kind: 'tradeOffer',
       offer: { from: A, to: B, give: { squares: ['minitel'], cash: 0, keys: [] }, receive: { squares: ['modem-56k'], cash: 0, keys: [] } },
+    })
+    expect(wrapper.find('[data-test="trade-composer"]').exists()).toBe(false)
+  })
+})
+
+describe('TradeComposer for a counter-offer', () => {
+  const forumFor150: TradeOffer = {
+    from: A,
+    to: B,
+    give: { squares: ['forum'], cash: 0, keys: [] },
+    receive: { squares: [], cash: 150, keys: [] },
+  }
+
+  async function counterComposing() {
+    const offered = act(makeState({ ownership: { forum: { owner: A } } }), { type: 'proposeTrade', playerId: A, offer: forumFor150 }).state
+    const mounted = mountWithSession(TradeComposer, offered)
+    mounted.session.send({ kind: 'button', id: 'counterTrade' })
+    await mounted.wrapper.vm.$nextTick()
+    return mounted
+  }
+
+  it('names the author of the offer, with no partner to choose and no proposals left to count', async () => {
+    const { wrapper } = await counterComposing()
+    expect(wrapper.get('#trade-title').text()).toBe('Contre-proposition à Joueur 1')
+    expect(wrapper.findAll('[data-test="trade-partner"]')).toHaveLength(0)
+    expect(wrapper.get('[data-test="trade-composer"]').text()).not.toContain('restante')
+  })
+
+  it('starts from the offer received, seen from its recipient', async () => {
+    const { wrapper } = await counterComposing()
+    expect(wrapper.get('[data-test="give-cash"]').text()).toBe(formatPwn(150))
+    const forum = wrapper.findAll('[data-test="receive-column"] [data-test="trade-square"]').find((s) => s.text().includes('Forum'))
+    expect(forum?.attributes('aria-pressed')).toBe('true')
+  })
+
+  it('sends the counter-offer once it differs from the offer received', async () => {
+    const { wrapper, session } = await counterComposing()
+    const send = wrapper.get('[data-test="trade-propose"]')
+    expect(send.text()).toBe('Envoyer la contre-proposition')
+    expect(send.attributes('disabled')).toBeDefined()
+    expect(wrapper.get('[data-test="trade-composer"]').text()).toContain('Modifiez l’offre pour faire une contre-proposition.')
+    for (let i = 0; i < 5; i++) await wrapper.get('[data-test="give-cash-plus"]').trigger('click')
+    expect(wrapper.get('[data-test="trade-propose"]').attributes('disabled')).toBeUndefined()
+    await wrapper.get('[data-test="trade-propose"]').trigger('click')
+    expect(session.engineState.value.phase).toMatchObject({
+      kind: 'tradeOffer',
+      offer: { from: B, to: A, give: { squares: [], cash: 200, keys: [] }, receive: { squares: ['forum'], cash: 0, keys: [] } },
+      original: forumFor150,
     })
     expect(wrapper.find('[data-test="trade-composer"]').exists()).toBe(false)
   })

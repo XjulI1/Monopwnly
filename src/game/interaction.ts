@@ -1,6 +1,7 @@
 import type { Highlights } from '../board/boardViewModel'
 import {
   BOARD,
+  counterProblem,
   expectedActor,
   FAMILY_SQUARES,
   MAX_QUARANTINE_ATTEMPTS,
@@ -30,8 +31,8 @@ import {
   type ManagementOption,
 } from './legalActions'
 
-/** A trade being composed: the chosen partner, what the player gives and what they ask for. */
-export type TradeDraft = { partner: PlayerId | null; give: TradeSide; receive: TradeSide }
+/** A trade being composed: the chosen partner, what the player gives and what they ask for, and whether it answers the offer received as a counter-offer. */
+export type TradeDraft = { partner: PlayerId | null; give: TradeSide; receive: TradeSide; counter: boolean }
 
 /** Interface state added on top of the engine phase: management mode, open sheet, pending bankruptcy confirmation, trade being composed. */
 export type Interaction = {
@@ -72,6 +73,7 @@ export type ButtonId =
   | 'proposeTrade'
   | 'acceptTrade'
   | 'rejectTrade'
+  | 'counterTrade'
 
 /** Something the user did: tap a square, tap outside the squares, press a button, or validate a bid. */
 export type InteractionInput =
@@ -150,6 +152,7 @@ export type InteractionView = {
   debt: (DebtSummary & { confirming: boolean }) | null
   trade: TradeComposerView | null
   offer: TradeOffer | null
+  original: TradeOffer | null
 }
 
 /** Result of an input: the new interaction and, possibly, the engine action to dispatch. */
@@ -271,6 +274,7 @@ function mainButtons(state: GameState, interaction: Interaction, actor: PlayerId
     case 'tradeOffer':
       return [
         makeButton('acceptTrade', 'Accepter', checkAction(state, { type: 'acceptTrade', playerId: actor })),
+        ...(phase.original === null ? [makeButton('counterTrade', 'Contre-proposer')] : []),
         makeButton('rejectTrade', 'Refuser'),
       ]
     case 'gameOver':
@@ -298,15 +302,17 @@ function highlightsOf(state: GameState, interaction: Interaction, actor: PlayerI
   }
   const phase = state.phase
   if (phase.kind === 'buyDecision' || phase.kind === 'auction') highlights[squareIndex(phase.squareId)] = 'selected'
-  const traded = phase.kind === 'tradeOffer' ? phase.offer : interaction.trade
+  const traded = interaction.trade ?? (phase.kind === 'tradeOffer' ? phase.offer : null)
   for (const id of [...(traded?.give.squares ?? []), ...(traded?.receive.squares ?? [])]) highlights[squareIndex(id)] = 'selected'
   if (interaction.sheet) highlights[squareIndex(interaction.sheet)] = 'selected'
   return highlights
 }
 
-function canTrade(state: GameState, actor: PlayerId | null): actor is PlayerId {
-  const kind = state.phase.kind
-  return actor !== null && (kind === 'preRoll' || kind === 'postRoll' || kind === 'debt')
+function canCompose(state: GameState, draft: TradeDraft, actor: PlayerId | null): actor is PlayerId {
+  const phase = state.phase
+  if (actor === null) return false
+  if (draft.counter) return phase.kind === 'tradeOffer' && phase.original === null && phase.offer.to === actor
+  return phase.kind === 'preRoll' || phase.kind === 'postRoll' || phase.kind === 'debt'
 }
 
 function squareReason(state: GameState, squareId: SquareId): string | null {
@@ -338,16 +344,16 @@ export function offerOf(author: PlayerId, draft: TradeDraft): TradeOffer | null 
 
 function composerView(state: GameState, interaction: Interaction, actor: PlayerId | null): TradeComposerView | null {
   const draft = interaction.trade
-  if (!draft || !canTrade(state, actor)) return null
+  if (!draft || !canCompose(state, draft, actor)) return null
   const offer = offerOf(actor, draft)
-  const problem = offer ? validateTrade(state, offer) : null
+  const problem = offer ? (draft.counter ? counterProblem(state, offer) : validateTrade(state, offer)) : null
   const check: ActionCheck = !offer
     ? { allowed: false, reason: 'Choisissez avec qui échanger.' }
     : { allowed: problem === null, reason: problem?.message ?? null }
   return {
     author: actor,
     draft,
-    partners: partnersOf(state, actor),
+    partners: draft.counter && draft.partner ? [draft.partner] : partnersOf(state, actor),
     give: columnOf(state, actor, draft.give),
     receive: draft.partner ? columnOf(state, draft.partner, draft.receive) : null,
     check,
@@ -459,6 +465,7 @@ function humanView(state: GameState, interaction: Interaction, actor: PlayerId |
     debt: summary ? { ...summary, confirming: interaction.confirmingBankruptcy } : null,
     trade: composerView(state, interaction, actor),
     offer: state.phase.kind === 'tradeOffer' ? state.phase.offer : null,
+    original: state.phase.kind === 'tradeOffer' ? state.phase.original : null,
   }
 }
 
@@ -469,8 +476,10 @@ function pressButton(state: GameState, interaction: Interaction, id: ButtonId): 
   if (id === 'closeSheet') return { interaction: { ...interaction, sheet: null } }
   if (id === 'closeTrade') return { interaction: { ...interaction, trade: null } }
   if (id === 'proposeTrade') {
-    const offer = view.trade?.check.allowed && actor ? offerOf(actor, view.trade.draft) : null
-    return offer ? { interaction: IDLE, action: { type: 'proposeTrade', playerId: offer.from, offer } } : { interaction }
+    const draft = view.trade?.check.allowed ? view.trade.draft : null
+    const offer = draft && actor ? offerOf(actor, draft) : null
+    if (!draft || !offer) return { interaction }
+    return { interaction: IDLE, action: { type: draft.counter ? 'counterTrade' : 'proposeTrade', playerId: offer.from, offer } }
   }
   if (!pressed?.enabled || !actor) return { interaction }
   const playerId = actor
@@ -479,9 +488,14 @@ function pressButton(state: GameState, interaction: Interaction, id: ButtonId): 
       return {
         interaction: {
           ...IDLE,
-          trade: { partner: partnersOf(state, actor)[0] ?? null, give: EMPTY_SIDE, receive: EMPTY_SIDE },
+          trade: { partner: partnersOf(state, actor)[0] ?? null, give: EMPTY_SIDE, receive: EMPTY_SIDE, counter: false },
         },
       }
+    case 'counterTrade': {
+      const phase = state.phase
+      if (phase.kind !== 'tradeOffer') return { interaction }
+      return { interaction: { ...IDLE, trade: { partner: phase.offer.from, give: phase.offer.receive, receive: phase.offer.give, counter: true } } }
+    }
     case 'acceptTrade':
       return { interaction: IDLE, action: { type: 'acceptTrade', playerId } }
     case 'rejectTrade':

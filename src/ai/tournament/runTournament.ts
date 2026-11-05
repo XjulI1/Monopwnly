@@ -34,7 +34,26 @@ export type TournamentReport = {
   winRateByLevel: Record<AiLevel, number>
   winsByReason: Record<WinReason, number>
   yieldByGroup: Record<SquareGroup, GroupYield>
-  trades: { proposed: number; accepted: number; acceptedPerGame: number }
+  trades: TradeCounts & { acceptedPerGame: number }
+}
+
+/** Trades proposed and accepted, counter-offers made and accepted. */
+export type TradeCounts = { proposed: number; accepted: number; countered: number; counterAccepted: number }
+
+/** No trade at all. */
+export const NO_TRADES: TradeCounts = { proposed: 0, accepted: 0, countered: 0, counterAccepted: 0 }
+
+/** The counts once the events are added; an accepted counter-offer counts among the accepted trades too. */
+export function countTrades(counts: TradeCounts, events: readonly GameEvent[]): TradeCounts {
+  return events.reduce(
+    (total, event) => ({
+      proposed: total.proposed + (event.type === 'tradeProposed' ? 1 : 0),
+      accepted: total.accepted + (event.type === 'tradeAccepted' ? 1 : 0),
+      countered: total.countered + (event.type === 'tradeCountered' ? 1 : 0),
+      counterAccepted: total.counterAccepted + (event.type === 'tradeAccepted' && event.original !== null ? 1 : 0),
+    }),
+    counts,
+  )
 }
 
 /** A tournament: game `i` seats the lineup `i % lineups.length` in play order and uses the seed `seeds[i]`. */
@@ -114,8 +133,7 @@ export function runTournament(options: TournamentOptions): TournamentReport {
   const rounds: number[] = []
   const yields = emptyYields()
   let interrupted = 0
-  let proposed = 0
-  let accepted = 0
+  let trades = NO_TRADES
   for (let index = 0; index < options.games; index++) {
     const lineup = options.lineups[index % options.lineups.length] ?? []
     const seed = options.seeds[index]
@@ -124,8 +142,7 @@ export function runTournament(options: TournamentOptions): TournamentReport {
       maxRounds,
       onAction: (_action, events, after) => {
         record(yields, events, after)
-        proposed += events.filter((event) => event.type === 'tradeProposed').length
-        accepted += events.filter((event) => event.type === 'tradeAccepted').length
+        trades = countTrades(trades, events)
       },
     })
     if (stop !== 'gameOver') {
@@ -162,6 +179,6 @@ export function runTournament(options: TournamentOptions): TournamentReport {
         return [group, { rent, invested, ratio: invested === 0 ? 0 : rent / invested }]
       }),
     ) as Record<SquareGroup, GroupYield>,
-    trades: { proposed, accepted, acceptedPerGame: options.games === 0 ? 0 : accepted / options.games },
+    trades: { ...trades, acceptedPerGame: options.games === 0 ? 0 : trades.accepted / options.games },
   }
 }

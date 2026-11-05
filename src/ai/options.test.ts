@@ -15,7 +15,7 @@ function game(settings: Partial<GameSettings>, turnNumber: number, options: Stat
 }
 
 function offered(offer: TradeOffer): Phase {
-  return { kind: 'tradeOffer', offer, resume: { kind: 'preRoll' } }
+  return { kind: 'tradeOffer', offer, resume: { kind: 'preRoll' }, original: null }
 }
 
 function auction(squareId: string, highBid: number): Phase {
@@ -70,14 +70,20 @@ describe('end of a limited game', () => {
     phase: offered({ from: B, to: A, give: { squares: ['minitel'], cash: 0, keys: [] }, receive: { squares: [], cash, keys: [] } }),
   })
 
-  it('refuses a trade that lowers its net worth', () => {
-    expect(decide(game({}, 28, minitelFor(80)), A, 'normal').type).toBe('acceptTrade')
-    expect(decide(game(LIMIT_30, 28, minitelFor(80)), A, 'normal').type).toBe('rejectTrade')
+  const minitelAt = (cash: number) => ({
+    type: 'counterTrade',
+    playerId: A,
+    offer: { from: A, to: B, give: { squares: [], cash, keys: [] }, receive: { squares: ['minitel'], cash: 0, keys: [] } },
   })
 
-  it('refuses a trade that leaves its net worth unchanged', () => {
+  it('does not accept a trade that lowers its net worth, and counters at a price that raises it', () => {
+    expect(decide(game({}, 28, minitelFor(80)), A, 'normal').type).toBe('acceptTrade')
+    expect(decide(game(LIMIT_30, 28, minitelFor(80)), A, 'normal')).toEqual(minitelAt(50))
+  })
+
+  it('does not accept a trade that leaves its net worth unchanged, and counters at a price that raises it', () => {
     expect(decide(game({}, 29, minitelFor(60)), A, 'hard').type).toBe('acceptTrade')
-    expect(decide(game(LIMIT_30, 29, minitelFor(60)), A, 'hard').type).toBe('rejectTrade')
+    expect(decide(game(LIMIT_30, 29, minitelFor(60)), A, 'hard')).toEqual(minitelAt(50))
   })
 
   it('accepts a trade that raises its net worth', () => {
@@ -98,10 +104,14 @@ describe('opponent close to the net worth target', () => {
     4900,
   )
 
-  it('makes the hard AI refuse a trade that raises the net worth of the leader', () => {
+  it('makes the hard AI counter a trade that raises the net worth of the leader, at a price that does not', () => {
     expect(netWorth(game(TARGET_6K, 5, shopForBob), B)).toBe(5100)
     expect(decide(game({}, 5, shopForBob), A, 'hard').type).toBe('acceptTrade')
-    expect(decide(game(TARGET_6K, 5, shopForBob), A, 'hard').type).toBe('rejectTrade')
+    expect(decide(game(TARGET_6K, 5, shopForBob), A, 'hard')).toEqual({
+      type: 'counterTrade',
+      playerId: A,
+      offer: { from: A, to: B, give: { squares: [], cash: 200, keys: [] }, receive: { squares: ['online-shop'], cash: 0, keys: [] } },
+    })
   })
 
   const shopToBob = bobLeads(

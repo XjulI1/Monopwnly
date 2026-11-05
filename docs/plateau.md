@@ -147,27 +147,32 @@ multiples ci-dessus : Objets connectés 6, 6, 8 → 4, 4, 5 ; Bureautique 10, 10
 Social 18, 18, 20 → 21, 21, 23 ; Finance 22, 22, 24 → 25, 25, 28 ; Infrastructure 26, 26, 28 →
 40, 40, 44 ; Cœur 35, 50 → 48, 68. Rétro et Web n'ont pas changé.
 
-Mesures du 3 novembre 2026 (les deux premières colonnes avant les échanges) :
+Mesures du 3 novembre 2026 (les deux premières colonnes avant les échanges), et du 4 novembre 2026
+pour la dernière colonne :
 
-| Mesure | Loyers d'origine | Loyers réajustés | Avec les échanges |
-|---|---|---|---|
-| Parties interrompues | 0,5 % | 0,5 % | 0 % |
-| Durée médiane (90e centile) | 41 tours (73) | 41 tours (69) | 41 tours (66) |
-| Victoires de la 1re, 2e, 3e et 4e place | 30,9 / 24,4 / 23,6 / 21,1 % | 27,9 / 24,1 / 23,6 / 24,4 % | 26,5 / 25,0 / 25,0 / 23,5 % |
-| Rendement Rétro | 0,87 | 0,95 | 0,84 |
-| Rendement Objets connectés | 1,30 | 0,96 | 0,85 |
-| Rendement Bureautique | 0,84 | 0,85 | 0,78 |
-| Rendement Web | 0,76 | 0,82 | 0,78 |
-| Rendement Social | 0,46 | 0,52 | 0,51 |
-| Rendement Finance | 0,44 | 0,45 | 0,43 |
-| Rendement Infrastructure | 0,28 | 0,37 | 0,34 |
-| Rendement Cœur | 0,32 | 0,36 | 0,34 |
-| Rendement Nœuds | 0,81 | 0,85 | 0,84 |
-| Rendement Services | 0,68 | 0,65 | 0,68 |
-| Écart entre la famille la plus et la moins rentable | 4,6 (critère non tenu) | 2,7 | 2,5 |
-| Échanges acceptés par partie | — | — | 2,0 |
+| Mesure | Loyers d'origine | Loyers réajustés | Avec les échanges | Avec les contre-propositions |
+|---|---|---|---|---|
+| Parties interrompues | 0,5 % | 0,5 % | 0 % | 0,5 % |
+| Durée médiane (90e centile) | 41 tours (73) | 41 tours (69) | 41 tours (66) | 41 tours (66) |
+| Victoires de la 1re, 2e, 3e et 4e place | 30,9 / 24,4 / 23,6 / 21,1 % | 27,9 / 24,1 / 23,6 / 24,4 % | 26,5 / 25,0 / 25,0 / 23,5 % | 26,6 / 24,9 / 25,9 / 22,6 % |
+| Rendement Rétro | 0,87 | 0,95 | 0,84 | 0,89 |
+| Rendement Objets connectés | 1,30 | 0,96 | 0,85 | 0,88 |
+| Rendement Bureautique | 0,84 | 0,85 | 0,78 | 0,81 |
+| Rendement Web | 0,76 | 0,82 | 0,78 | 0,84 |
+| Rendement Social | 0,46 | 0,52 | 0,51 | 0,50 |
+| Rendement Finance | 0,44 | 0,45 | 0,43 | 0,40 |
+| Rendement Infrastructure | 0,28 | 0,37 | 0,34 | 0,34 |
+| Rendement Cœur | 0,32 | 0,36 | 0,34 | 0,30 |
+| Rendement Nœuds | 0,81 | 0,85 | 0,84 | 0,90 |
+| Rendement Services | 0,68 | 0,65 | 0,68 | 0,72 |
+| Écart entre la famille la plus et la moins rentable | 4,6 (critère non tenu) | 2,7 | 2,5 | 2,96 |
+| Échanges acceptés par partie | — | — | 2,0 | 4,7 |
+| Contre-propositions faites (acceptées) | — | — | — | 1 961 (1 026) |
 
-Les échanges n'ont pas demandé de nouveau réajustement des loyers.
+Les échanges n'ont pas demandé de nouveau réajustement des loyers. Les contre-propositions non plus,
+mais elles rapprochent l'écart de rendement de sa limite de 3 : avec plus d'échanges conclus, les
+familles bon marché se complètent plus souvent et rapportent davantage, tandis que Cœur et Finance
+reculent. C'est le premier point à reprendre lors du prochain rééquilibrage des loyers.
 
 ## Nœuds et services
 

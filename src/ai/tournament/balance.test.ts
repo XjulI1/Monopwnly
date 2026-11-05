@@ -25,6 +25,7 @@ function printReport(report: TournamentReport): void {
     `Tours de table : moyenne ${report.rounds.mean.toFixed(1)}, médiane ${report.rounds.median}, 90e centile ${report.rounds.p90}`,
     `Victoires par place : ${report.winRateByPlace.map((rate, i) => `${i + 1}e ${percent(rate)}`).join(', ')}`,
     `Échanges : ${report.trades.proposed} proposés, ${report.trades.accepted} acceptés, ${report.trades.acceptedPerGame.toFixed(2)} acceptés par partie`,
+    `Contre-propositions : ${report.trades.countered} faites, ${report.trades.counterAccepted} acceptées`,
     'Rendement (loyers encaissés / coût investi) :',
     ...Object.entries(report.yieldByGroup).map(
       ([group, y]) => `  ${groupName(group).padEnd(18)} ${y.ratio.toFixed(2)}  (loyers ${y.rent} Ᵽ, investi ${y.invested} Ᵽ)`,
@@ -44,6 +45,7 @@ describe.skipIf(!enabled)('balance of the board', () => {
     printReport(report)
 
     expect(report.trades.acceptedPerGame, 'Aucun échange accepté').toBeGreaterThan(0)
+    expect(report.trades.countered, 'Aucune contre-proposition').toBeGreaterThan(0)
     const interrupted = report.interrupted / report.games
     expect(interrupted, `Parties interrompues : ${percent(interrupted)}, au plus ${percent(MAX_INTERRUPTED_SHARE)}`).toBeLessThanOrEqual(
       MAX_INTERRUPTED_SHARE,

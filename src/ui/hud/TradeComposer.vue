@@ -14,6 +14,11 @@ const NEUTRAL = 'var(--color-muted)'
 const { view, displayedState, send } = useInjectedGameSession()
 
 const composer = computed(() => view.value.trade)
+const counter = computed(() => composer.value?.draft.counter ?? false)
+const heading = computed(() => {
+  const partner = composer.value?.draft.partner
+  return counter.value && partner ? `Contre-proposition à ${player(partner)?.name ?? ''}` : 'Proposer un échange'
+})
 const columns = computed(() => {
   const current = composer.value
   if (!current) return []
@@ -74,9 +79,12 @@ function changeCash(side: SideKey, column: TradeColumn, delta: number) {
           id="trade-title"
           class="text-lg font-bold"
         >
-          Proposer un échange
+          {{ heading }}
         </h2>
-        <p class="text-xs text-muted">
+        <p
+          v-if="!counter"
+          class="text-xs text-muted"
+        >
           {{ composer.remaining }} {{ composer.remaining > 1 ? 'propositions restantes' : 'proposition restante' }} pendant ce tour
         </p>
       </div>
@@ -103,6 +111,7 @@ function changeCash(side: SideKey, column: TradeColumn, delta: number) {
     </header>
 
     <div
+      v-if="!counter"
       class="flex flex-wrap items-center gap-2 border-b border-line px-4 py-2"
       role="group"
       aria-label="Partenaire de l’échange"
@@ -244,7 +253,7 @@ function changeCash(side: SideKey, column: TradeColumn, delta: number) {
           data-test="trade-propose"
           @click="send({ kind: 'button', id: 'proposeTrade' })"
         >
-          Proposer
+          {{ counter ? 'Envoyer la contre-proposition' : 'Proposer' }}
         </button>
       </div>
     </footer>

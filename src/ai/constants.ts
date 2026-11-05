@@ -87,6 +87,9 @@ export const DEBT_SALE_FACTOR = 1.5
 /** Step of the PwnCoins an AI offers in a trade. */
 export const TRADE_CASH_STEP = 10
 
+/** Largest complement an AI asks in a counter-offer, as a share of the total value exchanged in the offer it answers. */
+export const COUNTER_MAX_SHARE = 0.5
+
 /** Most management actions (build, sell, mortgage, reactivate) an AI takes in a single phase. */
 export const MANAGEMENT_LIMIT = 40
 

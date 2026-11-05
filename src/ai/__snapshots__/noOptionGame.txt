@@ -1134,7 +1134,8 @@
 {"type":"paid","from":"p1","to":"p2","amount":1150,"reason":"rent"}
 {"type":"turnStarted","playerId":"p2","turnNumber":39}
 {"type":"tradeProposed","offer":{"from":"p2","to":"p3","give":{"squares":[],"cash":600,"keys":[]},"receive":{"squares":["satellite"],"cash":0,"keys":[]}}}
-{"type":"tradeRejected","offer":{"from":"p2","to":"p3","give":{"squares":[],"cash":600,"keys":[]},"receive":{"squares":["satellite"],"cash":0,"keys":[]}}}
+{"type":"tradeCountered","offer":{"from":"p3","to":"p2","give":{"squares":["satellite"],"cash":0,"keys":[]},"receive":{"squares":[],"cash":670,"keys":[]}},"original":{"from":"p2","to":"p3","give":{"squares":[],"cash":600,"keys":[]},"receive":{"squares":["satellite"],"cash":0,"keys":[]}}}
+{"type":"tradeRejected","offer":{"from":"p3","to":"p2","give":{"squares":["satellite"],"cash":0,"keys":[]},"receive":{"squares":[],"cash":670,"keys":[]}},"original":{"from":"p2","to":"p3","give":{"squares":[],"cash":600,"keys":[]},"receive":{"squares":["satellite"],"cash":0,"keys":[]}}}
 {"type":"paid","from":"p2","to":"bank","amount":150,"reason":"build"}
 {"type":"backdoorBuilt","playerId":"p2","squareId":"encrypted-messenger","level":4}
 {"type":"paid","from":"p2","to":"bank","amount":150,"reason":"build"}
@@ -1216,7 +1217,8 @@
 {"type":"bankrupt","playerId":"p1","creditor":"bank"}
 {"type":"turnStarted","playerId":"p2","turnNumber":41}
 {"type":"tradeProposed","offer":{"from":"p2","to":"p3","give":{"squares":[],"cash":600,"keys":[]},"receive":{"squares":["ai-kernel"],"cash":0,"keys":[]}}}
-{"type":"tradeRejected","offer":{"from":"p2","to":"p3","give":{"squares":[],"cash":600,"keys":[]},"receive":{"squares":["ai-kernel"],"cash":0,"keys":[]}}}
+{"type":"tradeCountered","offer":{"from":"p3","to":"p2","give":{"squares":["ai-kernel"],"cash":0,"keys":[]},"receive":{"squares":[],"cash":900,"keys":[]}},"original":{"from":"p2","to":"p3","give":{"squares":[],"cash":600,"keys":[]},"receive":{"squares":["ai-kernel"],"cash":0,"keys":[]}}}
+{"type":"tradeRejected","offer":{"from":"p3","to":"p2","give":{"squares":["ai-kernel"],"cash":0,"keys":[]},"receive":{"squares":[],"cash":900,"keys":[]}},"original":{"from":"p2","to":"p3","give":{"squares":[],"cash":600,"keys":[]},"receive":{"squares":["ai-kernel"],"cash":0,"keys":[]}}}
 {"type":"diceRolled","playerId":"p2","dice":[5,2],"purpose":"move"}
 {"type":"moved","playerId":"p2","path":[38,39,0,1,2,3,4],"backward":false}
 {"type":"passedBoot","playerId":"p2"}
@@ -1226,7 +1228,8 @@
 {"type":"moved","playerId":"p3","path":[33,34,35,36,37,38,39],"backward":false}
 {"type":"turnStarted","playerId":"p2","turnNumber":42}
 {"type":"tradeProposed","offer":{"from":"p2","to":"p3","give":{"squares":[],"cash":800,"keys":[]},"receive":{"squares":["ai-kernel"],"cash":0,"keys":[]}}}
-{"type":"tradeRejected","offer":{"from":"p2","to":"p3","give":{"squares":[],"cash":800,"keys":[]},"receive":{"squares":["ai-kernel"],"cash":0,"keys":[]}}}
+{"type":"tradeCountered","offer":{"from":"p3","to":"p2","give":{"squares":["ai-kernel"],"cash":0,"keys":[]},"receive":{"squares":[],"cash":960,"keys":[]}},"original":{"from":"p2","to":"p3","give":{"squares":[],"cash":800,"keys":[]},"receive":{"squares":["ai-kernel"],"cash":0,"keys":[]}}}
+{"type":"tradeRejected","offer":{"from":"p3","to":"p2","give":{"squares":["ai-kernel"],"cash":0,"keys":[]},"receive":{"squares":[],"cash":960,"keys":[]}},"original":{"from":"p2","to":"p3","give":{"squares":[],"cash":800,"keys":[]},"receive":{"squares":["ai-kernel"],"cash":0,"keys":[]}}}
 {"type":"diceRolled","playerId":"p2","dice":[2,2],"purpose":"move"}
 {"type":"moved","playerId":"p2","path":[5,6,7,8],"backward":false}
 {"type":"cardDrawn","playerId":"p2","deck":"patch","cardId":"patch-11"}

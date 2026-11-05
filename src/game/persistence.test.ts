@@ -100,10 +100,37 @@ describe('loadSavedGame', () => {
       kind: 'tradeOffer',
       offer: { from: B, to: A, give: { squares: ['blog'], cash: 0, keys: [] }, receive: { squares: [], cash: 400, keys: [] } },
       resume: { kind: 'preRoll' },
+      original: null,
     }
     game.engineState.tradeLimits = { thisTurn: { [B]: { count: 1, partners: [A], rejected: [] } }, refusedAsks: { [A]: { blog: { holder: B, count: 2 } } } }
     writeSavedGame(game, accessTo(storage))
     expect(loadSavedGame(accessTo(storage))).toEqual({ kind: 'found', game })
+  })
+
+  it('reads a game saved while a counter-offer waits for its answer, with the offer it answers', () => {
+    const storage = memoryStorage()
+    const game = savedGame()
+    const offer = { from: B, to: A, give: { squares: ['blog'], cash: 0, keys: [] }, receive: { squares: [], cash: 400, keys: [] } }
+    const counterOffer = { from: A, to: B, give: { squares: [], cash: 300, keys: [] }, receive: { squares: ['blog'], cash: 0, keys: [] } }
+    game.engineState.phase = { kind: 'tradeOffer', offer: counterOffer, resume: { kind: 'preRoll' }, original: offer }
+    writeSavedGame(game, accessTo(storage))
+    expect(loadSavedGame(accessTo(storage))).toEqual({ kind: 'found', game })
+  })
+
+  it('reads a save of the format before the counter-offers, stopped on an offer, as an offer that can still be countered', () => {
+    const game = savedGame()
+    game.engineState.phase = {
+      kind: 'tradeOffer',
+      offer: { from: B, to: A, give: { squares: ['blog'], cash: 0, keys: [] }, receive: { squares: [], cash: 400, keys: [] } },
+      resume: { kind: 'preRoll' },
+      original: null,
+    }
+    const phase = withoutKeys(game.engineState.phase, ['original'])
+    const formatBeforeCounters = { ...game, formatVersion: 3, engineState: { ...game.engineState, phase } }
+    expect(loadSavedGame(accessTo(memoryStorage(stored(formatBeforeCounters))))).toEqual({ kind: 'found', game })
+    const formatBeforeOptions = beforeOptions(game)
+    const olderPhase = { ...(formatBeforeOptions.engineState as object), phase }
+    expect(loadSavedGame(accessTo(memoryStorage(stored({ ...formatBeforeOptions, engineState: olderPhase }))))).toEqual({ kind: 'found', game })
   })
 
   it('reads a save of the format before the trades with empty trade limits and no game option', () => {
@@ -162,8 +189,13 @@ describe('loadSavedGame', () => {
       kind: 'tradeOffer',
       offer: { from: A, to: 'p9', give: { squares: [], cash: 10, keys: [] }, receive: { squares: [], cash: 0, keys: [] } },
       resume: { kind: 'preRoll' },
+      original: null,
     }
     expect(unreadable({ ...offer, engineState: { ...offer.engineState, phase: badOffer } }).result).toEqual({ kind: 'unreadable' })
+    const withoutOriginal = withoutKeys(badOffer, ['original'])
+    const valid = { ...badOffer, offer: { ...badOffer.offer, to: B } }
+    expect(unreadable({ ...offer, engineState: { ...offer.engineState, phase: { ...withoutOriginal, offer: valid.offer } } }).result).toEqual({ kind: 'unreadable' })
+    expect(unreadable({ ...offer, engineState: { ...offer.engineState, phase: { ...valid, original: { from: A } } } }).result).toEqual({ kind: 'unreadable' })
     const limits = savedGame()
     expect(unreadable({ ...limits, engineState: { ...limits.engineState, tradeLimits: { thisTurn: { [A]: { count: -1 } } } } }).result).toEqual({
       kind: 'unreadable',

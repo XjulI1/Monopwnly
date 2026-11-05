@@ -17,6 +17,7 @@ import { DEBT_SALE_FACTOR, PURCHASE_PRICE_STEPS, REACHABLE_LEVEL, TRADE_CASH_STE
 import { byExpectedRent, inCompleteFamily, rivals, type DecisionContext } from '../levels/strategy'
 import { expectedRent, horizon } from '../valuation'
 import { evaluateOffer } from './evaluateOffer'
+import { smallestAcceptedStep } from './stepSearch'
 
 type Missing = { squareId: SquareId; holder: PlayerId }
 
@@ -84,15 +85,8 @@ function buildCost(family: FamilyId): number {
 
 function cheapestAccepted(ctx: DecisionContext, offer: TradeOffer, partner: Player, most: number): TradeOffer | null {
   const accepts = (steps: number) => evaluateOffer(ctx.view, withCash(offer, steps * TRADE_CASH_STEP), levelOf(partner)).accept
-  let high = Math.floor(Math.max(0, most) / TRADE_CASH_STEP)
-  if (!accepts(high)) return null
-  let low = 0
-  while (low < high) {
-    const middle = Math.floor((low + high) / 2)
-    if (accepts(middle)) high = middle
-    else low = middle + 1
-  }
-  return withCash(offer, low * TRADE_CASH_STEP)
+  const steps = smallestAcceptedStep(accepts, Math.floor(Math.max(0, most) / TRADE_CASH_STEP))
+  return steps === null ? null : withCash(offer, steps * TRADE_CASH_STEP)
 }
 
 /** Offer where the AI and a rival each complete a family, when the family the AI gets brings more rent, with the PwnCoins the rival should need to accept; the AI keeps enough to put a backdoor on each system of its family and never pays more than its extra rent over the rest of the game. */

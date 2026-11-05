@@ -5,7 +5,7 @@ import { rollDice } from './movement'
 import { declareBankruptcy, payDebt } from './payments'
 import { payQuarantineFine, useDecryptionKey } from './quarantine'
 import { expectedActor, flowCandidates, squareActions } from './queries'
-import { acceptTrade, proposeTrade, rejectTrade } from './trading'
+import { acceptTrade, counterTrade, proposeTrade, rejectTrade } from './trading'
 import { endTurn } from './turn'
 import type { Action, ActionResult, ActionType, GameState, PhaseKind } from './types'
 
@@ -27,6 +27,7 @@ const ALLOWED_PHASES: Record<ActionType, readonly PhaseKind[]> = {
   proposeTrade: ['preRoll', 'postRoll', 'debt'],
   acceptTrade: ['tradeOffer'],
   rejectTrade: ['tradeOffer'],
+  counterTrade: ['tradeOffer'],
 }
 
 function dispatch(ctx: Ctx, action: Action): void {
@@ -65,6 +66,8 @@ function dispatch(ctx: Ctx, action: Action): void {
       return acceptTrade(ctx)
     case 'rejectTrade':
       return rejectTrade(ctx)
+    case 'counterTrade':
+      return counterTrade(ctx, action.offer)
   }
 }
 
@@ -128,8 +131,10 @@ export {
 export type { Standing } from './queries'
 export { ownsWholeFamily } from './rent'
 export {
+  counterProblem,
   MAX_TRADE_PROPOSALS,
   offerProblem,
+  reversedOffer,
   stateAfterTrade,
   tradeKey,
   tradeProposalsLeft,

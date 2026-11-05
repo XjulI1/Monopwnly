@@ -5,9 +5,11 @@ import { useInjectedGameSession } from '../../game/useGameSession'
 const { view, displayedState } = useInjectedGameSession()
 
 const player = computed(() => displayedState.value.players.find((p) => p.id === view.value.thinking) ?? null)
-const studiesOffer = computed(() => {
+const activity = computed(() => {
   const offer = view.value.offer
-  return offer !== null && displayedState.value.players.find((p) => p.id === offer.from)?.controller.kind === 'human'
+  const fromHuman = offer !== null && displayedState.value.players.find((p) => p.id === offer.from)?.controller.kind === 'human'
+  if (!fromHuman) return 'réfléchit…'
+  return view.value.original ? 'étudie votre contre-proposition…' : 'étudie votre offre…'
 })
 </script>
 
@@ -25,7 +27,7 @@ const studiesOffer = computed(() => {
     <span><span
       class="font-semibold"
       :style="{ color: player.color }"
-    >{{ player.name }}</span> {{ studiesOffer ? 'étudie votre offre…' : 'réfléchit…' }}</span>
+    >{{ player.name }}</span> {{ activity }}</span>
   </p>
 </template>
 

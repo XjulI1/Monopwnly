@@ -193,7 +193,8 @@ export function useGameSession(initial: GameState, options: GameSessionOptions =
     if (!answer || controllerOf(answer.offer.to)?.kind !== 'ai' || controllerOf(answer.offer.from)?.kind === 'ai') return
     const name = engineState.value.players.find((p) => p.id === answer.offer.to)?.name ?? ''
     const verb = answer.type === 'tradeAccepted' ? 'accepte' : 'refuse'
-    toast.value = { id: nextId++, message: `${name} ${verb} votre offre`, tone: 'info' }
+    const what = answer.original ? 'votre contre-proposition' : 'votre offre'
+    toast.value = { id: nextId++, message: `${name} ${verb} ${what}`, tone: 'info' }
   }
 
   function showBadge(playerId: PlayerId | 'bank', amount: number, durations: AnimationDurations) {

@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import type { GameState, TradeOffer } from '../../engine'
 import { A, B, act, makeState } from '../../engine/testUtils'
+import { formatPwn } from '../../game/format'
 import { mountWithSession } from '../testUtils'
 import TradeOfferDialog from './TradeOfferDialog.vue'
 
@@ -47,9 +48,10 @@ describe('TradeOfferDialog', () => {
     expect(wrapper.get('[data-test="trade-recipient"]').text()).toBe('Pour Alice')
   })
 
-  it('accepts or refuses, with no other game command meanwhile', async () => {
+  it('accepts, counters or refuses, with no other game command meanwhile', async () => {
     const accepting = mountWithSession(TradeOfferDialog, offered(satelliteFor400))
-    expect(accepting.session.view.value.buttons.map((b) => b.id)).toEqual(['acceptTrade', 'rejectTrade'])
+    expect(accepting.session.view.value.buttons.map((b) => b.id)).toEqual(['acceptTrade', 'counterTrade', 'rejectTrade'])
+    expect(accepting.wrapper.findAll('[data-button]').map((b) => b.text())).toEqual(['Accepter', 'Contre-proposer', 'Refuser'])
     await accepting.wrapper.get('[data-button="acceptTrade"]').trigger('click')
     expect(accepting.session.engineState.value.ownership.satellite?.owner).toBe(B)
     const refusing = mountWithSession(TradeOfferDialog, offered(satelliteFor400))
@@ -63,5 +65,39 @@ describe('TradeOfferDialog', () => {
     const start = makeState({ overrides: [{}, { controller: ai }], ownership: { satellite: { owner: A } } })
     const state = act(start, { type: 'proposeTrade', playerId: A, offer: toAi }).state
     expect(mountWithSession(TradeOfferDialog, state).wrapper.find('[data-test="trade-offer"]').exists()).toBe(false)
+  })
+})
+
+describe('TradeOfferDialog for a counter-offer', () => {
+  const forumFor150: TradeOffer = { from: A, to: B, give: { squares: ['forum'], cash: 0, keys: [] }, receive: { squares: [], cash: 150, keys: [] } }
+  const forumFor200: TradeOffer = { from: B, to: A, give: { squares: [], cash: 200, keys: [] }, receive: { squares: ['forum'], cash: 0, keys: [] } }
+
+  function countered(): GameState {
+    const start = makeState({ overrides: [{ name: 'Joueur 1' }, { name: 'Nyx', controller: ai }], ownership: { forum: { owner: A } } })
+    const offeredToNyx = act(start, { type: 'proposeTrade', playerId: A, offer: forumFor150 }).state
+    return act(offeredToNyx, { type: 'counterTrade', playerId: B, offer: forumFor200 }).state
+  }
+
+  it('names the counter-offer, reminds the offer it answers, and only accepts or refuses', () => {
+    const { wrapper } = mountWithSession(TradeOfferDialog, countered())
+    expect(wrapper.get('#trade-offer-title').text()).toBe('Nyx vous fait une contre-proposition')
+    expect(wrapper.get('[data-test="offer-original"]').text()).toBe(`Votre offre : Forum contre ${formatPwn(150)}`)
+    expect(wrapper.get('[data-test="offer-receive"]').text()).toContain(formatPwn(200))
+    expect(wrapper.get('[data-test="offer-give"]').text()).toContain('Forum')
+    expect(wrapper.findAll('[data-button]').map((b) => b.attributes('data-button'))).toEqual(['acceptTrade', 'rejectTrade'])
+  })
+
+  it('shows no reminder for an offer that answers nothing', () => {
+    expect(mountWithSession(TradeOfferDialog, offered(satelliteFor400)).wrapper.find('[data-test="offer-original"]').exists()).toBe(false)
+  })
+
+  it('hides while the recipient composes a counter-offer, and shows again when the composer is closed', async () => {
+    const { wrapper, session } = mountWithSession(TradeOfferDialog, offered(satelliteFor400))
+    await wrapper.get('[data-button="counterTrade"]').trigger('click')
+    expect(session.view.value.trade?.draft.counter).toBe(true)
+    expect(wrapper.find('[data-test="trade-offer"]').exists()).toBe(false)
+    session.send({ kind: 'button', id: 'closeTrade' })
+    await wrapper.vm.$nextTick()
+    expect(wrapper.find('[data-test="trade-offer"]').exists()).toBe(true)
   })
 })

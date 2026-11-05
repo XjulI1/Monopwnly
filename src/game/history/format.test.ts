@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { cardIdByTitle, type TradeOffer, type TradeSide } from '../../engine'
 import { formatPwn } from '../format'
-import { countOf, deckName, listOf, ofName, squareName, squareNameAt } from './format'
+import { countOf, deckName, listOf, offerText, ofName, squareName, squareNameAt } from './format'
 
 const THIN_NBSP = ' '
 const NBSP = ' '
@@ -57,5 +58,25 @@ describe('ofName', () => {
   it('keeps « de » before a consonant', () => {
     expect(ofName('Bob')).toBe('de Bob')
     expect(ofName('la banque')).toBe('de la banque')
+  })
+})
+
+describe('offerText', () => {
+  const KEY = cardIdByTitle('patch', 'Clé de déchiffrement')
+  const side = (partial: Partial<TradeSide> = {}): TradeSide => ({ squares: [], cash: 0, keys: [], ...partial })
+  const trade = (give: Partial<TradeSide>, receive: Partial<TradeSide>): TradeOffer => ({ from: 'p1', to: 'p2', give: side(give), receive: side(receive) })
+
+  it('writes what the author gives against what they ask for', () => {
+    expect(offerText(trade({ squares: ['forum'] }, { cash: 150 }))).toBe(`Forum contre ${formatPwn(150)}`)
+  })
+
+  it('lists the squares, the PwnCoins and the keys, and writes « rien » for an empty side', () => {
+    expect(offerText(trade({ squares: ['forum', 'blog'], cash: 50, keys: [KEY] }, {}))).toBe(
+      `Forum, Blog, ${formatPwn(50)} et 1${NBSP}Clé de déchiffrement contre rien`,
+    )
+  })
+
+  it('flags the squares it is told are mortgaged', () => {
+    expect(offerText(trade({ squares: ['forum'] }, { squares: ['minitel'] }), (id) => id === 'minitel')).toBe('Forum contre Minitel (en veille)')
   })
 })

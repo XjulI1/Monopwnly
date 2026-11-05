@@ -41,9 +41,10 @@ function intrinsicMs(decision: Decision): number {
   return best
 }
 
-function playTimed(start: GameState, slowestSoFar: Decision[]): { state: GameState; slowest: Decision[] } {
+function playTimed(start: GameState, slowestSoFar: Decision[]): { state: GameState; slowest: Decision[]; counters: number } {
   let state = start
   let management = 0
+  let counters = 0
   let slowest = slowestSoFar
   while (state.phase.kind !== 'gameOver' && state.turnNumber <= MAX_ROUNDS) {
     const actor = expectedActor(state)
@@ -57,23 +58,27 @@ function playTimed(start: GameState, slowestSoFar: Decision[]): { state: GameSta
     const result = applyAction(state, action)
     if (!result.ok) throw new Error(`AI action rejected: ${action.type} (${result.error.code})`)
     management = isManagement(action) ? management + 1 : 0
+    if (action.type === 'counterTrade') counters++
     state = result.state
   }
-  return { state, slowest }
+  return { state, slowest, counters }
 }
 
 describe('AI robustness', () => {
-  it(`plays ${GAMES} varied games without any rejected action and decides in under ${MAX_DECISION_MS} ms`, () => {
+  it(`plays ${GAMES} varied games, counter-offers included, without any rejected action and decides in under ${MAX_DECISION_MS} ms`, () => {
     landingOdds()
     let slowest: Decision[] = []
     let finished = 0
+    let counters = 0
     for (let index = 0; index < GAMES; index++) {
       const result = playTimed(game(index), slowest)
       slowest = result.slowest
+      counters += result.counters
       if (result.state.phase.kind === 'gameOver') finished++
     }
     expect(Math.max(...slowest.map(intrinsicMs))).toBeLessThan(MAX_DECISION_MS)
     expect(finished).toBeGreaterThan(GAMES / 2)
+    expect(counters).toBeGreaterThan(0)
   }, 120_000)
 
   it('replays the same game from the same seed', () => {

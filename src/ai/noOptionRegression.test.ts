@@ -25,7 +25,9 @@ function comparableState(state: GameState): Fields {
 
 function comparableEvent(event: GameEvent): Fields {
   const fields = event as unknown as Fields
-  return event.type === 'gameWon' ? omit(fields, ADDED_VICTORY_FIELDS) : fields
+  if (event.type === 'gameWon') return omit(fields, ADDED_VICTORY_FIELDS)
+  if ((event.type === 'tradeAccepted' || event.type === 'tradeRejected') && event.original === null) return omit(fields, ['original'])
+  return fields
 }
 
 function aiGame(): GameState {
@@ -41,7 +43,7 @@ function aiGame(): GameState {
 }
 
 describe('game without any option', () => {
-  it('plays the same events and reaches the same final state as before the game options', async () => {
+  it('plays the same events and reaches the same final state as the recorded reference game', async () => {
     const events: GameEvent[] = []
     const { state, stop } = playUntilHumanOrEnd(aiGame(), {
       maxRounds: MAX_ROUNDS,

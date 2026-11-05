@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { cardIdByTitle } from './board/cards'
 import { expectedActor } from './queries'
 import { A, B, C, act, actAll, makeState, player, rejectCode } from './testUtils'
-import { validateTrade } from './trading'
+import { counterProblem, tradeKey, tradeProposalsLeft, turnProposals, validateTrade } from './trading'
 import type { Action, GameState, TradeOffer, TradeResume, TradeSide } from './types'
 
 const KEY = cardIdByTitle('patch', 'Clé de déchiffrement')
@@ -79,7 +79,7 @@ describe('proposeTrade', () => {
 
   it('lets the current player propose before the roll and hands the game to the recipient', () => {
     const { state, events } = act(start, propose(forumFor150))
-    expect(state.phase).toEqual({ kind: 'tradeOffer', offer: forumFor150, resume: { kind: 'preRoll' } })
+    expect(state.phase).toEqual({ kind: 'tradeOffer', offer: forumFor150, resume: { kind: 'preRoll' }, original: null })
     expect(expectedActor(state)).toBe(B)
     expect(events).toEqual([{ type: 'tradeProposed', offer: forumFor150 }])
   })
@@ -99,7 +99,7 @@ describe('proposeTrade', () => {
     const inDebt = makeState({ players: 3, overrides: [{}, { cash: 50 }], ownership: { minitel: { owner: B } }, phase: debt })
     const sale = offer({ squares: ['minitel'] }, { cash: 100 }, B, C)
     const { state } = act(inDebt, propose(sale))
-    expect(state.phase).toEqual({ kind: 'tradeOffer', offer: sale, resume: debt })
+    expect(state.phase).toEqual({ kind: 'tradeOffer', offer: sale, resume: debt, original: null })
     expect(expectedActor(state)).toBe(C)
   })
 
@@ -141,7 +141,7 @@ describe('acceptTrade and rejectTrade', () => {
     expect(player(state, A).cash).toBe(1650)
     expect(player(state, B).cash).toBe(1350)
     expect(state.phase).toEqual({ kind: 'preRoll' })
-    expect(events).toEqual([{ type: 'tradeAccepted', offer: forumFor150 }])
+    expect(events).toEqual([{ type: 'tradeAccepted', offer: forumFor150, original: null }])
   })
 
   it('keeps a mortgaged square mortgaged without any interest, and moves the keys', () => {
@@ -175,7 +175,7 @@ describe('acceptTrade and rejectTrade', () => {
     expect(state.ownership).toEqual(start.ownership)
     expect(state.players).toEqual(start.players)
     expect(state.phase).toEqual({ kind: 'preRoll' })
-    expect(events).toEqual([{ type: 'tradeRejected', offer: forumFor150 }])
+    expect(events).toEqual([{ type: 'tradeRejected', offer: forumFor150, original: null }])
   })
 
   it('refuses an answer from the author of the offer', () => {
@@ -257,5 +257,117 @@ describe('limits of the proposals', () => {
     sold.ownership.satellite = { owner: B, mortgaged: false, level: 0 }
     const otherHolder = refused(sold, offer({ cash: 300 }, { squares: ['satellite'] }))
     expect(otherHolder.tradeLimits.refusedAsks[A]).toEqual({ satellite: { holder: B, count: 1 } })
+  })
+})
+
+function counter(trade: TradeOffer): Action {
+  return { type: 'counterTrade', playerId: trade.from, offer: trade }
+}
+
+describe('counterProblem', () => {
+  const start = makeState({ players: 3, overrides: [{}, { cash: 180 }], ownership: { forum: { owner: A }, blog: { owner: A } } })
+  const offered = act(start, propose(forumFor150)).state
+
+  it('accepts a different offer sent back by the recipient to the author', () => {
+    expect(counterProblem(offered, offer({ cash: 120 }, { squares: ['forum'] }, B, A))).toBeNull()
+  })
+
+  it('refuses a counter-offer when no offer waits for an answer', () => {
+    expect(counterProblem(start, offer({ cash: 120 }, { squares: ['forum'] }, B, A))?.code).toBe('WRONG_PHASE')
+  })
+
+  it('refuses a counter-offer to a counter-offer', () => {
+    const countered = act(offered, counter(offer({ cash: 120 }, { squares: ['forum'] }, B, A))).state
+    expect(counterProblem(countered, offer({ squares: ['forum'] }, { cash: 140 }))?.code).toBe('COUNTER_NOT_ALLOWED')
+  })
+
+  it('refuses a counter-offer sent to another player than the author, or sent by another player than the recipient', () => {
+    expect(counterProblem(offered, offer({ cash: 120 }, { squares: ['forum'] }, B, C))?.code).toBe('INVALID_TRADE')
+    expect(counterProblem(offered, offer({ cash: 120 }, { squares: ['forum'] }, C, A))?.code).toBe('INVALID_TRADE')
+  })
+
+  it('refuses the offer received sent back unchanged, whatever the order of its elements', () => {
+    expect(counterProblem(offered, offer({ cash: 150 }, { squares: ['forum'] }, B, A))?.code).toBe('COUNTER_UNCHANGED')
+    const forumAndBlog = act(start, propose(offer({ squares: ['forum', 'blog'] }, { cash: 150 }))).state
+    expect(counterProblem(forumAndBlog, offer({ cash: 150 }, { squares: ['blog', 'forum'] }, B, A))?.code).toBe('COUNTER_UNCHANGED')
+  })
+
+  it('checks the content of the counter-offer like any offer', () => {
+    expect(counterProblem(offered, offer({ cash: 200 }, { squares: ['forum'] }, B, A))?.code).toBe('INSUFFICIENT_FUNDS')
+  })
+})
+
+describe('counterTrade', () => {
+  const start = makeState({ players: 3, ownership: { forum: { owner: A }, satellite: { owner: C } } })
+  const offered = act(start, propose(forumFor150)).state
+  const forumFor200 = offer({ cash: 200 }, { squares: ['forum'] }, B, A)
+  const countered = act(offered, counter(forumFor200)).state
+
+  it('keeps the game on the counter-offer, which the author of the offer must answer', () => {
+    const { state, events } = act(offered, counter(forumFor200))
+    expect(state.phase).toEqual({ kind: 'tradeOffer', offer: forumFor200, resume: { kind: 'preRoll' }, original: forumFor150 })
+    expect(expectedActor(state)).toBe(A)
+    expect(events).toEqual([{ type: 'tradeCountered', offer: forumFor200, original: forumFor150 }])
+  })
+
+  it('refuses a counter-offer from a third player, outside an offer or to a counter-offer', () => {
+    expect(rejectCode(offered, counter(offer({ cash: 200 }, { squares: ['forum'] }, C, A)))).toBe('NOT_YOUR_TURN')
+    expect(rejectCode(start, counter(forumFor200))).toBe('WRONG_PHASE')
+    expect(rejectCode(countered, counter(offer({ squares: ['forum'] }, { cash: 180 })))).toBe('COUNTER_NOT_ALLOWED')
+  })
+
+  it('refuses a counter-offer sent to another player or unchanged', () => {
+    expect(rejectCode(offered, counter(offer({ cash: 200 }, { squares: ['forum'] }, B, C)))).toBe('INVALID_TRADE')
+    expect(rejectCode(offered, counter(offer({ cash: 150 }, { squares: ['forum'] }, B, A)))).toBe('COUNTER_UNCHANGED')
+  })
+
+  it('hands over the content of an accepted counter-offer and goes back to the phase before the offer', () => {
+    const { state, events } = act(countered, { type: 'acceptTrade', playerId: A })
+    expect(state.ownership.forum?.owner).toBe(B)
+    expect(player(state, A).cash).toBe(1700)
+    expect(player(state, B).cash).toBe(1300)
+    expect(state.phase).toEqual({ kind: 'preRoll' })
+    expect(events).toEqual([{ type: 'tradeAccepted', offer: forumFor200, original: forumFor150 }])
+  })
+
+  it('changes nothing on a refused counter-offer and goes back to the phase before the offer', () => {
+    const { state, events } = act(countered, { type: 'rejectTrade', playerId: A })
+    expect(state.ownership).toEqual(start.ownership)
+    expect(state.players).toEqual(start.players)
+    expect(state.phase).toEqual({ kind: 'preRoll' })
+    expect(events).toEqual([{ type: 'tradeRejected', offer: forumFor200, original: forumFor150 }])
+  })
+
+  it('goes back to the debt with the same remaining payments after a counter-offer accepted by the debtor', () => {
+    const debt: TradeResume = { kind: 'debt', debtor: B, payments: [{ to: A, amount: 200, reason: 'rent' }], resume: { kind: 'postRoll' } }
+    const inDebt = makeState({ players: 3, overrides: [{}, { cash: 50 }], ownership: { satellite: { owner: B } }, phase: debt })
+    const sale = offer({ squares: ['satellite'] }, { cash: 225 }, B, C)
+    const { state } = actAll(inDebt, [
+      propose(sale),
+      counter(offer({ cash: 180 }, { squares: ['satellite'] }, C, B)),
+      { type: 'acceptTrade', playerId: B },
+    ])
+    expect(state.ownership.satellite?.owner).toBe(C)
+    expect(player(state, B).cash).toBe(230)
+    expect(state.phase).toEqual(debt)
+  })
+
+  it('does not count the counter-offer among the proposals of its author', () => {
+    expect(tradeProposalsLeft(countered, B)).toBe(3)
+    expect(turnProposals(countered, A).count).toBe(1)
+  })
+
+  it('counts the offer that received a counter-offer as refused', () => {
+    const back = act(countered, { type: 'rejectTrade', playerId: A }).state
+    expect(rejectCode(back, propose(forumFor150))).toBe('TRADE_ALREADY_REJECTED')
+    const traded = act(countered, { type: 'acceptTrade', playerId: A }).state
+    expect(traded.tradeLimits.thisTurn[A]?.rejected).toContain(tradeKey(forumFor150))
+  })
+
+  it('counts a refusal of each square the offer asked for', () => {
+    const ask = offer({ cash: 200 }, { squares: ['satellite'] }, A, C)
+    const asked = act(start, propose(ask)).state
+    const { state } = act(asked, counter(offer({ squares: ['satellite'] }, { cash: 300 }, C, A)))
+    expect(state.tradeLimits.refusedAsks[A]).toEqual({ satellite: { holder: C, count: 1 } })
   })
 })

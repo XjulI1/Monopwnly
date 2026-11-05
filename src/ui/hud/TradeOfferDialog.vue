@@ -3,7 +3,7 @@ import { computed } from 'vue'
 import { FAMILY_COLORS } from '../../board/boardTheme'
 import { FAMILY_NAMES, purchasableById, squareById, type SquareId, type TradeSide } from '../../engine'
 import { formatPwn } from '../../game/format'
-import { countOf } from '../../game/history/format'
+import { countOf, offerText } from '../../game/history/format'
 import type { ButtonId } from '../../game/interaction'
 import { useInjectedGameSession } from '../../game/useGameSession'
 import ActionButton from './ActionButton.vue'
@@ -14,8 +14,17 @@ const NEUTRAL = 'var(--color-muted)'
 
 const { view, displayedState, send } = useInjectedGameSession()
 
-const offer = computed(() => (view.value.thinking ? null : view.value.offer))
+const offer = computed(() => (view.value.thinking || view.value.trade ? null : view.value.offer))
 const nameOf = (id: string) => displayedState.value.players.find((p) => p.id === id)?.name ?? ''
+const title = computed(() => {
+  const current = offer.value
+  if (!current) return ''
+  return view.value.original ? `${nameOf(current.from)} vous fait une contre-proposition` : `${nameOf(current.from)} vous propose un échange`
+})
+const reminder = computed(() => {
+  const original = view.value.original
+  return original ? `Votre offre : ${offerText(original, (id) => displayedState.value.ownership[id]?.mortgaged ?? false)}` : null
+})
 
 function familyOf(squareId: SquareId): string {
   const square = purchasableById(squareId)
@@ -72,13 +81,20 @@ function press(id: ButtonId) {
         id="trade-offer-title"
         class="text-lg font-bold"
       >
-        {{ nameOf(offer.from) }} vous propose un échange
+        {{ title }}
       </h2>
       <p
         class="text-sm text-muted"
         data-test="trade-recipient"
       >
         Pour {{ nameOf(offer.to) }}
+      </p>
+      <p
+        v-if="reminder"
+        class="mt-2 text-sm"
+        data-test="offer-original"
+      >
+        {{ reminder }}
       </p>
     </header>
 
@@ -120,10 +136,11 @@ function press(id: ButtonId) {
       </section>
     </div>
 
-    <div class="grid grid-cols-2 gap-2">
+    <div class="flex gap-2 whitespace-nowrap">
       <ActionButton
         v-for="button in view.buttons"
         :key="button.id"
+        class="flex-1"
         :button="button"
         :variant="button.id === 'acceptTrade' ? 'primary' : 'ghost'"
         show-reason

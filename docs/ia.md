@@ -83,7 +83,10 @@ Tous les seuils sont regroupés dans `src/ai/constants.ts`.
 Le moteur valide chaque offre à la proposition et de nouveau à l'acceptation, puis transfère tout en
 une fois. Le joueur dont c'est le tour propose avant ou après son lancer ; un débiteur propose pendant
 son règlement de dette, même hors de son tour. Trois propositions au plus par tour et par joueur, et
-une offre refusée ne peut pas être refaite à l'identique dans le même tour. Le moteur garde aussi,
+une offre refusée ne peut pas être refaite à l'identique dans le même tour. Le destinataire d'une
+offre peut aussi y répondre une fois par une contre-proposition, que l'auteur accepte ou refuse sans
+pouvoir contre-proposer à son tour ; elle ne compte pas dans ses propositions, et l'offre à laquelle
+elle répond compte comme refusée. Le moteur garde aussi,
 pour toute la partie, le nombre de refus essuyés par chaque joueur pour chaque case demandée :
 l'information est publique (elle figure dans le journal) et sert à l'IA pour monter ses prix d'un
 tour à l'autre.
@@ -124,6 +127,28 @@ que les prix, sans prime ni danger), 10 % au normal, 20 % au difficile.
 
 Une IA propose au plus une offre par destinataire et par tour, et jamais une offre déjà refusée.
 
+### Contre-proposer
+
+Au lieu de refuser une offre qu'elle n'accepte pas telle quelle, une IA normale ou difficile cherche
+par dichotomie le plus petit complément de PwnCoins, par pas de 10 Ᵽ, qui la lui ferait accepter,
+options de partie comprises : l'auteur paie davantage, ou l'IA paie moins quand l'offre lui
+demandait de l'argent. Les cases et les Clés ne changent pas. Elle ne contre-propose que si ce
+complément ne dépasse pas la moitié de la valeur totale échangée dans l'offre
+(`COUNTER_MAX_SHARE`), et si l'auteur peut payer le montant qui en résulte ; sinon elle refuse.
+Pour Satellite isolé, une offre de 300 Ᵽ reçoit ainsi une contre-proposition à 370 Ᵽ de l'IA
+normale et à 410 Ᵽ de la difficile ; une offre de 50 Ᵽ est refusée. L'IA facile ne contre-propose
+jamais.
+
+### Répondre à une contre-proposition
+
+L'IA qui reçoit une contre-proposition l'accepte si elle l'accepterait comme une offre reçue et si
+l'argent qu'elle y donne lui laisse sa réserve ; la difficile garde en plus de quoi poser une
+backdoor sur chaque système de la famille que l'échange lui complète, comme pour ses échanges
+croisés. Pendant son propre règlement de dette, elle accepte la contre-proposition à sa vente dès que
+le prix atteint la valeur de veille de la case : elle n'obtiendrait pas plus en la mettant en veille.
+Une offre d'achat qui a reçu une contre-proposition compte comme un refus pour la montée de son prix
+au tour suivant.
+
 ## Dans l'application
 
 Les décisions sont calculées dans un Web Worker (`src/ai/worker.ts`) pour ne jamais figer les
@@ -131,8 +156,9 @@ animations. La session de jeu attend la fin de la présentation de l'action pré
 décision, attend une courte pause qui dépend de la vitesse (600 ms en normale, 250 ms en rapide,
 aucune en instantanée), puis soumet l'action. Pendant ce temps, le panneau indique
 « <nom> réfléchit… » (« <nom> étudie votre offre… » quand elle répond à l'offre d'un humain, qui
-reçoit ensuite « <nom> accepte votre offre » ou « <nom> refuse votre offre ») et ne propose aucune
-commande de jeu. Une carte tirée par une IA se ferme
+reçoit ensuite « <nom> accepte votre offre », « <nom> refuse votre offre » ou la fenêtre de sa
+contre-proposition ; « <nom> étudie votre contre-proposition… » quand elle répond à celle d'un
+humain) et ne propose aucune commande de jeu. Une carte tirée par une IA se ferme
 seule après 2,4 s (1,4 s en rapide) ; celle d'un humain attend son toucher. Quitter la partie
 annule la décision en cours et tous les délais.
 
@@ -140,8 +166,8 @@ annule la décision en cours et tous les délais.
 
 `runTournament` joue des parties entre IA sans interface, échanges compris, avec une limite de
 sécurité de 300 tours de table (une partie qui l'atteint est comptée comme interrompue). Il mesure
-la durée des parties, les victoires par place et par niveau, le rendement de chaque famille et le
-nombre d'échanges proposés et acceptés.
+la durée des parties, les victoires par place et par niveau, le rendement de chaque famille, le
+nombre d'échanges proposés et acceptés, et le nombre de contre-propositions faites et acceptées.
 
 - **Force des niveaux** (`src/ai/tournament/strength.test.ts`, dans `pnpm test`) : 180 parties
   facile, normal et difficile, les six ordres de jeu à parts égales. Les victoires doivent être
@@ -149,26 +175,33 @@ nombre d'échanges proposés et acceptés.
   échanges ajoutent de la variance : sur les 60 parties d'avant, la normale passait parfois devant
   la difficile par le seul hasard des graines.
 - **Équilibrage du plateau** (`pnpm test:balance`) : 400 parties entre 4 IA normales, enchères et
-  échanges activés. Il doit y avoir des échanges acceptés. Critères et réajustement des loyers :
+  échanges activés. Il doit y avoir des échanges acceptés et des contre-propositions. Critères et
+  réajustement des loyers :
   voir [docs/plateau.md](plateau.md#équilibrage).
 
-Derniers résultats (3 novembre 2026, avec les échanges) :
+Derniers résultats (4 novembre 2026, avec les contre-propositions) :
 
-| Tournoi | Parties terminées | Facile | Normal | Difficile | Échanges acceptés par partie |
-|---|---|---|---|---|---|
-| Force, 180 parties | 180 | 13,3 % | 38,3 % | 48,3 % | 3,4 |
-| Force, 600 parties | 599 | 13,4 % | 34,1 % | 52,6 % | 3,4 |
+| Tournoi | Parties terminées | Facile | Normal | Difficile | Échanges acceptés par partie | Contre-propositions faites (acceptées) |
+|---|---|---|---|---|---|---|
+| Force, 180 parties | 180 | 12,8 % | 37,8 % | 49,4 % | 3,5 | 219 (20) |
+| Force, 600 parties | 599 | 12,9 % | 33,7 % | 53,4 % | 3,5 | 810 (65) |
 
 | Équilibrage, 400 parties | Mesure |
 |---|---|
-| Parties interrompues | 0 % |
+| Parties interrompues | 0,5 % |
 | Durée médiane (90e centile) | 41 tours de table (66) |
-| Victoires de la 1re à la 4e place | 26,5 %, 25,0 %, 25,0 %, 23,5 % |
-| Écart de rendement entre familles | 2,5 |
-| Échanges acceptés par partie | 2,0 |
+| Victoires de la 1re à la 4e place | 26,6 %, 24,9 %, 25,9 %, 22,6 % |
+| Écart de rendement entre familles | 2,96 |
+| Échanges acceptés par partie | 4,7 |
+| Contre-propositions faites (acceptées) | 1 961 (1 026) |
 
 Avant les échanges, environ une partie sur cinq à trois niveaux atteignait la limite de 300 tours :
 l'IA facile bloquait des familles que personne ne pouvait plus compléter. Les échanges ont fait
 disparaître ces parties interminables. Ils resserrent en revanche l'écart entre le normal et le
 difficile, qui complètent tous deux leurs familles en rachetant à l'IA facile la case qui leur
 manque.
+
+Les contre-propositions laissent la force des niveaux presque inchangée : entre niveaux différents,
+une sur dix environ est acceptée. Entre IA normales, une sur deux l'est, et le nombre d'échanges
+conclus par partie double (de 2,0 à 4,7). L'écart de rendement entre familles monte en conséquence
+de 2,5 à 2,96, juste sous la limite de 3 (voir [docs/plateau.md](plateau.md#équilibrage)).

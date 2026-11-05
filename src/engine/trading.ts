@@ -80,6 +80,23 @@ export function validateTrade(state: PublicGameState, offer: TradeOffer): RuleEr
   return offerProblem(state, offer)
 }
 
+/** The same trade sent the other way: what the author gave becomes what they ask for, and the other way round. */
+export function reversedOffer(offer: TradeOffer): TradeOffer {
+  return { from: offer.to, to: offer.from, give: offer.receive, receive: offer.give }
+}
+
+/** Explains why the recipient of the pending offer could not send this counter-offer back to its author, or null if they could. */
+export function counterProblem(state: PublicGameState, counter: TradeOffer): RuleError | null {
+  const phase = state.phase
+  if (phase.kind !== 'tradeOffer') return error('WRONG_PHASE', 'Aucune offre d’échange en attente.')
+  if (phase.original !== null) return error('COUNTER_NOT_ALLOWED', 'Une contre-proposition ne peut pas recevoir de contre-proposition.')
+  if (counter.from !== phase.offer.to || counter.to !== phase.offer.from) {
+    return error('INVALID_TRADE', 'Une contre-proposition s’adresse à l’auteur de l’offre.')
+  }
+  if (tradeKey(counter) === tradeKey(reversedOffer(phase.offer))) return error('COUNTER_UNCHANGED', 'Modifiez l’offre pour faire une contre-proposition.')
+  return offerProblem(state, counter)
+}
+
 function ensure(problem: RuleError | null): void {
   if (problem) fail(problem.code, problem.message)
 }
@@ -105,7 +122,7 @@ export function proposeTrade(ctx: Ctx, playerId: PlayerId, offer: TradeOffer): v
     rejected: [...proposals.rejected],
   }
   const proposed = structuredClone(offer)
-  state.phase = { kind: 'tradeOffer', offer: proposed, resume: phase }
+  state.phase = { kind: 'tradeOffer', offer: proposed, resume: phase, original: null }
   emit(ctx, { type: 'tradeProposed', offer: structuredClone(proposed) })
 }
 
@@ -141,13 +158,14 @@ export function acceptTrade(ctx: Ctx): void {
   handOver(state, offer.give, author, recipient)
   handOver(state, offer.receive, recipient, author)
   state.phase = phase.resume
-  emit(ctx, { type: 'tradeAccepted', offer: structuredClone(offer) })
+  emit(ctx, { type: 'tradeAccepted', offer: structuredClone(offer), original: structuredClone(phase.original) })
 }
 
 function rememberRefusal(state: GameState, offer: TradeOffer): void {
   const limits = state.tradeLimits
   const proposals = turnProposals(state, offer.from)
   limits.thisTurn[offer.from] = { ...proposals, rejected: [...proposals.rejected, tradeKey(offer)] }
+  if (offer.receive.squares.length === 0) return
   const asks = (limits.refusedAsks[offer.from] ??= {})
   for (const squareId of offer.receive.squares) {
     const previous = asks[squareId]
@@ -160,5 +178,15 @@ export function rejectTrade(ctx: Ctx): void {
   const phase = tradePhase(ctx)
   rememberRefusal(state, phase.offer)
   state.phase = phase.resume
-  emit(ctx, { type: 'tradeRejected', offer: structuredClone(phase.offer) })
+  emit(ctx, { type: 'tradeRejected', offer: structuredClone(phase.offer), original: structuredClone(phase.original) })
+}
+
+export function counterTrade(ctx: Ctx, counter: TradeOffer): void {
+  const state = ctx.state
+  const phase = tradePhase(ctx)
+  ensure(counterProblem(state, counter))
+  rememberRefusal(state, phase.offer)
+  const countered = structuredClone(counter)
+  state.phase = { kind: 'tradeOffer', offer: countered, resume: phase.resume, original: phase.offer }
+  emit(ctx, { type: 'tradeCountered', offer: structuredClone(countered), original: structuredClone(phase.offer) })
 }

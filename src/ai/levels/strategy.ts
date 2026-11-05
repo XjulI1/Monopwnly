@@ -23,9 +23,9 @@ import {
 } from '../../engine'
 import { BID_STEP, EARLY_GAME_FREE_SQUARES, REACTIVATION_MARGIN } from '../constants'
 import { diceTotalOdds } from '../landingOdds'
-import { endGameNear, optionsRefuseOffer } from '../options'
+import { endGameNear } from '../options'
 import type { PlayerView } from '../playerView'
-import { evaluateOffer } from '../trade/evaluateOffer'
+import { acceptsCounter, acceptsOffer, counterOffer } from '../trade/counterOffer'
 import { expectedRent, reserve } from '../valuation'
 
 /** Everything a level needs to take one decision. */
@@ -153,11 +153,14 @@ export function proposal(ctx: DecisionContext, offer: TradeOffer | null): Action
   return offer ? { type: 'proposeTrade', playerId: ctx.me.id, offer } : null
 }
 
-/** Accepts the trade offered to the player when its evaluation at the level of the player says so, refuses it otherwise. */
+/** Answers the pending trade: an offer is accepted when the AI accepts it as it is, countered when a complement of PwnCoins would make it accept, refused otherwise; a counter-offer is accepted or refused. */
 export function answerOffer(ctx: DecisionContext): Action {
   const phase = ctx.view.phase
-  const accept = phase.kind === 'tradeOffer' && evaluateOffer(ctx.view, phase.offer, ctx.level).accept && !optionsRefuseOffer(ctx, phase.offer)
-  return { type: accept ? 'acceptTrade' : 'rejectTrade', playerId: ctx.me.id }
+  if (phase.kind !== 'tradeOffer') return { type: 'rejectTrade', playerId: ctx.me.id }
+  const accept = phase.original === null ? acceptsOffer(ctx, phase.offer) : acceptsCounter(ctx)
+  if (accept) return { type: 'acceptTrade', playerId: ctx.me.id }
+  const counter = counterOffer(ctx)
+  return counter ? { type: 'counterTrade', playerId: ctx.me.id, offer: counter } : { type: 'rejectTrade', playerId: ctx.me.id }
 }
 
 /** Rolls the dice after a double, ends the turn otherwise. */

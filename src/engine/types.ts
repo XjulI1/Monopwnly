@@ -146,7 +146,7 @@ export type Phase =
       bidders: PlayerId[]
       nextBidder: PlayerId
     }
-  | { kind: 'tradeOffer'; offer: TradeOffer; resume: TradeResume }
+  | { kind: 'tradeOffer'; offer: TradeOffer; resume: TradeResume; original: TradeOffer | null }
   | { kind: 'gameOver' }
 
 export type PhaseKind = Phase['kind']
@@ -204,6 +204,7 @@ export type Action =
   | { type: 'proposeTrade'; playerId: PlayerId; offer: TradeOffer }
   | { type: 'acceptTrade'; playerId: PlayerId }
   | { type: 'rejectTrade'; playerId: PlayerId }
+  | { type: 'counterTrade'; playerId: PlayerId; offer: TradeOffer }
 
 export type ActionType = Action['type']
 
@@ -244,8 +245,9 @@ export type GameEvent =
   | { type: 'bootBonus'; playerId: PlayerId }
   | { type: 'rentWaived'; playerId: PlayerId; ownerId: PlayerId; squareId: SquareId }
   | { type: 'tradeProposed'; offer: TradeOffer }
-  | { type: 'tradeAccepted'; offer: TradeOffer }
-  | { type: 'tradeRejected'; offer: TradeOffer }
+  | { type: 'tradeCountered'; offer: TradeOffer; original: TradeOffer }
+  | { type: 'tradeAccepted'; offer: TradeOffer; original: TradeOffer | null }
+  | { type: 'tradeRejected'; offer: TradeOffer; original: TradeOffer | null }
 
 export type RuleErrorCode =
   | 'INVALID_PLAYER_COUNT'
@@ -276,6 +278,8 @@ export type RuleErrorCode =
   | 'INVALID_TRADE'
   | 'TRADE_LIMIT_REACHED'
   | 'TRADE_ALREADY_REJECTED'
+  | 'COUNTER_UNCHANGED'
+  | 'COUNTER_NOT_ALLOWED'
 
 export type RuleError = { code: RuleErrorCode; message: string }
 

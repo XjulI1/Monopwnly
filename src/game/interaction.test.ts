@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { cardIdByTitle, type GameState, type Phase } from '../engine'
-import { A, B, C, makeState, roll } from '../engine/testUtils'
+import { cardIdByTitle, squareById, type GameState, type Phase, type TradeOffer, type TradeSide } from '../engine'
+import { A, B, C, act, makeState, roll } from '../engine/testUtils'
 import {
   bidCheck,
   IDLE,
@@ -363,5 +363,64 @@ describe('while an AI acts', () => {
     const state = makeState({ overrides: [{}, { controller: ai }] })
     expect(viewOf(state, IDLE).thinking).toBeNull()
     expect(button(state, 'rollDice')?.enabled).toBe(true)
+  })
+})
+
+describe('counter-offer', () => {
+  const side = (partial: Partial<TradeSide> = {}): TradeSide => ({ squares: [], cash: 0, keys: [], ...partial })
+  const forumFor150: TradeOffer = { from: A, to: B, give: side({ squares: ['forum'] }), receive: side({ cash: 150 }) }
+  const start = makeState({ ownership: { forum: { owner: A }, minitel: { owner: B } } })
+  const offered = act(start, { type: 'proposeTrade', playerId: A, offer: forumFor150 }).state
+
+  function composing(): Interaction {
+    return sequence(offered, [press('counterTrade')]).interaction
+  }
+
+  it('offers to counter an offer, but not a counter-offer', () => {
+    expect(buttonsOf(offered).map((b) => b.id)).toEqual(['acceptTrade', 'counterTrade', 'rejectTrade'])
+    const counterOffer: TradeOffer = { from: B, to: A, give: side({ cash: 200 }), receive: side({ squares: ['forum'] }) }
+    const countered = act(offered, { type: 'counterTrade', playerId: B, offer: counterOffer }).state
+    expect(buttonsOf(countered).map((b) => b.id)).toEqual(['acceptTrade', 'rejectTrade'])
+  })
+
+  it('opens the composer filled with the offer received, seen from the recipient, the author as the only partner', () => {
+    const composer = viewOf(offered, composing()).trade
+    expect(composer?.author).toBe(B)
+    expect(composer?.partners).toEqual([A])
+    expect(composer?.draft).toEqual({ partner: A, give: side({ cash: 150 }), receive: side({ squares: ['forum'] }), counter: true })
+  })
+
+  it('refuses to send the offer received back unchanged', () => {
+    const interaction = composing()
+    expect(viewOf(offered, interaction).trade?.check).toEqual({ allowed: false, reason: 'Modifiez l’offre pour faire une contre-proposition.' })
+    expect(sequence(offered, [press('proposeTrade')], interaction).actions).toEqual([])
+  })
+
+  it('sends a changed offer as a counter-offer to the author', () => {
+    const interaction = composing()
+    if (!interaction.trade) throw new Error('no draft')
+    const draft = { ...interaction.trade, give: side({ cash: 200 }) }
+    const result = sequence(offered, [{ kind: 'tradeDraft', draft }, press('proposeTrade')], interaction)
+    expect(result.actions).toEqual([
+      { type: 'counterTrade', playerId: B, offer: { from: B, to: A, give: side({ cash: 200 }), receive: side({ squares: ['forum'] }) } },
+    ])
+    expect(result.interaction.trade).toBeNull()
+  })
+
+  it('goes back to the offer received when the composer is closed', () => {
+    const { interaction } = sequence(offered, [press('counterTrade'), press('closeTrade')])
+    const view = viewOf(offered, interaction)
+    expect(view.trade).toBeNull()
+    expect(view.offer).toEqual(forumFor150)
+  })
+
+  it('highlights the squares of the draft rather than those of the offer while composing', () => {
+    const interaction = composing()
+    if (!interaction.trade) throw new Error('no draft')
+    const draft = { ...interaction.trade, give: side({ squares: ['minitel'] }), receive: side() }
+    const { interaction: changed } = sequence(offered, [{ kind: 'tradeDraft', draft }], interaction)
+    const highlights = viewOf(offered, changed).highlights
+    expect(highlights[squareById('minitel').index]).toBe('selected')
+    expect(highlights[squareById('forum').index]).toBeUndefined()
   })
 })

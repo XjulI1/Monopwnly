@@ -10,11 +10,10 @@ import {
   type PlayerId,
   type QuarantineExit,
   type TradeOffer,
-  type TradeSide,
 } from '../../engine'
 import { formatPwn } from '../format'
 import { winReasonText } from '../gameOptions'
-import { countOf, deckName, listOf, ofName, squareName, squareNameAt } from './format'
+import { countOf, deckName, listOf, offerText, ofName, squareName, squareNameAt } from './format'
 import { trackPositions } from './positions'
 
 /** A sub-line of a journal entry, shown when the entry is unfolded. */
@@ -259,20 +258,13 @@ export function recordInJournal(journal: readonly JournalEntry[], before: GameSt
     return details
   }
 
-  function sideText(side: TradeSide): string {
-    const squares = side.squares.map((id) => `${squareName(id)}${before.ownership[id]?.mortgaged ? ' (en veille)' : ''}`)
-    const cash = side.cash > 0 ? [formatPwn(side.cash)] : []
-    const keys = side.keys.length > 0 ? [countOf(side.keys.length, 'Clé de déchiffrement', 'Clés de déchiffrement')] : []
-    const items = [...squares, ...cash, ...keys]
-    return items.length > 0 ? listOf(items) : 'rien'
+  function tradeText(offer: TradeOffer): string {
+    return offerText(offer, (id) => before.ownership[id]?.mortgaged ?? false)
   }
 
-  function offerText(offer: TradeOffer): string {
-    return `${sideText(offer.give)} contre ${sideText(offer.receive)}`
-  }
-
-  function answer(offer: TradeOffer, verb: string, index: number) {
-    add('action', offer.to, `${name(offer.to)} ${verb} l’offre ${ofName(name(offer.from))} : ${offerText(offer)}`, index)
+  function answer(offer: TradeOffer, original: TradeOffer | null, verb: string, index: number) {
+    const what = original ? 'la contre-proposition' : 'l’offre'
+    add('action', offer.to, `${name(offer.to)} ${verb} ${what} ${ofName(name(offer.from))} : ${tradeText(offer)}`, index)
   }
 
   function onBankruptcy(event: Extract<GameEvent, { type: 'bankrupt' }>, index: number) {
@@ -394,13 +386,16 @@ export function recordInJournal(journal: readonly JournalEntry[], before: GameSt
         add('action', event.ownerId, `${name(event.ownerId)} ne perçoit pas de loyer (en quarantaine)`, index)
         return
       case 'tradeProposed':
-        add('action', event.offer.from, `${name(event.offer.from)} propose à ${name(event.offer.to)} : ${offerText(event.offer)}`, index)
+        add('action', event.offer.from, `${name(event.offer.from)} propose à ${name(event.offer.to)} : ${tradeText(event.offer)}`, index)
+        return
+      case 'tradeCountered':
+        add('action', event.offer.from, `${name(event.offer.from)} fait une contre-proposition à ${name(event.offer.to)} : ${tradeText(event.offer)}`, index)
         return
       case 'tradeAccepted':
-        answer(event.offer, 'accepte', index)
+        answer(event.offer, event.original, 'accepte', index)
         return
       case 'tradeRejected':
-        answer(event.offer, 'refuse', index)
+        answer(event.offer, event.original, 'refuse', index)
         return
       default:
         return

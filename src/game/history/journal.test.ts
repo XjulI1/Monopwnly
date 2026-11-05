@@ -410,6 +410,18 @@ describe('trades', () => {
     ])
   })
 
+  it('names a counter-offer, then the answer to it as an answer to a counter-offer', () => {
+    const proposed = act(start, { type: 'proposeTrade', playerId: A, offer }).state
+    const counterOffer = { from: B, to: A, give: { squares: [], cash: 120, keys: [] }, receive: { squares: ['forum'], cash: 0, keys: [] } }
+    const counter: Action = { type: 'counterTrade', playerId: B, offer: counterOffer }
+    expect(entriesOf(proposed, counter)).toMatchObject([{ actor: B, text: `Joueur 1 fait une contre-proposition à Nyx : ${pwn(120)} contre Forum` }])
+    const countered = act(proposed, counter).state
+    expect(entriesOf(countered, { type: 'acceptTrade', playerId: A })).toMatchObject([
+      { actor: A, text: `Nyx accepte la contre-proposition de Joueur 1 : ${pwn(120)} contre Forum` },
+    ])
+    expect(textsOf(countered, { type: 'rejectTrade', playerId: A })).toEqual([`Nyx refuse la contre-proposition de Joueur 1 : ${pwn(120)} contre Forum`])
+  })
+
   it('elides « de » before the name of an author starting with a vowel', () => {
     const alice = game({ ownership: { forum: { owner: A } } })
     const proposed = act(alice, { type: 'proposeTrade', playerId: A, offer }).state

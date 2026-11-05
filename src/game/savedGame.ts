@@ -18,10 +18,11 @@ import type { GameStatistics, PlayerStatistics } from './history/statistics'
 import type { GameConfig } from './setupForm'
 
 /** Version of the format of the saved game understood by this application. */
-export const SAVE_FORMAT_VERSION = 3
+export const SAVE_FORMAT_VERSION = 4
 
 const FORMAT_BEFORE_TRADES = 1
 const FORMAT_BEFORE_OPTIONS = 2
+const FORMAT_BEFORE_COUNTERS = 3
 
 const OPTIONS_OFF: Omit<GameSettings, 'auctions'> = {
   dmzJackpot: false,
@@ -221,6 +222,7 @@ function isPhase(value: unknown, isPlayerId: (id: unknown) => boolean): boolean 
     case 'tradeOffer':
       return (
         isTradeOffer(value.offer, isPlayerId) &&
+        (value.original === null || isTradeOffer(value.original, isPlayerId)) &&
         isFields(value.resume) &&
         isOneOf(value.resume.kind, TRADE_RESUME_KINDS) &&
         isPhase(value.resume, isPlayerId)
@@ -324,7 +326,7 @@ function addGameOptions(save: Fields, engineState: Fields): Fields {
   const creation = isFields(save.creation) ? { ...save.creation, settings: { ...OPTIONS_OFF, ...(isFields(save.creation.settings) ? save.creation.settings : {}) } } : save.creation
   return {
     ...save,
-    formatVersion: SAVE_FORMAT_VERSION,
+    formatVersion: FORMAT_BEFORE_COUNTERS,
     creation,
     engineState: {
       ...engineState,
@@ -336,12 +338,18 @@ function addGameOptions(save: Fields, engineState: Fields): Fields {
   }
 }
 
+function addCounterOffers(save: Fields, engineState: Fields): Fields {
+  const phase = isFields(engineState.phase) && engineState.phase.kind === 'tradeOffer' ? { ...engineState.phase, original: null } : engineState.phase
+  return { ...save, formatVersion: SAVE_FORMAT_VERSION, engineState: { ...engineState, phase } }
+}
+
 const MIGRATIONS: Record<number, (save: Fields, engineState: Fields) => Fields> = {
   [FORMAT_BEFORE_TRADES]: addTradeLimits,
   [FORMAT_BEFORE_OPTIONS]: addGameOptions,
+  [FORMAT_BEFORE_COUNTERS]: addCounterOffers,
 }
 
-/** Brings a saved game of an older format to the current one, one format after the other: a save from before the trades gets empty trade limits, a save from before the game options gets them all off, an empty pot, its rounds counted as before and the last solvent player as reason of a victory. */
+/** Brings a saved game of an older format to the current one, one format after the other: a save from before the trades gets empty trade limits, a save from before the game options gets them all off, an empty pot, its rounds counted as before and the last solvent player as reason of a victory, and an offer saved before the counter-offers becomes an offer that can be countered. */
 export function migrateSavedGame(value: unknown): unknown {
   let save = value
   for (;;) {

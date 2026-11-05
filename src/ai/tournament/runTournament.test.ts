@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { runTournament, type TournamentOptions } from './runTournament'
+import type { GameEvent, TradeOffer } from '../../engine'
+import { countTrades, NO_TRADES, runTournament, type TournamentOptions } from './runTournament'
 
 const SHORT: TournamentOptions = {
   games: 20,
@@ -21,6 +22,7 @@ describe('runTournament', () => {
     expect(Object.values(report.yieldByGroup).some((group) => group.rent > 0 && group.invested > 0)).toBe(true)
     expect(report.trades.accepted).toBeLessThanOrEqual(report.trades.proposed)
     expect(report.trades.acceptedPerGame).toBe(report.trades.accepted / report.games)
+    expect(report.trades.counterAccepted).toBeLessThanOrEqual(report.trades.countered)
   })
 
   it('counts every finished game once among the places', () => {
@@ -38,5 +40,24 @@ describe('runTournament', () => {
 
   it('gives the same report for the same seeds', () => {
     expect(runTournament(SHORT)).toEqual(report)
+  })
+})
+
+describe('countTrades', () => {
+  const offer: TradeOffer = { from: 'p1', to: 'p2', give: { squares: ['forum'], cash: 0, keys: [] }, receive: { squares: [], cash: 150, keys: [] } }
+  const counter: TradeOffer = { from: 'p2', to: 'p1', give: { squares: [], cash: 120, keys: [] }, receive: { squares: ['forum'], cash: 0, keys: [] } }
+
+  it('counts the counter-offers made and accepted, the trade of an accepted counter-offer among the accepted trades', () => {
+    const events: GameEvent[] = [
+      { type: 'tradeProposed', offer },
+      { type: 'tradeCountered', offer: counter, original: offer },
+      { type: 'tradeAccepted', offer: counter, original: offer },
+      { type: 'tradeProposed', offer },
+      { type: 'tradeCountered', offer: counter, original: offer },
+      { type: 'tradeRejected', offer: counter, original: offer },
+      { type: 'tradeProposed', offer },
+      { type: 'tradeAccepted', offer, original: null },
+    ]
+    expect(countTrades(NO_TRADES, events)).toEqual({ proposed: 3, accepted: 2, countered: 2, counterAccepted: 1 })
   })
 })

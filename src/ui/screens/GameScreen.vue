@@ -112,7 +112,7 @@ function skipOnTap(event: PointerEvent) {
       </div>
 
       <div
-        v-if="view.offer && !view.thinking && !isPresenting"
+        v-if="view.offer && !view.thinking && !view.trade && !isPresenting"
         class="absolute inset-0 z-30 flex items-center justify-center bg-void/50 p-6"
       >
         <TradeOfferDialog />

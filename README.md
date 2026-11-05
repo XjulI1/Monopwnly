@@ -23,7 +23,8 @@ partie plus tôt.
 - **2 à 6 joueurs**, humains sur le même appareil ou IA.
 - **Adversaires IA** en trois niveaux : facile, normal et difficile. Ils achètent, enchérissent,
   construisent et négocient des échanges.
-- **Échanges** de systèmes, de PwnCoins et de Clés de déchiffrement entre joueurs, IA comprises.
+- **Échanges** de systèmes, de PwnCoins et de Clés de déchiffrement entre joueurs, IA comprises,
+  avec une contre-proposition possible.
 - **Options** : enchères désactivables, cagnotte de la DMZ, bonus double sur Boot, construction
   libre, pas de loyer en quarantaine, partie limitée en tours ou objectif de patrimoine.
 - **Plateau 3D** façon jeu de société : cases en relief, pions qui avancent case par case, dés
@@ -63,8 +64,13 @@ partie plus tôt.
 - On peut proposer avant ou après son lancer, et pendant un règlement de dette, même hors de son
   tour, pour éviter la faillite. Trois propositions au plus par tour, et une offre refusée ne peut
   pas être refaite à l'identique dans le même tour.
-- Le destinataire accepte ou refuse, sans contre-proposition. Une case en veille le reste chez son
-  nouveau propriétaire.
+- Le destinataire accepte, refuse ou **contre-propose** : le panneau s'ouvre alors prérempli avec
+  l'offre reçue, à modifier avant de l'envoyer à son auteur. L'auteur accepte ou refuse la
+  contre-proposition, sans pouvoir contre-proposer à son tour ; la fenêtre lui rappelle son offre de
+  départ. Une contre-proposition ne compte pas dans les trois propositions du tour. Une case en
+  veille le reste chez son nouveau propriétaire.
+- Les IA normale et difficile contre-proposent elles aussi : face à une offre presque acceptable,
+  elles demandent le complément de PwnCoins qui leur manque. L'IA facile accepte ou refuse.
 - Les IA évaluent chaque offre selon leur niveau : l'IA facile ne regarde que les prix, les IA
   normale et difficile se méfient d'une offre qui compléterait une famille adverse. Elles proposent
   aussi des échanges, aux humains comme entre elles. Le détail est dans [`docs/ia.md`](docs/ia.md).

@@ -1,4 +1,5 @@
-import { squareAt, squareById, type DeckKind, type SquareId } from '../../engine'
+import { squareAt, squareById, type DeckKind, type SquareId, type TradeOffer, type TradeSide } from '../../engine'
+import { formatPwn } from '../format'
 
 const NBSP = ' '
 const STARTS_WITH_VOWEL = /^[aeiouyàâäéèêëîïôöùûüœæ]/i
@@ -34,4 +35,17 @@ export function listOf(items: readonly string[]): string {
 /** « de » followed by a name, elided before a vowel: `d’Alice`, `de Bob`. */
 export function ofName(name: string): string {
   return STARTS_WITH_VOWEL.test(name) ? `d’${name}` : `de ${name}`
+}
+
+function sideText(side: TradeSide, isMortgaged: (id: SquareId) => boolean): string {
+  const squares = side.squares.map((id) => `${squareName(id)}${isMortgaged(id) ? ' (en veille)' : ''}`)
+  const cash = side.cash > 0 ? [formatPwn(side.cash)] : []
+  const keys = side.keys.length > 0 ? [countOf(side.keys.length, 'Clé de déchiffrement', 'Clés de déchiffrement')] : []
+  const items = [...squares, ...cash, ...keys]
+  return items.length > 0 ? listOf(items) : 'rien'
+}
+
+/** An offer in words, as its author sees it: what they give `contre` what they ask for, the squares said to be mortgaged flagged `(en veille)`. */
+export function offerText(offer: TradeOffer, isMortgaged: (id: SquareId) => boolean = () => false): string {
+  return `${sideText(offer.give, isMortgaged)} contre ${sideText(offer.receive, isMortgaged)}`
 }

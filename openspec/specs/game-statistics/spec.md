@@ -28,7 +28,7 @@ Ces relevés SHALL être conservés dans la sauvegarde.
 Pour chaque joueur, l'application SHALL compter au fil de la partie : loyers perçus, loyers payés,
 taxes et amendes payées, salaires reçus au passage de Boot, systèmes achetés et montant dépensé en
 achats, enchères remportées, backdoors et rootkits construits, passages en quarantaine, doubles
-obtenus, ainsi que le tour de sa faillite et son créancier.
+obtenus, ainsi que le tour de sa faillite, son créancier et si elle était volontaire (abandon).
 
 #### Scenario: Loyer compté des deux côtés
 
@@ -44,6 +44,11 @@ obtenus, ainsi que le tour de sa faillite et son créancier.
 
 - **WHEN** Carol fait faillite en payant la taxe Rançongiciel au tour 9
 - **THEN** les statistiques de Carol indiquent « faillite au tour 9 au profit de la banque »
+
+#### Scenario: Abandon daté
+
+- **WHEN** Bob abandonne pendant son tour au tour 15
+- **THEN** les statistiques de Bob indiquent « abandon au tour 15 »
 
 ### Requirement: Rentabilité des cases
 

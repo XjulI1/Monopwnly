@@ -45,7 +45,8 @@ de sa victoire (« Dernier hacker solvable », « Limite de <n> tours atteinte �
 <montant> atteint »), avec un onglet « Résultat » classant les joueurs : le vainqueur, puis les
 autres joueurs non faillis dans l'ordre du classement de `game-end-conditions` (patrimoine, argent
 liquide, ordre de jeu) avec leur patrimoine, puis les faillis de la faillite la plus récente à la
-plus ancienne avec son tour et son créancier ; un onglet « Statistiques » ; et les choix « Rejouer
+plus ancienne avec son tour et son créancier, ou « Abandon au tour <n> » pour un joueur qui a
+abandonné ; un onglet « Statistiques » ; et les choix « Rejouer
 avec les mêmes paramètres » et « Retour à l'accueil ».
 
 #### Scenario: Victoire
@@ -72,3 +73,8 @@ avec les mêmes paramètres » et « Retour à l'accueil ».
 
 - **WHEN** l'utilisateur choisit « Rejouer avec les mêmes paramètres »
 - **THEN** une nouvelle partie démarre avec les mêmes joueurs et réglages et une nouvelle graine
+
+#### Scenario: Classement avec un abandon
+
+- **WHEN** Carol gagne, que Bob a abandonné au tour 30 et Alice a fait faillite au tour 18 au profit de Carol
+- **THEN** l'onglet « Résultat » liste Carol « Vainqueur », Bob « Abandon au tour 30 », puis Alice « Faillite au tour 18 au profit de Carol »

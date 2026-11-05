@@ -91,6 +91,20 @@ de trancher, validés le 2 novembre 2026. Les specs indiquées reflètent ces d�
   plus gros patrimoine gagne, égalité départagée par l'argent liquide puis par l'ordre de jeu.
 - [x] **Objectif de patrimoine** vérifié à la fin du tour de chaque joueur.
 
+### Abandon (`add-voluntary-bankruptcy`, specs `debt-and-bankruptcy` et `ai-strategy`)
+
+- [x] **Abandon pendant son tour seulement**, avant ou après le lancer, quarantaine et double à
+  rejouer compris ; jamais pendant une enchère, une offre d'échange ou le tour d'un autre joueur.
+  Validé le 5 novembre 2026.
+- [x] **Abandon = faillite envers la banque** : constructions revendues, systèmes libres et actifs
+  sans enchère, Clés sous leur paquet. Validé le 5 novembre 2026.
+- [x] **Même critère pour les trois niveaux d'IA**, vérifié au début de leur tour seulement. Validé
+  le 5 novembre 2026.
+- [ ] **Seuils de l'IA** : patrimoine au plus 15 % de celui de l'adversaire le plus riche, et perte
+  espérée qui viderait le patrimoine disponible en moins de 5 tours de table. Proposé à 20 %, puis
+  abaissé à 15 % par le tournoi d'équilibrage : à 20 %, 89 % seulement des parties à 6 000 Ᵽ
+  finissaient par l'objectif, sous le seuil de 90 %.
+
 ## Changes de la V1
 
 À appliquer et archiver dans cet ordre (`/opsx:apply` puis `/opsx:archive`) : chaque change suppose
@@ -118,4 +132,5 @@ les précédents implémentés.
 
 - [ ] IA experte par simulation (sur le modèle de Risky).
 - [x] Contre-propositions dans les échanges (`add-trade-counter-offers`).
+- [x] Abandon d'une partie perdue, par un humain ou une IA (`add-voluntary-bankruptcy`).
 - [ ] Rééquilibrage des loyers d'après les statistiques des parties simulées.

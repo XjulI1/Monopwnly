@@ -144,7 +144,8 @@ courante. Au passage au format des options de partie : les quatre règles option
 désactivées, la limite de tours et l'objectif de patrimoine sont absents, la cagnotte vaut 0, et une
 partie terminée reçoit le motif de victoire `lastStanding`. Au passage au format des
 contre-propositions : une offre d'échange en attente devient une offre de départ, à laquelle le
-destinataire peut répondre par une contre-proposition.
+destinataire peut répondre par une contre-proposition. Au passage au format de l'abandon : les faillites
+déjà enregistrées dans les statistiques sont marquées comme non volontaires.
 
 #### Scenario: Partie en cours d'avant les options
 
@@ -165,3 +166,8 @@ destinataire peut répondre par une contre-proposition.
 
 - **WHEN** le stockage contient la sauvegarde, au format précédant les contre-propositions, d'une partie arrêtée sur une offre qui attend la réponse d'un humain
 - **THEN** la partie reprend sur la fenêtre de réception de cette offre, avec le bouton « Contre-proposer »
+
+#### Scenario: Faillite d'avant l'abandon
+
+- **WHEN** le stockage contient la sauvegarde, au format précédant l'abandon, d'une partie où Bob a fait faillite au tour 12 au profit de la banque
+- **THEN** la partie est chargée et les statistiques de Bob indiquent « faillite au tour 12 au profit de la banque »

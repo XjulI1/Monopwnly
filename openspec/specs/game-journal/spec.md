@@ -42,6 +42,7 @@ les suivantes :
 | Dette | « <joueur> doit réunir <montant> » (total des paiements restants) |
 | Paiement après une dette | « <joueur> paie <montant> à <joueur ou la banque> » |
 | Faillite | « <joueur> fait faillite au profit de <joueur ou la banque> » |
+| Abandon | « <joueur> abandonne et se déclare en faillite » |
 | Victoire | « <joueur> remporte la partie : <motif> », le motif étant « dernier hacker solvable », « limite de <n> tours atteinte » ou « objectif de <montant> atteint » |
 
 #### Scenario: Lancer et déplacement
@@ -74,6 +75,11 @@ les suivantes :
 - **WHEN** Carol gagne à la limite de 30 tours
 - **THEN** le journal contient « Carol remporte la partie : limite de 30 tours atteinte »
 
+#### Scenario: Abandon au journal
+
+- **WHEN** Alice abandonne pendant son tour
+- **THEN** le journal contient « Alice abandonne et se déclare en faillite » et non « Alice fait faillite au profit de la banque »
+
 ### Requirement: Entrées condensées
 
 Les lancers suivis du passage par Boot SHALL former une seule entrée avec une sous-ligne pour le
@@ -82,9 +88,9 @@ dépliable en une ligne par mise ou abandon ; tant que l'enchère dure, l'entré
 sur <case> ». Les paiements d'une même carte à plusieurs joueurs SHALL former une seule entrée
 dépliable. Les conséquences directes d'une carte (déplacement, salaire de Boot, entrée en
 quarantaine, Clé de déchiffrement conservée, montant calculé selon les constructions) SHALL être
-décrites dans l'effet de l'entrée de la carte plutôt que dans des entrées séparées. Une faillite
-SHALL se déplier en une ligne pour les constructions revendues, l'argent cédé, les systèmes et les
-Clés transmis.
+décrites dans l'effet de l'entrée de la carte plutôt que dans des entrées séparées. Une faillite,
+subie ou volontaire, SHALL se déplier en une ligne pour les constructions revendues, l'argent cédé,
+les systèmes et les Clés transmis.
 
 #### Scenario: Enchère condensée
 
@@ -105,6 +111,11 @@ Clés transmis.
 
 - **WHEN** Alice pioche « Conférence de sécurité » dans une partie à 4 joueurs
 - **THEN** le journal contient une seule entrée pour la carte, dépliable en 3 paiements de 50 Ᵽ
+
+#### Scenario: Abandon condensé
+
+- **WHEN** Alice abandonne avec 300 Ᵽ, Minitel et Modem 56k avec 1 backdoor chacun et une Clé de déchiffrement
+- **THEN** l'entrée « Alice abandonne et se déclare en faillite » se déplie en « Alice revend ses constructions pour 50 Ᵽ », « Alice cède 350 Ᵽ à la banque », « Minitel et Modem 56k retournent à la banque » et « 1 Clé de déchiffrement retourne sous son paquet »
 
 ### Requirement: Synchronisation avec les animations
 

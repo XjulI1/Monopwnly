@@ -1,0 +1,51 @@
+# Tasks
+
+Aucune nouvelle dépendance : aucun `pnpm install` n'est nécessaire pour ce change.
+
+## 1. Moteur : contre-proposition (`trading`)
+
+- [x] 1.1 Ajouter à `src/engine/types.ts` le champ `original: TradeOffer | null` de la phase `tradeOffer`, l'action `counterTrade`, l'événement `tradeCountered { offer, original }`, le champ `original` des événements `tradeAccepted` et `tradeRejected`, et les codes `COUNTER_UNCHANGED` et `COUNTER_NOT_ALLOWED`. Faire produire `original: null` par `proposeTrade` ; vérifier que `pnpm type-check` passe, après correction des aiguillages signalés par le typage, et que les tests du moteur passent sans changement.
+- [x] 1.2 Écrire les tests de `counterProblem` dans `src/engine/trading.test.ts` : `WRONG_PHASE` hors d'une offre, `COUNTER_NOT_ALLOWED` sur une contre-proposition, `INVALID_TRADE` pour une contre-proposition adressée à un tiers, `COUNTER_UNCHANGED` pour l'offre reçue inversée (y compris avec les éléments réordonnés), `INSUFFICIENT_FUNDS` (joueur 2 avec 180 Ᵽ qui contre-propose 200 Ᵽ contre Forum), `null` pour une contre-proposition valide.
+- [x] 1.3 Implémenter `counterProblem` dans `src/engine/trading.ts` et l'exporter comme requête depuis `src/engine/index.ts` ; vérifier que les tests 1.2 passent.
+- [x] 1.4 Écrire les tests de l'action `counterTrade` selon la spec `trading` : la partie reste en `tradeOffer` sur la contre-proposition, avec `original` et le joueur 1 comme acteur attendu ; le joueur 3 est rejeté (`NOT_YOUR_TURN`) ; une contre-proposition de contre-proposition est rejetée ; une contre-proposition acceptée transfère son contenu et revient en `preRoll` ; une contre-proposition refusée revient à la phase d'avant l'offre de départ ; le scénario de dette (Satellite contre 225 Ᵽ, contre-proposition à 180 Ᵽ acceptée, retour en `debt` avec les mêmes paiements) ; propositions restantes du joueur 2 inchangées ; offre de départ refaite rejetée (`TRADE_ALREADY_REJECTED`) ; refus compté dans `refusedAsks` pour chaque case demandée par l'offre de départ ; événements avec `offer` et `original`.
+- [x] 1.5 Implémenter `counterTrade` dans `trading.ts` (contrôle par `counterProblem`, `rememberRefusal` de l'offre de départ, nouvelle phase, événement) et le brancher dans `applyAction` ; faire porter `original` aux événements de `acceptTrade` et `rejectTrade` ; vérifier que les tests 1.4 et tous les tests du moteur passent.
+
+## 2. Journal et sauvegarde
+
+- [x] 2.1 Extraire le texte d'une offre (« Forum contre 150 Ᵽ », « rien », Clés, mention « en veille » passée en paramètre) de `src/game/history/journal.ts` vers `src/game/history/format.ts`, avec ses tests dans `format.test.ts` ; vérifier que les tests du journal passent sans changement.
+- [x] 2.2 Écrire les tests du journal dans `journal.test.ts` : « Joueur 1 fait une contre-proposition à Nyx : 120 Ᵽ contre Forum », « Nyx accepte la contre-proposition de Joueur 1 : … », « … refuse la contre-proposition de … », et les lignes d'une offre de départ inchangées.
+- [x] 2.3 Étendre le journal pour `tradeCountered` et pour les réponses dont `original` n'est pas nul ; vérifier que les tests 2.2 passent.
+- [x] 2.4 Écrire les tests de sauvegarde dans `persistence.test.ts` : reprise sur une contre-proposition en attente avec son `original` ; sauvegarde au format 4 refusée si la phase `tradeOffer` n'a pas de champ `original` ; sauvegarde au format 3 arrêtée sur une offre en attente, migrée avec `original: null` puis reprise ; sauvegardes aux formats 1 et 2 toujours migrées jusqu'au format courant.
+- [x] 2.5 Passer `SAVE_FORMAT_VERSION` à 4 dans `src/game/savedGame.ts`, ajouter la migration du format 3 et exiger `original` dans le validateur de phase ; vérifier que les tests 2.4 et tous les tests de sauvegarde passent.
+
+## 3. IA : contre-proposition et réponse (`trade-ai`)
+
+- [x] 3.1 Extraire la dichotomie de `cheapestAccepted` (`src/ai/trade/proposeOffers.ts`) en une fonction partagée `smallestAcceptedStep` ; vérifier que les tests de `proposeOffers` passent sans changement.
+- [x] 3.2 Écrire les tests de `counterOffer` dans `src/ai/trade/counterOffer.test.ts` selon la spec : « 300 Ᵽ contre Satellite » refusé tel quel, puis contre-proposé au plus petit multiple de 10 Ᵽ accepté, ce montant étant calculé dans le test avec `evaluateOffer` ; « 50 Ᵽ contre Satellite » sans contre-proposition ; auteur sans les moyens ; Forum contre 220 Ᵽ contre-proposé au plus grand montant accepté en dessous de 220 Ᵽ ; complément borné par `COUNTER_MAX_SHARE` ; refus lié aux options de partie pris en compte ; même contre-proposition pour la même vue.
+- [x] 3.3 Implémenter `src/ai/trade/counterOffer.ts` et `COUNTER_MAX_SHARE` (0,5) dans `src/ai/constants.ts`, puis brancher la contre-proposition dans `answerOffer` (`src/ai/levels/strategy.ts`) pour les offres de départ, sauf au niveau facile ; vérifier que les tests 3.2 passent, ainsi que ceux de `evaluateOffer`, dont « Famille offerte à un adversaire » devenu « ne l'accepte pas telle quelle », et un test du niveau facile qui refuse sans contre-proposer.
+- [x] 3.4 Écrire les tests de la réponse à une contre-proposition selon la spec : 260 Ᵽ contre Boutique en ligne accepté avec 1 000 Ᵽ et une réserve de 200 Ᵽ, refusé avec 400 Ᵽ ; refus de l'IA difficile qui n'aurait plus de quoi poser trois backdoors sur la famille Web ; vente en dette acceptée à 160 Ᵽ et refusée à 140 Ᵽ pour Satellite ; offre d'achat à 300 Ᵽ au tour suivant après une contre-proposition refusée.
+- [x] 3.5 Implémenter `answerCounter` et l'appeler depuis `answerOffer` quand `original` n'est pas nul ; vérifier que les tests 3.4 et tous les tests de `src/ai` passent, sauf l'instantané de la partie de référence traité en 5.3.
+- [x] 3.6 Relancer le test de robustesse (100 parties entre IA) : aucune action rejetée, décisions sous 20 ms, même partie pour une même graine ; vérifier qu'au moins une partie contient un événement `tradeCountered`.
+- [x] 3.7 Documenter dans `docs/ia.md` la contre-proposition (complément, borne de la moitié de la valeur échangée, niveaux concernés) et la réponse à une contre-proposition (réserve, backdoors du difficile, vente en dette) ; vérifier que les noms de constantes cités existent dans `constants.ts`.
+
+## 4. Interface (`trade-interface`)
+
+- [x] 4.1 Écrire les tests de `src/game/interaction.ts` : bouton « Contre-proposer » présent pour une offre de départ et absent pour une contre-proposition ; brouillon prérempli à l'ouverture (partenaire imposé, côtés inversés) ; envoi inactif avec la raison « Modifiez l'offre pour faire une contre-proposition » tant que rien n'a changé ; envoi qui émet `counterTrade` ; fermeture qui rend la fenêtre de réception ; mise en avant des cases du brouillon pendant la composition.
+- [x] 4.2 Ajouter `counter` à `TradeDraft`, le bouton `counterTrade`, la validation par `counterProblem` dans `composerView` et l'aiguillage de `pressButton` ; vérifier que les tests 4.1 passent.
+- [x] 4.3 Écrire les tests de composant de `TradeComposer.vue` en mode contre-proposition : titre « Contre-proposition à <nom> », partenaire sans sélecteur, aucun compteur de propositions restantes, bouton « Envoyer la contre-proposition ».
+- [x] 4.4 Adapter `TradeComposer.vue` ; vérifier que les tests 4.3 passent, ainsi que les tests existants du panneau.
+- [x] 4.5 Écrire les tests de composant de `TradeOfferDialog.vue` : trois boutons pour une offre de départ ; pour une contre-proposition, le titre « Nyx vous fait une contre-proposition », le rappel « Votre offre : Forum contre 150 Ᵽ » et seulement « Accepter » et « Refuser » ; fenêtre masquée pendant la composition d'une contre-proposition.
+- [x] 4.6 Adapter `TradeOfferDialog.vue` avec le formateur d'offre de 2.1 ; vérifier que les tests 4.5 passent.
+- [x] 4.7 Écrire les tests du HUD dans `TradeHud.test.ts` : « <nom> étudie votre contre-proposition… », messages « <nom> accepte votre contre-proposition » et « <nom> refuse votre contre-proposition », aucun message quand l'IA contre-propose et ouverture de la fenêtre de réception, changement de propriétaire animé après une contre-proposition acceptée.
+- [x] 4.8 Adapter `AiThinking.vue` et `announceAnswer` dans `useGameSession.ts` ; vérifier que les tests 4.7 passent.
+- [x] 4.9 Mettre à jour le README (échanges avec une contre-proposition possible, y compris de la part des IA normale et difficile) ; vérifier que la description correspond aux scénarios de la spec `trade-interface`.
+
+## 5. Tournois et vérification d'ensemble
+
+- [x] 5.1 Écrire le test du comptage des échanges du rapport, sur une liste d'événements comprenant une contre-proposition acceptée et une refusée : deux contre-propositions faites, une acceptée, l'échange qui en est issu compté parmi les échanges acceptés.
+- [x] 5.2 Ajouter `countered` et `counterAccepted` à `report.trades` dans `src/ai/tournament/runTournament.ts` et les imprimer dans le tournoi d'équilibrage ; vérifier que le test 5.1 passe.
+- [x] 5.3 Dans `src/ai/noOptionRegression.test.ts`, retirer `original` des événements quand il est nul et renommer le test pour qu'il ne cite plus « before the game options ». Lancer le test, vérifier que la première différence avec l'instantané est un événement `tradeCountered`, puis régénérer `src/ai/__snapshots__/noOptionGame.txt`.
+- [x] 5.4 Lancer le tournoi de force (dans `pnpm test`) et `pnpm test:balance` ; si un critère n'est pas tenu, ajuster `COUNTER_MAX_SHARE`, puis `TRADE_ACCEPT_THRESHOLD`, sans toucher aux loyers. Vérifier que le rapport d'équilibrage indique plus de zéro contre-proposition, puis reporter les nouvelles mesures datées dans `docs/ia.md` et `docs/plateau.md`.
+- [x] 5.5 Dans `TODO.md`, cocher « Contre-propositions dans les échanges » et ajouter aux décisions de règles celles de ce change : une seule contre-proposition par offre, non comptée dans les trois propositions, l'offre de départ comptant comme refusée.
+- [x] 5.6 Jouer à la main une partie humain contre deux IA normales, puis une partie entre deux humains : contre-proposer à une offre d'IA, recevoir une contre-proposition d'une IA, contre-proposer pendant une dette, recharger la page pendant une contre-proposition en attente ; vérifier la lisibilité et l'absence de blocage, à la souris et au tactile.
+- [x] 5.7 Lancer `pnpm lint`, `pnpm type-check`, `pnpm test` et `pnpm build` ; tout doit passer.

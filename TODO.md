@@ -73,6 +73,16 @@ de trancher, validés le 2 novembre 2026. Les specs indiquées reflètent ces d�
 - [x] **Limite anti-harcèlement** : trois propositions au plus par tour et par joueur, et une même
   proposition refusée ne peut pas être refaite dans le même tour.
 
+### Contre-propositions (`add-trade-counter-offers`, spec `trading`)
+
+- [x] **Une seule contre-proposition par offre** : le destinataire peut répondre une fois par une
+  contre-proposition au contenu libre, différente de l'offre reçue ; l'auteur l'accepte ou la
+  refuse, sans contre-proposer à son tour. Validé le 4 novembre 2026.
+- [x] **Contre-proposition hors limite** : elle ne compte pas dans les trois propositions du tour de
+  son auteur, et l'offre à laquelle elle répond compte comme refusée.
+- [x] **IA** : les IA normale et difficile demandent le complément de PwnCoins qui leur ferait
+  accepter une offre presque acceptable ; l'IA facile ne contre-propose jamais.
+
 ### Fins de partie (`add-game-options`, spec `game-end-conditions`)
 
 - [x] **Patrimoine** = argent liquide + prix des systèmes actifs + valeur de veille des systèmes en
@@ -97,15 +107,15 @@ les précédents implémentés.
 
 ## Déploiement
 
-- [ ] Servir `dist/` en **HTTPS** (obligatoire pour le service worker, sauf sur `localhost`).
-- [ ] En-tête `Cache-Control: no-cache` sur `sw.js`, `index.html` et `manifest.webmanifest`, sans
+- [x] Servir `dist/` en **HTTPS** (obligatoire pour le service worker, sauf sur `localhost`).
+- [x] En-tête `Cache-Control: no-cache` sur `sw.js`, `index.html` et `manifest.webmanifest`, sans
   quoi les nouvelles versions ne sont jamais vues ; les fichiers de `assets/` (noms hachés) peuvent
   être mis en cache longue durée.
-- [ ] Tester l'installation sur iPad (« Sur l'écran d'accueil ») : icône, nom, ouverture en
+- [x] Tester l'installation sur iPad (« Sur l'écran d'accueil ») : icône, nom, ouverture en
   paysage sans barre d'adresse, lancement hors ligne.
 
 ## Après la V1
 
 - [ ] IA experte par simulation (sur le modèle de Risky).
-- [ ] Contre-propositions dans les échanges.
+- [x] Contre-propositions dans les échanges (`add-trade-counter-offers`).
 - [ ] Rééquilibrage des loyers d'après les statistiques des parties simulées.

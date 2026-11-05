@@ -24,7 +24,8 @@ Avec une limite de tours, pendant les 3 derniers tours de table (les tours 28, 2
 limite de 30), les IA normale et difficile SHALL évaluer leurs décisions par leur patrimoine
 immédiat : elles SHALL NOT réactiver de système, SHALL NOT revendre de construction sauf pour régler
 une dette, SHALL enchérir jusqu'au prix de la case quand elles en ont les moyens, et SHALL accepter un
-échange seulement s'il augmente strictement leur patrimoine.
+échange seulement s'il augmente strictement leur patrimoine. Une contre-proposition qu'elles font
+pendant ces tours SHALL augmenter strictement leur patrimoine.
 
 #### Scenario: Pas de réactivation en fin de partie
 
@@ -38,13 +39,13 @@ une dette, SHALL enchérir jusqu'au prix de la case quand elles en ont les moyen
 
 #### Scenario: Échange qui fait perdre du patrimoine
 
-- **WHEN** la limite est de 30 tours, que le tour de table 28 est en cours et qu'on propose à une IA normale un échange qui réduit son patrimoine
-- **THEN** elle le refuse
+- **WHEN** la limite est de 30 tours, que le tour de table 28 est en cours et qu'on propose à une IA normale de lui vendre Minitel, au prix de 60 Ᵽ, contre 80 Ᵽ
+- **THEN** elle ne l'accepte pas telle quelle et contre-propose 50 Ᵽ contre Minitel
 
 #### Scenario: Échange neutre
 
-- **WHEN** la limite est de 30 tours, que le tour de table 29 est en cours et qu'on propose à une IA difficile un échange qui laisse son patrimoine inchangé
-- **THEN** elle le refuse
+- **WHEN** la limite est de 30 tours, que le tour de table 29 est en cours et qu'on propose à une IA difficile de lui vendre Minitel contre 60 Ᵽ, son prix
+- **THEN** elle ne l'accepte pas telle quelle et contre-propose 50 Ᵽ contre Minitel
 
 #### Scenario: Comportement habituel plus tôt
 
@@ -54,15 +55,16 @@ une dette, SHALL enchérir jusqu'au prix de la case quand elles en ont les moyen
 ### Requirement: Adversaire proche de l'objectif
 
 Avec un objectif de patrimoine, quand un adversaire atteint 80 % de l'objectif, l'IA difficile SHALL
-refuser tout échange qui augmente le patrimoine de cet adversaire et SHALL surenchérir pour
-l'empêcher de compléter une famille aux enchères ; l'IA normale SHALL refuser les échanges qui
-complètent une famille de cet adversaire. La surenchère de blocage SHALL primer sur le plafond de la
-fin de partie proche et SHALL NOT faire descendre l'IA sous sa réserve d'argent.
+NOT accepter d'échange qui augmente le patrimoine de cet adversaire, et sa contre-proposition
+éventuelle SHALL NOT l'augmenter ; elle SHALL surenchérir pour l'empêcher de compléter une famille
+aux enchères. L'IA normale SHALL refuser les échanges qui complètent une famille de cet adversaire,
+sans contre-proposition. La surenchère de blocage SHALL primer sur le plafond de la fin de partie
+proche et SHALL NOT faire descendre l'IA sous sa réserve d'argent.
 
 #### Scenario: Échange refusé au meneur
 
-- **WHEN** l'objectif est de 6 000 Ᵽ, que Bob a un patrimoine de 5 100 Ᵽ et propose à une IA difficile un échange qui lui est favorable à elle mais augmente aussi le patrimoine de Bob
-- **THEN** l'IA difficile refuse
+- **WHEN** l'objectif est de 6 000 Ᵽ, que Bob a un patrimoine de 5 100 Ᵽ et propose à une IA difficile de lui vendre la Boutique en ligne, au prix de 200 Ᵽ, contre 220 Ᵽ, échange qui lui est favorable à elle mais augmente aussi le patrimoine de Bob
+- **THEN** l'IA difficile ne l'accepte pas telle quelle et contre-propose 200 Ᵽ contre la Boutique en ligne, qui laisse inchangé le patrimoine de Bob
 
 #### Scenario: Famille bloquée aux enchères
 
@@ -77,7 +79,7 @@ fin de partie proche et SHALL NOT faire descendre l'IA sous sa réserve d'argent
 #### Scenario: IA normale
 
 - **WHEN** l'objectif est de 6 000 Ᵽ, que Bob a 5 100 Ᵽ de patrimoine et propose à une IA normale un échange qui lui compléterait la famille Web
-- **THEN** l'IA normale refuse
+- **THEN** l'IA normale refuse, sans contre-proposition
 
 ### Requirement: Construction libre
 

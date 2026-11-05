@@ -28,6 +28,10 @@
     height: 100%;
   }
 
+  html {
+    touch-action: manipulation;
+  }
+
   body {
     margin: 0;
     background: var(--color-void);
